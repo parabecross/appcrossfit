@@ -14,85 +14,132 @@ const coachForbiddenAdminPaths = [
   "/admin/estadisticas",
 ];
 
+function getPathInfo(pathname: string) {
+  const locale =
+    routing.locales.find((l) => pathname.startsWith(`/${l}/`)) ??
+    (pathname === `/${routing.defaultLocale}`
+      ? routing.defaultLocale
+      : routing.locales.find((l) => pathname === `/${l}`)) ??
+    routing.defaultLocale;
+
+  const pathWithoutLocale =
+    pathname.replace(new RegExp(`^/${locale}`), "") || "/";
+
+  return { locale, pathWithoutLocale };
+}
+
 export async function middleware(request: NextRequest) {
-  const intlResponse = intlMiddleware(request);
-  const pathname = request.nextUrl.pathname;
-  const locale = routing.locales.find((l) =>
-    pathname.startsWith(`/${l}`)
-  ) ?? routing.defaultLocale;
-  const pathWithoutLocale = pathname.replace(`/${locale}`, "") || "/";
+  const response = intlMiddleware(request);
+  const { locale, pathWithoutLocale } = getPathInfo(request.nextUrl.pathname);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response;
+  }
 
   const isPublic =
     publicPaths.some((p) => pathWithoutLocale.startsWith(p)) ||
     pathWithoutLocale === "/";
 
-  let supabaseResponse = intlResponse;
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
+    });
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user && !isPublic && pathWithoutLocale !== "/") {
+      const redirect = NextResponse.redirect(
+        new URL(`/${locale}/login`, request.url)
+      );
+      response.cookies.getAll().forEach((cookie) => {
+        redirect.cookies.set(cookie);
+      });
+      return redirect;
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && !isPublic && pathWithoutLocale !== "/") {
-    return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
-  }
-
-  if (user && (pathWithoutLocale === "/login" || pathWithoutLocale === "/registro" || pathWithoutLocale === "/")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("rol")
-      .eq("user_id", user.id)
-      .single();
-
-    if (profile) {
-      let dest = `/${locale}/mis-reservas`;
-      if (profile.rol === "admin") dest = `/${locale}/admin/dashboard`;
-      if (profile.rol === "coach") dest = `/${locale}/admin/clases`;
-      return NextResponse.redirect(new URL(dest, request.url));
-    }
-  }
-
-  if (pathWithoutLocale.startsWith("/admin")) {
-    if (!user) {
-      return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
-    }
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("rol")
-      .eq("user_id", user.id)
-      .single();
-    if (!profile || !["admin", "coach"].includes(profile.rol)) {
-      return NextResponse.redirect(new URL(`/${locale}/mis-reservas`, request.url));
-    }
     if (
-      profile.rol === "coach" &&
-      coachForbiddenAdminPaths.some((p) => pathWithoutLocale.startsWith(p))
+      user &&
+      (pathWithoutLocale === "/login" ||
+        pathWithoutLocale === "/registro" ||
+        pathWithoutLocale === "/")
     ) {
-      return NextResponse.redirect(new URL(`/${locale}/admin/clases`, request.url));
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("rol")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        let dest = `/${locale}/mis-reservas`;
+        if (profile.rol === "admin") dest = `/${locale}/admin/dashboard`;
+        if (profile.rol === "coach") dest = `/${locale}/admin/clases`;
+        const redirect = NextResponse.redirect(new URL(dest, request.url));
+        response.cookies.getAll().forEach((cookie) => {
+          redirect.cookies.set(cookie);
+        });
+        return redirect;
+      }
     }
+
+    if (pathWithoutLocale.startsWith("/admin")) {
+      if (!user) {
+        const redirect = NextResponse.redirect(
+          new URL(`/${locale}/login`, request.url)
+        );
+        response.cookies.getAll().forEach((cookie) => {
+          redirect.cookies.set(cookie);
+        });
+        return redirect;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("rol")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile || !["admin", "coach"].includes(profile.rol)) {
+        const redirect = NextResponse.redirect(
+          new URL(`/${locale}/mis-reservas`, request.url)
+        );
+        response.cookies.getAll().forEach((cookie) => {
+          redirect.cookies.set(cookie);
+        });
+        return redirect;
+      }
+
+      if (
+        profile.rol === "coach" &&
+        coachForbiddenAdminPaths.some((p) => pathWithoutLocale.startsWith(p))
+      ) {
+        const redirect = NextResponse.redirect(
+          new URL(`/${locale}/admin/clases`, request.url)
+        );
+        response.cookies.getAll().forEach((cookie) => {
+          redirect.cookies.set(cookie);
+        });
+        return redirect;
+      }
+    }
+  } catch {
+    return response;
   }
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {
