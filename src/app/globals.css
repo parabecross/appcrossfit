@@ -2,26 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 14 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 14 100% 50%;
+    --radius: 0.75rem;
+    --brand-glow: 14 100% 50%;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .brand-gradient {
+    @apply bg-gradient-to-r from-orange-600 via-red-500 to-orange-500;
+  }
+  .brand-text {
+    @apply bg-gradient-to-r from-orange-400 via-red-400 to-orange-300 bg-clip-text text-transparent;
+  }
+  .glass-card {
+    @apply rounded-xl border border-white/5 bg-card/80 backdrop-blur-sm;
+  }
+  .glow-primary {
+    box-shadow: 0 0 40px -10px hsl(var(--brand-glow) / 0.4);
   }
 }

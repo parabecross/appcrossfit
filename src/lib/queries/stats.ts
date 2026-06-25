@@ -1,0 +1,103 @@
+import { createClient } from "@/lib/supabase/server";
+import { APP_CONFIG } from "@/lib/config/app-config";
+
+export async function getStatsData() {
+  const supabase = await createClient();
+
+  const weeksAgo = new Date();
+  weeksAgo.setDate(weeksAgo.getDate() - APP_CONFIG.TENDENCIA_SEMANAS * 7);
+  const from = weeksAgo.toISOString().split("T")[0];
+
+  const { data: reservas } = await supabase
+    .from("reservas")
+    .select("*, clase:clases(*), profile:profiles!reservas_usuario_id_fkey(nombre_completo, id)")
+    .gte("created_at", from);
+
+  const { data: clases } = await supabase
+    .from("clases")
+    .select("*")
+    .gte("fecha", from);
+
+  return { reservas: reservas ?? [], clases: clases ?? [] };
+}
+
+export function computeFrequencyStats(
+  reservas: Array<{ estado: string; profile: { id: string; nombre_completo: string } | null }>
+) {
+  const map = new Map<string, { name: string; count: number }>();
+  for (const r of reservas) {
+    if (r.estado !== "asistio" || !r.profile) continue;
+    const cur = map.get(r.profile.id) ?? {
+      name: r.profile.nombre_completo,
+      count: 0,
+    };
+    cur.count++;
+    map.set(r.profile.id, cur);
+  }
+  const weeks = APP_CONFIG.TENDENCIA_SEMANAS;
+  return Array.from(map.values())
+    .map((v) => ({
+      name: v.name.split(" ")[0],
+      frequency: +(v.count / weeks).toFixed(1),
+    }))
+    .sort((a, b) => b.frequency - a.frequency)
+    .slice(0, 15);
+}
+
+export function computeDemandStats(
+  reservas: Array<{
+    estado: string;
+    clase: { hora_inicio: string; fecha: string } | null;
+  }>
+) {
+  const map = new Map<string, number>();
+  for (const r of reservas) {
+    if (!r.clase || r.estado === "cancelada") continue;
+    const d = new Date(r.clase.fecha);
+    const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
+    const key = `${day} ${r.clase.hora_inicio.slice(0, 5)}`;
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([slot, count]) => ({ slot, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
+}
+
+export function computeTrendStats(
+  reservas: Array<{ estado: string; created_at: string }>
+) {
+  const map = new Map<string, number>();
+  for (const r of reservas) {
+    if (r.estado !== "asistio") continue;
+    const d = new Date(r.created_at);
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay() + 1);
+    const key = weekStart.toISOString().split("T")[0];
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([week, attendance]) => ({ week, attendance }))
+    .sort((a, b) => a.week.localeCompare(b.week));
+}
+
+export function computeOccupancyStats(
+  clases: Array<{ cupo_maximo: number; id: string }>,
+  reservas: Array<{ clase_id: string; estado: string }>
+) {
+  return clases
+    .slice(0, 20)
+    .map((c) => {
+      const count = reservas.filter(
+        (r) =>
+          r.clase_id === c.id &&
+          ["confirmada", "asistio"].includes(r.estado)
+      ).length;
+      return {
+        name: c.id.slice(0, 6),
+        occupancy: Math.round((count / c.cupo_maximo) * 100),
+      };
+    })
+    .filter((x) => x.occupancy > 0)
+    .slice(0, 10);
+}

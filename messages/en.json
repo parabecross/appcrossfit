@@ -1,0 +1,128 @@
+{
+  "common": {
+    "brand": "Parabellum Cross",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "actions": "Actions",
+    "confirm": "Confirm",
+    "back": "Back",
+    "error": "Something went wrong",
+    "success": "Done",
+    "noData": "No data",
+    "language": "Language"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "bio": "Bio / goal",
+    "bioPlaceholder": "E.g. I train in the mornings, working on my first muscle up",
+    "photo": "Profile photo",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginSubtitle": "Train hard. Book easy.",
+    "registerSubtitle": "Join the Parabellum community"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "classes": "Classes",
+    "plans": "Plans",
+    "stats": "Statistics",
+    "myBookings": "My bookings",
+    "profile": "Profile",
+    "membership": "My membership"
+  },
+  "membership": {
+    "title": "My membership",
+    "currentPlan": "Current plan",
+    "expires": "Expires on",
+    "expired": "Your membership expired on {date}. Contact the gym to renew.",
+    "pending": "Your account is pending payment. Contact the gym to activate your plan.",
+    "noMembership": "No active membership",
+    "history": "History",
+    "status": {
+      "vigente": "Active",
+      "vencida": "Expired",
+      "cancelada": "Cancelled"
+    },
+    "activateMonth": "Activate month",
+    "extend": "Extend",
+    "editEndDate": "Edit end date",
+    "assignPlan": "Assign plan"
+  },
+  "classes": {
+    "title": "Classes",
+    "book": "Book",
+    "booked": "Booked",
+    "full": "Class full",
+    "cancelBooking": "Cancel booking",
+    "cancelTooLate": "Cannot cancel within {hours}h of class",
+    "spots": "{occupied}/{max} spots",
+    "coach": "Coach",
+    "selectCoach": "Select coach",
+    "noClasses": "No classes this day",
+    "weeklyCalendar": "Weekly calendar",
+    "create": "Create class",
+    "edit": "Edit class",
+    "attendance": "Attendance",
+    "attended": "Attended",
+    "noShow": "No show",
+    "enrolled": "Enrolled",
+    "status": {
+      "programada": "Scheduled",
+      "cancelada": "Cancelled"
+    }
+  },
+  "admin": {
+    "dashboard": "Control panel",
+    "activeMembers": "Active members",
+    "expiredMembers": "Expired members",
+    "pendingMembers": "Pending payment",
+    "alerts": "Expiry alerts",
+    "expiringSoon": "Expiring soon (3 days)",
+    "expired": "Expired",
+    "createUser": "Create user",
+    "userDetail": "User detail"
+  },
+  "plans": {
+    "title": "Plans",
+    "name": "Name",
+    "type": "Type",
+    "duration": "Duration (days)",
+    "price": "Price",
+    "active": "Active",
+    "types": {
+      "mensual_fijo": "Fixed monthly",
+      "convenio_externo": "External agreement"
+    }
+  },
+  "stats": {
+    "title": "Statistics",
+    "frequency": "Frequency per member",
+    "frequencyUnit": "times/week",
+    "demand": "Demand by time slot",
+    "occupancy": "Average occupancy",
+    "trend": "Attendance trend",
+    "atRisk": "At risk of churn"
+  },
+  "roles": {
+    "admin": "Admin",
+    "socio": "Member",
+    "coach": "Coach"
+  },
+  "accountStatus": {
+    "pendiente_pago": "Pending payment",
+    "activo": "Active",
+    "inactivo": "Inactive"
+  }
+}

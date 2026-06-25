@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Parabellum Cross
 
-## Getting Started
+Sistema web de gestión para gimnasio CrossFit — reservas, membresías, estadísticas y panel admin.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![Supabase](https://img.shields.io/badge/Supabase-Postgres-green) ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-blue)
+
+## Stack
+
+- **Next.js 14** (App Router) + TypeScript
+- **Supabase** (Auth, Postgres, Storage, RLS)
+- **Tailwind CSS** + componentes estilo shadcn/ui
+- **Recharts** para estadísticas
+- **next-intl** — UI en **español e inglés**
+
+## Setup local
+
+### 1. Clonar e instalar
+
+```bash
+npm install
+```
+
+### 2. Crear proyecto Supabase
+
+1. Ve a [supabase.com](https://supabase.com) → New Project
+2. Copia **Project URL**, **anon key** y **service_role key**
+3. Copia `.env.example` → `.env.local` y pega tus valores
+
+### 3. Ejecutar schema SQL
+
+En el **SQL Editor** de Supabase, pega y ejecuta el contenido completo de:
+
+```
+supabase/schema.sql
+```
+
+Esto crea tablas, enums, triggers, vistas, RLS y bucket `avatars`.
+
+### 4. Seed de datos demo
+
+```bash
+npm run seed
+```
+
+Crea admin, coaches, socios, planes, clases y reservas.
+
+### 5. Correr en local
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) → redirige a `/es/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Credenciales de prueba (post-seed)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Rol   | Email                         | Password          |
+|-------|-------------------------------|-------------------|
+| Admin | `admin@parabellum.cross`      | `Parabellum2024!` |
+| Coach | `coach.maria@parabellum.cross`| `Parabellum2024!` |
+| Socio | `lucia.herrera@email.com`     | `Parabellum2024!` |
 
-## Learn More
+## Rutas
 
-To learn more about Next.js, take a look at the following resources:
+### Admin
+- `/es/admin/dashboard` — KPIs, alertas, gráficas
+- `/es/admin/usuarios` — gestión de socios
+- `/es/admin/clases` — calendario, crear clases, asistencia
+- `/es/admin/planes` — tipos de membresía
+- `/es/admin/estadisticas` — gráficas detalladas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Socio
+- `/es/mis-reservas` — calendario semanal + reservar/cancelar
+- `/es/perfil` — editar bio, foto, datos
+- `/es/mi-membresia` — plan actual e historial
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Cambia `es` por `en` para inglés. Botón **EN/ES** en la UI.
 
-## Deploy on Vercel
+## Roles
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Rol    | Acceso                                      |
+|--------|---------------------------------------------|
+| admin  | Panel completo                              |
+| coach  | Solo gestión de clases                      |
+| socio  | Reservas, perfil, membresía                 |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Los **coaches** son perfiles reales asignables al crear cada clase.
+
+## Deploy en Vercel
+
+1. Push a GitHub
+2. Import en [vercel.com](https://vercel.com)
+3. Añade las 3 variables de entorno de `.env.example`
+4. Deploy
+
+## Estructura
+
+```
+src/
+├── app/[locale]/     # Rutas con i18n
+├── components/       # UI, layouts, charts
+├── lib/              # Supabase, queries, reglas de negocio
+├── i18n/             # Config next-intl
+└── types/            # Tipos TypeScript
+supabase/
+├── schema.sql        # DDL + RLS
+scripts/
+└── seed.ts           # Datos demo
+```
+
+## Futuro (preparado, no implementado)
+
+- **Pagos**: tabla `pagos` separada de `membresias` — ver comentarios en `schema.sql`
+- **Multi-sede**: columna `gym_id` en tablas principales
+- **Notificaciones**: Edge Function cron para membresías por vencer — ver comentarios en schema
+
+## Reglas de negocio
+
+- Socios nuevos quedan en `pendiente_pago` hasta que admin asigne plan
+- Membresía vencida bloquea reservas con mensaje claro
+- Cancelación permitida hasta **2 h** antes de la clase (`src/lib/config/app-config.ts`)
+- Cupo default **12** por clase
+- Alertas admin: vencidos + por vencer en **3 días**
+
+---
+
+**Parabellum Cross** — Train hard. Book easy.

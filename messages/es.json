@@ -1,0 +1,128 @@
+{
+  "common": {
+    "brand": "Parabellum Cross",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "actions": "Acciones",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "error": "Algo salió mal",
+    "success": "Listo",
+    "noData": "Sin datos",
+    "language": "Idioma"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "fullName": "Nombre completo",
+    "phone": "Teléfono",
+    "bio": "Bio / meta",
+    "bioPlaceholder": "Ej: Voy por las mañanas, mi meta es mi primer muscle up",
+    "photo": "Foto de perfil",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "loginSubtitle": "Entrena fuerte. Reserva fácil.",
+    "registerSubtitle": "Únete a la comunidad Parabellum"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Usuarios",
+    "classes": "Clases",
+    "plans": "Planes",
+    "stats": "Estadísticas",
+    "myBookings": "Mis reservas",
+    "profile": "Perfil",
+    "membership": "Mi membresía"
+  },
+  "membership": {
+    "title": "Mi membresía",
+    "currentPlan": "Plan actual",
+    "expires": "Vence el",
+    "expired": "Tu mensualidad venció el {date}. Contacta al gym para renovar.",
+    "pending": "Tu cuenta está pendiente de pago. Contacta al gym para activar tu plan.",
+    "noMembership": "Sin membresía activa",
+    "history": "Historial",
+    "status": {
+      "vigente": "Vigente",
+      "vencida": "Vencida",
+      "cancelada": "Cancelada"
+    },
+    "activateMonth": "Activar mes",
+    "extend": "Extender",
+    "editEndDate": "Editar fecha fin",
+    "assignPlan": "Asignar plan"
+  },
+  "classes": {
+    "title": "Clases",
+    "book": "Reservar",
+    "booked": "Reservado",
+    "full": "Clase llena",
+    "cancelBooking": "Cancelar reserva",
+    "cancelTooLate": "No puedes cancelar a menos de {hours}h antes",
+    "spots": "{occupied}/{max} cupos",
+    "coach": "Coach",
+    "selectCoach": "Seleccionar coach",
+    "noClasses": "No hay clases este día",
+    "weeklyCalendar": "Calendario semanal",
+    "create": "Crear clase",
+    "edit": "Editar clase",
+    "attendance": "Asistencia",
+    "attended": "Asistió",
+    "noShow": "No asistió",
+    "enrolled": "Inscritos",
+    "status": {
+      "programada": "Programada",
+      "cancelada": "Cancelada"
+    }
+  },
+  "admin": {
+    "dashboard": "Panel de control",
+    "activeMembers": "Socios activos",
+    "expiredMembers": "Socios vencidos",
+    "pendingMembers": "Pendientes de pago",
+    "alerts": "Alertas de vencimiento",
+    "expiringSoon": "Por vencer (3 días)",
+    "expired": "Vencidos",
+    "createUser": "Crear usuario",
+    "userDetail": "Detalle de usuario"
+  },
+  "plans": {
+    "title": "Planes",
+    "name": "Nombre",
+    "type": "Tipo",
+    "duration": "Duración (días)",
+    "price": "Precio",
+    "active": "Activo",
+    "types": {
+      "mensual_fijo": "Mensual fijo",
+      "convenio_externo": "Convenio externo"
+    }
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "frequency": "Frecuencia por usuario",
+    "frequencyUnit": "veces/semana",
+    "demand": "Demanda por horario",
+    "occupancy": "Ocupación promedio",
+    "trend": "Tendencia de asistencia",
+    "atRisk": "En riesgo de fuga"
+  },
+  "roles": {
+    "admin": "Admin",
+    "socio": "Socio",
+    "coach": "Coach"
+  },
+  "accountStatus": {
+    "pendiente_pago": "Pendiente de pago",
+    "activo": "Activo",
+    "inactivo": "Inactivo"
+  }
+}
