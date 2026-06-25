@@ -22,7 +22,6 @@ export function RegisterForm() {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const router = useRouter();
-  const supabase = createClient();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -41,6 +40,7 @@ export function RegisterForm() {
     setError(null);
     setWarning(null);
 
+    const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
