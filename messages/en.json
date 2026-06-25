@@ -34,6 +34,7 @@
     "hidePassword": "Hide password",
     "photoUploadFailed": "Could not save your photo. You can upload it from your profile.",
     "confirmEmail": "Check your email to confirm your account, then sign in.",
+    "configMissing": "The app is not connected to Supabase. An admin must set the environment variables in Vercel and redeploy.",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "loginSubtitle": "Train hard. Book easy.",

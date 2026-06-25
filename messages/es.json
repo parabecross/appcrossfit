@@ -34,6 +34,7 @@
     "hidePassword": "Ocultar contraseña",
     "photoUploadFailed": "No se pudo guardar la foto. Podrás subirla en tu perfil.",
     "confirmEmail": "Revisa tu correo para confirmar la cuenta y luego inicia sesión.",
+    "configMissing": "La app no está conectada a Supabase. El administrador debe configurar las variables de entorno en Vercel y volver a desplegar.",
     "noAccount": "¿No tienes cuenta?",
     "hasAccount": "¿Ya tienes cuenta?",
     "loginSubtitle": "Entrena fuerte. Reserva fácil.",
