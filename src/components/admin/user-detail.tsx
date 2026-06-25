@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
 import { computeFechaFin } from "@/lib/membresias/helpers";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import type { Profile, Membresia, Plan, Reserva } from "@/types/database";
+import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 
 export function UserDetailClient({
   user,
@@ -42,60 +42,125 @@ export function UserDetailClient({
 }) {
   const t = useTranslations("membership");
   const tm = useTranslations("membership.status");
+  const tc = useTranslations("common");
   const router = useRouter();
-  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [planId, setPlanId] = useState(planes[0]?.id ?? "");
-  const [fechaFin, setFechaFin] = useState("");
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [activateFechaFin, setActivateFechaFin] = useState("");
+  const [editFechaFin, setEditFechaFin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const current = membresias[0];
 
-  const assignPlan = async (manual = false) => {
-    setLoading(true);
-    const plan = planes.find((p) => p.id === planId);
-    if (!plan) return;
+  const getSelectedPlan = () => planes.find((p) => p.id === planId);
+
+  const defaultFechaFin = () => {
+    const plan = getSelectedPlan() ?? planes[0];
     const inicio = new Date().toISOString().split("T")[0];
-    const fin = manual && fechaFin
-      ? fechaFin
-      : computeFechaFin(inicio, plan.duracion_dias);
-
-    await supabase.from("membresias").insert({
-      usuario_id: user.id,
-      plan_id: planId,
-      fecha_inicio: inicio,
-      fecha_fin: fin,
-      metodo_asignacion: manual ? "manual" : "automatico",
-      estado: "vigente",
-    });
-
-    await supabase
-      .from("profiles")
-      .update({ estado_cuenta: "activo" })
-      .eq("id", user.id);
-
-    router.refresh();
-    setLoading(false);
+    return computeFechaFin(inicio, plan?.duracion_dias ?? 30);
   };
 
-  const updateFechaFin = async (membresiaId: string) => {
-    if (!fechaFin) return;
+  const callMembresiaApi = async (body: Record<string, unknown>) => {
+    const res = await fetch("/api/admin/membresia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? tc("error"));
+    }
+    return data;
+  };
+
+  const assignPlan = async (manual = false) => {
+    setError(null);
+    setSuccess(false);
+
+    if (!planId) {
+      setError(t("selectPlan"));
+      return;
+    }
+
+    if (manual && !activateFechaFin) {
+      setError(t("invalidDate"));
+      return;
+    }
+
     setLoading(true);
-    await supabase
-      .from("membresias")
-      .update({ fecha_fin: fechaFin })
-      .eq("id", membresiaId);
-    router.refresh();
-    setLoading(false);
+    try {
+      await callMembresiaApi({
+        action: "assign",
+        usuario_id: user.id,
+        plan_id: planId,
+        manual,
+        fecha_fin: manual ? activateFechaFin : undefined,
+      });
+      setSuccess(true);
+      setActivateOpen(false);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tc("error"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateFechaFin = async () => {
+    if (!current) return;
+    setError(null);
+    setSuccess(false);
+
+    if (!editFechaFin) {
+      setError(t("invalidDate"));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await callMembresiaApi({
+        action: "update_end",
+        membresia_id: current.id,
+        fecha_fin: editFechaFin,
+      });
+      setSuccess(true);
+      setEditOpen(false);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tc("error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const attended = reservas.filter((r) => r.estado === "asistio").length;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black">{user.nombre_completo}</h1>
-        <p className="text-muted-foreground">{user.telefono}</p>
-        {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black">{user.nombre_completo}</h1>
+          <p className="text-muted-foreground">{user.telefono}</p>
+          {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
+        </div>
+        {user.rol === "socio" && (
+          <DeleteSocioDialog
+            userId={user.user_id}
+            nombre={user.nombre_completo}
+            variant="button"
+            redirectAfterDelete
+          />
+        )}
       </div>
+
+      {success && (
+        <p className="text-sm text-green-400">{t("assignSuccess")}</p>
+      )}
+      {error && !activateOpen && !editOpen && (
+        <p className="text-sm text-red-400">{error}</p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -139,73 +204,115 @@ export function UserDetailClient({
           <CardTitle>{t("assignPlan")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
-          <Select value={planId} onValueChange={setPlanId}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {planes.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => assignPlan(false)} disabled={loading}>
-            {t("assignPlan")}
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">{t("activateMonth")}</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("activateMonth")}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>{t("expires")}</Label>
-                  <Input
-                    type="date"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={() => assignPlan(true)}
-                  disabled={loading}
-                  className="w-full"
+          {planes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{tc("noData")}</p>
+          ) : (
+            <>
+              <Select value={planId} onValueChange={setPlanId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {planes.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={() => assignPlan(false)}
+                disabled={loading || !planId}
+              >
+                {loading ? tc("loading") : t("assignPlan")}
+              </Button>
+              <Dialog
+                open={activateOpen}
+                onOpenChange={(open) => {
+                  if (open) {
+                    setError(null);
+                    setActivateFechaFin(defaultFechaFin());
+                  }
+                  setActivateOpen(open);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline">{t("activateMonth")}</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t("activateMonth")}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="activate-fecha-fin">{t("expires")}</Label>
+                      <Input
+                        id="activate-fecha-fin"
+                        name="activate-fecha-fin"
+                        type="date"
+                        value={activateFechaFin}
+                        onChange={(e) => setActivateFechaFin(e.target.value)}
+                      />
+                    </div>
+                    {error && activateOpen && (
+                      <p className="text-sm text-red-400">{error}</p>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={() => assignPlan(true)}
+                      disabled={loading || !planId}
+                      className="w-full"
+                    >
+                      {loading ? tc("loading") : t("activateMonth")}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              {current && (
+                <Dialog
+                  open={editOpen}
+                  onOpenChange={(open) => {
+                    if (open) {
+                      setError(null);
+                      setEditFechaFin(current?.fecha_fin ?? defaultFechaFin());
+                    }
+                    setEditOpen(open);
+                  }}
                 >
-                  {t("activateMonth")}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          {current && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="secondary">{t("editEndDate")}</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t("editEndDate")}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <Input
-                    type="date"
-                    defaultValue={current.fecha_fin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                  />
-                  <Button
-                    onClick={() => updateFechaFin(current.id)}
-                    disabled={loading}
-                    className="w-full"
-                  >
-                    {t("extend")}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary">{t("editEndDate")}</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t("editEndDate")}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="edit-fecha-fin">{t("expires")}</Label>
+                        <Input
+                          id="edit-fecha-fin"
+                          name="edit-fecha-fin"
+                          type="date"
+                          value={editFechaFin}
+                          onChange={(e) => setEditFechaFin(e.target.value)}
+                        />
+                      </div>
+                      {error && editOpen && (
+                        <p className="text-sm text-red-400">{error}</p>
+                      )}
+                      <Button
+                        type="button"
+                        onClick={updateFechaFin}
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        {loading ? tc("loading") : t("extend")}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

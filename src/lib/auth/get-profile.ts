@@ -31,8 +31,16 @@ export async function requireRole(
   const profile = await requireAuth(locale);
   if (!roles.includes(profile.rol)) {
     if (profile.rol === "admin") redirect(`/${locale}/admin/dashboard`);
+    if (profile.rol === "coach") redirect(`/${locale}/admin/clases`);
     redirect(`/${locale}/mis-reservas`);
   }
+  return profile;
+}
+
+export async function requireAdmin(locale: string) {
+  const profile = await requireAuth(locale);
+  if (profile.rol === "coach") redirect(`/${locale}/admin/clases`);
+  if (profile.rol !== "admin") redirect(`/${locale}/mis-reservas`);
   return profile;
 }
 

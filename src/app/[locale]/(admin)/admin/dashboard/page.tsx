@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAlertasMembresia, getKpis } from "@/lib/queries/memberships";
 import {
   getStatsData,
@@ -23,6 +24,7 @@ export default async function AdminDashboardPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  await requireAdmin(locale);
   const t = await getTranslations("admin");
   const ts = await getTranslations("stats");
 
@@ -33,7 +35,7 @@ export default async function AdminDashboardPage({
   ]);
 
   const frequency = computeFrequencyStats(statsRaw.reservas);
-  const demand = computeDemandStats(statsRaw.reservas);
+  const demand = computeDemandStats(statsRaw.reservas, locale);
   const trend = computeTrendStats(statsRaw.reservas);
 
   const vencidas = alertas.filter((a) => a.tipo_alerta === "vencida");
@@ -150,7 +152,7 @@ export default async function AdminDashboardPage({
             <CardTitle>{ts("trend")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <TrendChart data={trend} />
+            <TrendChart data={trend} locale={locale} />
           </CardContent>
         </Card>
         <Card>

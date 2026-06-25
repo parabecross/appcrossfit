@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { UsuariosTable } from "@/components/admin/usuarios-table";
 import { getMembresiaActual } from "@/lib/queries/memberships";
@@ -10,6 +11,7 @@ export default async function AdminUsuariosPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  await requireAdmin(locale);
   const t = await getTranslations("nav");
   const supabase = await createClient();
 

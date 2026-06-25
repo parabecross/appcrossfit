@@ -48,13 +48,19 @@ export function computeDemandStats(
   reservas: Array<{
     estado: string;
     clase: { hora_inicio: string; fecha: string } | null;
-  }>
+  }>,
+  locale = "es"
 ) {
+  const dayNames =
+    locale === "en"
+      ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      : ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
   const map = new Map<string, number>();
   for (const r of reservas) {
     if (!r.clase || r.estado === "cancelada") continue;
     const d = new Date(r.clase.fecha);
-    const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
+    const day = dayNames[d.getDay()];
     const key = `${day} ${r.clase.hora_inicio.slice(0, 5)}`;
     map.set(key, (map.get(key) ?? 0) + 1);
   }
@@ -65,12 +71,15 @@ export function computeDemandStats(
 }
 
 export function computeTrendStats(
-  reservas: Array<{ estado: string; created_at: string }>
+  reservas: Array<{
+    estado: string;
+    clase: { fecha: string } | null;
+  }>
 ) {
   const map = new Map<string, number>();
   for (const r of reservas) {
-    if (r.estado !== "asistio") continue;
-    const d = new Date(r.created_at);
+    if (r.estado !== "asistio" || !r.clase) continue;
+    const d = new Date(r.clase.fecha);
     const weekStart = new Date(d);
     weekStart.setDate(d.getDate() - d.getDay() + 1);
     const key = weekStart.toISOString().split("T")[0];
@@ -82,9 +91,18 @@ export function computeTrendStats(
 }
 
 export function computeOccupancyStats(
-  clases: Array<{ cupo_maximo: number; id: string }>,
-  reservas: Array<{ clase_id: string; estado: string }>
+  clases: Array<{
+    id: string;
+    nombre: string;
+    fecha: string;
+    hora_inicio: string;
+    cupo_maximo: number;
+  }>,
+  reservas: Array<{ clase_id: string; estado: string }>,
+  locale = "es"
 ) {
+  const dateLocale = locale === "en" ? "en-US" : "es-MX";
+
   return clases
     .slice(0, 20)
     .map((c) => {
@@ -93,8 +111,13 @@ export function computeOccupancyStats(
           r.clase_id === c.id &&
           ["confirmada", "asistio"].includes(r.estado)
       ).length;
+      const dia = new Date(c.fecha).toLocaleDateString(dateLocale, {
+        weekday: "short",
+        day: "numeric",
+      });
+      const label = `${c.nombre} · ${dia} ${c.hora_inicio.slice(0, 5)}`;
       return {
-        name: c.id.slice(0, 6),
+        name: label,
         occupancy: Math.round((count / c.cupo_maximo) * 100),
       };
     })

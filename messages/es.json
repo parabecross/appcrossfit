@@ -27,6 +27,10 @@
     "bio": "Bio / meta",
     "bioPlaceholder": "Ej: Voy por las mañanas, mi meta es mi primer muscle up",
     "photo": "Foto de perfil",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "photoUploadFailed": "No se pudo guardar la foto. Podrás subirla en tu perfil.",
+    "confirmEmail": "Revisa tu correo para confirmar la cuenta y luego inicia sesión.",
     "noAccount": "¿No tienes cuenta?",
     "hasAccount": "¿Ya tienes cuenta?",
     "loginSubtitle": "Entrena fuerte. Reserva fácil.",
@@ -58,7 +62,10 @@
     "activateMonth": "Activar mes",
     "extend": "Extender",
     "editEndDate": "Editar fecha fin",
-    "assignPlan": "Asignar plan"
+    "assignPlan": "Asignar plan",
+    "assignSuccess": "Membresía actualizada correctamente",
+    "selectPlan": "Selecciona un plan primero",
+    "invalidDate": "La fecha de vencimiento no es válida"
   },
   "classes": {
     "title": "Clases",
@@ -92,7 +99,11 @@
     "expiringSoon": "Por vencer (3 días)",
     "expired": "Vencidos",
     "createUser": "Crear usuario",
-    "userDetail": "Detalle de usuario"
+    "userDetail": "Detalle de usuario",
+    "deleteUser": "Eliminar socio",
+    "deleteUserConfirm": "¿Eliminar a {name} permanentemente?",
+    "deleteUserWarning": "Esta acción no se puede deshacer. Se borrarán también sus membresías, reservas e historial de asistencia.",
+    "deleteUserSuccess": "Socio eliminado correctamente"
   },
   "plans": {
     "title": "Planes",
@@ -113,7 +124,15 @@
     "demand": "Demanda por horario",
     "occupancy": "Ocupación promedio",
     "trend": "Tendencia de asistencia",
-    "atRisk": "En riesgo de fuga"
+    "atRisk": "En riesgo de fuga",
+    "frequencyDesc": "Veces que cada socio asiste por semana, en promedio",
+    "demandDesc": "Qué días y horas tienen más reservas",
+    "occupancyDesc": "Qué porcentaje del cupo se llena en cada clase",
+    "trendDesc": "Asistencias totales por semana",
+    "tooltipFrequency": "Frecuencia (veces/semana)",
+    "tooltipBookings": "Reservas",
+    "tooltipAttendance": "Asistencias",
+    "tooltipOccupancy": "Ocupación"
   },
   "roles": {
     "admin": "Admin",

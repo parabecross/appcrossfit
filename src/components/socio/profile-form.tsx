@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { uploadAvatarForUser } from "@/lib/avatars/upload";
 import { useRouter } from "@/i18n/routing";
 import type { Profile } from "@/types/database";
 import Image from "next/image";
@@ -25,25 +26,37 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
     setLoading(true);
+    setError(null);
     let foto_url = profile.foto_url;
 
     if (photo) {
-      const ext = photo.name.split(".").pop();
-      const path = `${profile.user_id}/avatar.${ext}`;
-      await supabase.storage.from("avatars").upload(path, photo, {
-        upsert: true,
-      });
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      foto_url = data.publicUrl;
+      const result = await uploadAvatarForUser(
+        supabase,
+        profile.user_id,
+        photo
+      );
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      foto_url = result.url;
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("profiles")
       .update({ ...form, foto_url })
       .eq("id", profile.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      setLoading(false);
+      return;
+    }
 
     router.refresh();
     setLoading(false);
@@ -104,6 +117,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <Button onClick={save} disabled={loading}>
             {loading ? tc("loading") : tc("save")}
           </Button>
+          {error && <p className="text-sm text-red-400">{error}</p>}
         </CardContent>
       </Card>
     </div>

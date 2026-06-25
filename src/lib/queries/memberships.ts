@@ -14,6 +14,26 @@ export async function getMembresiaActual(profileId: string) {
   return data;
 }
 
+async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
+  if (usuarioIds.length === 0) return new Map<string, Awaited<ReturnType<typeof getMembresiaActual>>>();
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("membresias")
+    .select("*, plan:planes(*)")
+    .in("usuario_id", usuarioIds)
+    .in("estado", ["vigente", "vencida"])
+    .order("fecha_fin", { ascending: false });
+
+  const map = new Map<string, NonNullable<typeof data>[number]>();
+  for (const m of data ?? []) {
+    if (!map.has(m.usuario_id)) {
+      map.set(m.usuario_id, m);
+    }
+  }
+  return map;
+}
+
 export async function getAlertasMembresia() {
   const supabase = await createClient();
   const { data: socios } = await supabase
@@ -23,13 +43,14 @@ export async function getAlertasMembresia() {
 
   if (!socios) return [];
 
+  const memMap = await getMembresiasMapForUsuarios(socios.map((s) => s.id));
   const alertas: AlertaMembresia[] = [];
   const today = new Date();
   const in3 = new Date();
   in3.setDate(today.getDate() + 3);
 
   for (const s of socios) {
-    const mem = await getMembresiaActual(s.id);
+    const mem = memMap.get(s.id) ?? null;
     if (!mem || s.estado_cuenta === "pendiente_pago") {
       alertas.push({
         profile_id: s.id,
@@ -79,14 +100,24 @@ export async function getKpis() {
   let vencidos = 0;
   let pendientes = 0;
 
+  const memMap = await getMembresiasMapForUsuarios(
+    (socios ?? []).map((s) => s.id)
+  );
+  const today = new Date();
+
   for (const s of socios ?? []) {
     if (s.estado_cuenta === "pendiente_pago") {
       pendientes++;
       continue;
     }
-    const mem = await getMembresiaActual(s.id);
-    if (mem?.estado === "vigente") activos++;
-    else vencidos++;
+    const mem = memMap.get(s.id);
+    if (!mem) {
+      vencidos++;
+      continue;
+    }
+    const fin = new Date(mem.fecha_fin);
+    if (fin < today) vencidos++;
+    else activos++;
   }
 
   return { activos, vencidos, pendientes, total: socios?.length ?? 0 };

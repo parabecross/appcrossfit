@@ -32,12 +32,14 @@ export function AdminClasesClient({
   coaches,
   profileId,
   locale,
+  isCoach = false,
 }: {
   clases: Clase[];
   reservas: (Reserva & { profile: Profile | null })[];
   coaches: Profile[];
   profileId: string;
   locale: string;
+  isCoach?: boolean;
 }) {
   const t = useTranslations("classes");
   const router = useRouter();
@@ -89,6 +91,7 @@ export function AdminClasesClient({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-black brand-text">{t("title")}</h1>
+        {!isCoach && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>{t("create")}</Button>
@@ -180,6 +183,7 @@ export function AdminClasesClient({
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <WeeklyCalendar

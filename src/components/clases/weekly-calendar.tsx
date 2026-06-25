@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn, formatTime } from "@/lib/utils";
-import { getWeekDates, toDateString } from "@/lib/clases/helpers";
+import { getWeekDates, toDateString, canCancelReservation } from "@/lib/clases/helpers";
+import { APP_CONFIG } from "@/lib/config/app-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function WeeklyCalendar({
   const week = getWeekDates();
   const [selected, setSelected] = useState(toDateString(new Date()));
   const [loading, setLoading] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const dayClases = clases.filter((c) => c.fecha === selected && c.estado === "programada");
 
@@ -58,7 +60,18 @@ export function WeeklyCalendar({
     setLoading(null);
   };
 
-  const handleCancel = async (reservaId: string) => {
+  const handleCancel = async (
+    reservaId: string,
+    claseFecha: string,
+    horaInicio: string
+  ) => {
+    if (!canCancelReservation(claseFecha, horaInicio)) {
+      setCancelError(
+        t("cancelTooLate", { hours: APP_CONFIG.CANCELACION_HORAS })
+      );
+      return;
+    }
+    setCancelError(null);
     setLoading(reservaId);
     await supabase
       .from("reservas")
@@ -97,6 +110,10 @@ export function WeeklyCalendar({
         })}
       </div>
 
+      {cancelError && (
+        <p className="text-sm text-orange-400 text-center">{cancelError}</p>
+      )}
+
       {dayClases.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">{t("noClasses")}</p>
       ) : (
@@ -106,6 +123,9 @@ export function WeeklyCalendar({
             const full = occupied >= clase.cupo_maximo;
             const reservation = myReservation(clase.id);
             const booked = !!reservation;
+            const canCancel = booked
+              ? canCancelReservation(clase.fecha, clase.hora_inicio)
+              : false;
 
             return (
               <Card key={clase.id}>
@@ -126,16 +146,33 @@ export function WeeklyCalendar({
                   {!isAdmin && (
                     <>
                       {booked ? (
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          disabled={loading === reservation?.id}
-                          onClick={() => handleCancel(reservation!.id)}
-                        >
-                          {loading === reservation?.id
-                            ? tc("loading")
-                            : t("cancelBooking")}
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            disabled={
+                              !canCancel || loading === reservation?.id
+                            }
+                            onClick={() =>
+                              handleCancel(
+                                reservation!.id,
+                                clase.fecha,
+                                clase.hora_inicio
+                              )
+                            }
+                          >
+                            {loading === reservation?.id
+                              ? tc("loading")
+                              : t("cancelBooking")}
+                          </Button>
+                          {!canCancel && (
+                            <p className="text-xs text-orange-400 text-center">
+                              {t("cancelTooLate", {
+                                hours: APP_CONFIG.CANCELACION_HORAS,
+                              })}
+                            </p>
+                          )}
+                        </div>
                       ) : (
                         <Button
                           className="w-full"

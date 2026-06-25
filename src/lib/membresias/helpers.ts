@@ -8,12 +8,19 @@ export function canReserve(
   if (profile.estado_cuenta === "pendiente_pago") {
     return { ok: false, reason: "pending" };
   }
-  if (!membership || membership.estado === "vencida") {
-    return { ok: false, reason: membership ? "expired" : "none" };
-  }
-  if (membership.estado !== "vigente") {
+  if (!membership) {
     return { ok: false, reason: "none" };
   }
+  if (membership.estado === "cancelada") {
+    return { ok: false, reason: "none" };
+  }
+
+  const today = new Date();
+  const fin = new Date(membership.fecha_fin);
+  if (fin < today) {
+    return { ok: false, reason: "expired" };
+  }
+
   return { ok: true };
 }
 

@@ -16,23 +16,32 @@ export default async function AdminClasesPage({
   const from = toDateString(week[0]);
   const to = toDateString(week[6]);
 
-  const [clases, coaches] = await Promise.all([
-    getClasesByDateRange(from, to),
-    getCoaches(),
-  ]);
+  let clases = await getClasesByDateRange(from, to);
+  if (profile.rol === "coach") {
+    clases = clases.filter((c) => c.coach_id === profile.id);
+  }
+
+  const coaches =
+    profile.rol === "admin" ? await getCoaches() : [profile];
 
   const supabase = await createClient();
   const { data: reservas } = await supabase
     .from("reservas")
     .select("*, profile:profiles!reservas_usuario_id_fkey(*)");
 
+  const claseIds = new Set(clases.map((c) => c.id));
+  const reservasFiltradas = (reservas ?? []).filter((r) =>
+    claseIds.has(r.clase_id)
+  );
+
   return (
     <AdminClasesClient
       clases={clases}
-      reservas={reservas ?? []}
+      reservas={reservasFiltradas}
       coaches={coaches}
       profileId={profile.id}
       locale={locale}
+      isCoach={profile.rol === "coach"}
     />
   );
 }

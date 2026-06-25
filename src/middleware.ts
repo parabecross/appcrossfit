@@ -7,6 +7,13 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 const publicPaths = ["/login", "/registro"];
 
+const coachForbiddenAdminPaths = [
+  "/admin/dashboard",
+  "/admin/usuarios",
+  "/admin/planes",
+  "/admin/estadisticas",
+];
+
 export async function middleware(request: NextRequest) {
   const intlResponse = intlMiddleware(request);
   const pathname = request.nextUrl.pathname;
@@ -76,6 +83,12 @@ export async function middleware(request: NextRequest) {
       .single();
     if (!profile || !["admin", "coach"].includes(profile.rol)) {
       return NextResponse.redirect(new URL(`/${locale}/mis-reservas`, request.url));
+    }
+    if (
+      profile.rol === "coach" &&
+      coachForbiddenAdminPaths.some((p) => pathWithoutLocale.startsWith(p))
+    ) {
+      return NextResponse.redirect(new URL(`/${locale}/admin/clases`, request.url));
     }
   }
 

@@ -4,8 +4,13 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
+import {
+  uploadAvatarForUser,
+  uploadAvatarViaApi,
+} from "@/lib/avatars/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,11 +32,13 @@ export function RegisterForm() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setWarning(null);
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
@@ -52,24 +59,21 @@ export function RegisterForm() {
     }
 
     if (data.user && photo) {
-      const ext = photo.name.split(".").pop();
-      const path = `${data.user.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, photo, { upsert: true });
+      const result = data.session
+        ? await uploadAvatarForUser(supabase, data.user.id, photo)
+        : await uploadAvatarViaApi(data.user.id, photo);
 
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(path);
-        await supabase
-          .from("profiles")
-          .update({ foto_url: urlData.publicUrl })
-          .eq("user_id", data.user.id);
+      if (result.error) {
+        setWarning(t("photoUploadFailed"));
       }
     }
 
-    router.push("/login");
+    if (data.session) {
+      router.push("/mis-reservas");
+    } else {
+      router.push("/login");
+    }
+
     setLoading(false);
   };
 
@@ -107,9 +111,8 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">{t("password")}</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
@@ -143,6 +146,7 @@ export function RegisterForm() {
             />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
+          {warning && <p className="text-sm text-amber-400">{warning}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? tc("loading") : t("register")}
           </Button>

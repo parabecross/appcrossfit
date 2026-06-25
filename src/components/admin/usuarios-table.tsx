@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import {
 import { formatDate } from "@/lib/utils";
 import type { Profile, Membresia, Plan } from "@/types/database";
 import { useRouter } from "@/i18n/routing";
+import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 
 interface UserRow extends Profile {
   membresia: (Membresia & { plan: Plan | null }) | null;
@@ -114,8 +116,7 @@ export function UsuariosTable({
               </div>
               <div>
                 <Label>Password</Label>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={form.password}
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
@@ -202,11 +203,17 @@ export function UsuariosTable({
                   )}
                 </td>
                 <td className="p-3 text-right">
-                  <Link href={`/admin/usuarios/${u.id}`}>
-                    <Button variant="ghost" size="sm">
-                      →
-                    </Button>
-                  </Link>
+                  <div className="flex items-center justify-end gap-1">
+                    <DeleteSocioDialog
+                      userId={u.user_id}
+                      nombre={u.nombre_completo}
+                    />
+                    <Link href={`/admin/usuarios/${u.id}`}>
+                      <Button variant="ghost" size="sm">
+                        →
+                      </Button>
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

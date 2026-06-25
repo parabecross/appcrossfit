@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { UserDetailClient } from "@/components/admin/user-detail";
 
@@ -8,6 +9,7 @@ export default async function UserDetailPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
+  await requireAdmin(locale);
   const supabase = await createClient();
 
   const { data: user } = await supabase

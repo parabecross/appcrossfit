@@ -27,6 +27,10 @@
     "bio": "Bio / goal",
     "bioPlaceholder": "E.g. I train in the mornings, working on my first muscle up",
     "photo": "Profile photo",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "photoUploadFailed": "Could not save your photo. You can upload it from your profile.",
+    "confirmEmail": "Check your email to confirm your account, then sign in.",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "loginSubtitle": "Train hard. Book easy.",
@@ -58,7 +62,10 @@
     "activateMonth": "Activate month",
     "extend": "Extend",
     "editEndDate": "Edit end date",
-    "assignPlan": "Assign plan"
+    "assignPlan": "Assign plan",
+    "assignSuccess": "Membership updated successfully",
+    "selectPlan": "Select a plan first",
+    "invalidDate": "Invalid expiry date"
   },
   "classes": {
     "title": "Classes",
@@ -92,7 +99,11 @@
     "expiringSoon": "Expiring soon (3 days)",
     "expired": "Expired",
     "createUser": "Create user",
-    "userDetail": "User detail"
+    "userDetail": "User detail",
+    "deleteUser": "Delete member",
+    "deleteUserConfirm": "Permanently delete {name}?",
+    "deleteUserWarning": "This cannot be undone. Their memberships, bookings, and attendance history will also be deleted.",
+    "deleteUserSuccess": "Member deleted successfully"
   },
   "plans": {
     "title": "Plans",
@@ -113,7 +124,15 @@
     "demand": "Demand by time slot",
     "occupancy": "Average occupancy",
     "trend": "Attendance trend",
-    "atRisk": "At risk of churn"
+    "atRisk": "At risk of churn",
+    "frequencyDesc": "Average times each member attends per week",
+    "demandDesc": "Which days and times get the most bookings",
+    "occupancyDesc": "Percentage of class capacity filled per class",
+    "trendDesc": "Total attendances per week",
+    "tooltipFrequency": "Frequency (times/week)",
+    "tooltipBookings": "Bookings",
+    "tooltipAttendance": "Attendances",
+    "tooltipOccupancy": "Occupancy"
   },
   "roles": {
     "admin": "Admin",
