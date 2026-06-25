@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
-import { computeFechaFin } from "@/lib/membresias/helpers";
+import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Profile, Membresia, Plan, Reserva } from "@/types/database";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
@@ -53,6 +53,9 @@ export function UserDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const current = membresias[0];
+  const hasActiveMembership =
+    !!current &&
+    syncMembresiaEstadoLocal(current.fecha_fin, current.estado) === "vigente";
 
   const getSelectedPlan = () => planes.find((p) => p.id === planId);
 
@@ -68,7 +71,13 @@ export function UserDetailClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data: { error?: string } = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error(tc("error"));
+    }
     if (!res.ok) {
       throw new Error(data.error ?? tc("error"));
     }
@@ -201,11 +210,61 @@ export function UserDetailClient({
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("assignPlan")}</CardTitle>
+          <CardTitle>
+            {hasActiveMembership ? t("manageMembership") : t("assignPlan")}
+          </CardTitle>
+          <CardDescription>
+            {hasActiveMembership
+              ? t("manageActiveDesc")
+              : t("assignPlanDesc")}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           {planes.length === 0 ? (
             <p className="text-sm text-muted-foreground">{tc("noData")}</p>
+          ) : hasActiveMembership ? (
+            <Dialog
+              open={editOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setError(null);
+                  setEditFechaFin(current?.fecha_fin ?? defaultFechaFin());
+                }
+                setEditOpen(open);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="secondary">{t("editEndDate")}</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t("editEndDate")}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="edit-fecha-fin">{t("expires")}</Label>
+                    <Input
+                      id="edit-fecha-fin"
+                      name="edit-fecha-fin"
+                      type="date"
+                      value={editFechaFin}
+                      onChange={(e) => setEditFechaFin(e.target.value)}
+                    />
+                  </div>
+                  {error && editOpen && (
+                    <p className="text-sm text-red-400">{error}</p>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={updateFechaFin}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? tc("loading") : t("extend")}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           ) : (
             <>
               <Select value={planId} onValueChange={setPlanId}>
@@ -220,12 +279,17 @@ export function UserDetailClient({
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                onClick={() => assignPlan(false)}
-                disabled={loading || !planId}
-              >
-                {loading ? tc("loading") : t("assignPlan")}
-              </Button>
+              <div className="flex flex-col gap-1">
+                <Button
+                  onClick={() => assignPlan(false)}
+                  disabled={loading || !planId}
+                >
+                  {loading ? tc("loading") : t("assignPlanAuto")}
+                </Button>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  {t("assignPlanAutoDesc")}
+                </p>
+              </div>
               <Dialog
                 open={activateOpen}
                 onOpenChange={(open) => {
@@ -243,6 +307,9 @@ export function UserDetailClient({
                   <DialogHeader>
                     <DialogTitle>{t("activateMonth")}</DialogTitle>
                   </DialogHeader>
+                  <p className="text-sm text-muted-foreground">
+                    {t("activateMonthDesc")}
+                  </p>
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="activate-fecha-fin">{t("expires")}</Label>
@@ -268,50 +335,6 @@ export function UserDetailClient({
                   </div>
                 </DialogContent>
               </Dialog>
-              {current && (
-                <Dialog
-                  open={editOpen}
-                  onOpenChange={(open) => {
-                    if (open) {
-                      setError(null);
-                      setEditFechaFin(current?.fecha_fin ?? defaultFechaFin());
-                    }
-                    setEditOpen(open);
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="secondary">{t("editEndDate")}</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{t("editEndDate")}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="edit-fecha-fin">{t("expires")}</Label>
-                        <Input
-                          id="edit-fecha-fin"
-                          name="edit-fecha-fin"
-                          type="date"
-                          value={editFechaFin}
-                          onChange={(e) => setEditFechaFin(e.target.value)}
-                        />
-                      </div>
-                      {error && editOpen && (
-                        <p className="text-sm text-red-400">{error}</p>
-                      )}
-                      <Button
-                        type="button"
-                        onClick={updateFechaFin}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        {loading ? tc("loading") : t("extend")}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
             </>
           )}
         </CardContent>

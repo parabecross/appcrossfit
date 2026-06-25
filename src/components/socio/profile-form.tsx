@@ -9,9 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAvatarForUser } from "@/lib/avatars/upload";
+import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { useRouter } from "@/i18n/routing";
 import type { Profile } from "@/types/database";
-import Image from "next/image";
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const t = useTranslations("auth");
@@ -72,15 +72,14 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <CardTitle>{profile.nombre_completo}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {profile.foto_url && (
-            <Image
-              src={profile.foto_url}
-              alt=""
-              width={80}
-              height={80}
-              className="rounded-full object-cover"
+          <div>
+            <Label htmlFor="profile-photo">{t("photo")}</Label>
+            <PhotoUploadInput
+              id="profile-photo"
+              initialPreview={profile.foto_url}
+              onChange={setPhoto}
             />
-          )}
+          </div>
           <div>
             <Label>{t("fullName")}</Label>
             <Input
@@ -104,14 +103,6 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             <Textarea
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>{t("photo")}</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
             />
           </div>
           <Button onClick={save} disabled={loading}>

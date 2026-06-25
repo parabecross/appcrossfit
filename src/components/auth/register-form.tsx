@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/auth/password-input";
+import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,11 +139,9 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="photo">{t("photo")}</Label>
-            <Input
+            <PhotoUploadInput
               id="photo"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+              onChange={setPhoto}
             />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
