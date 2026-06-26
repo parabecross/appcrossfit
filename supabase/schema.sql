@@ -141,6 +141,20 @@ AS $$
   SELECT id FROM profiles WHERE user_id = auth.uid() LIMIT 1;
 $$;
 
+CREATE OR REPLACE FUNCTION is_coach_of_clase(p_clase_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM clases c
+    WHERE c.id = p_clase_id
+      AND c.coach_id = get_my_profile_id()
+  );
+$$;
+
 CREATE OR REPLACE FUNCTION sync_membresia_estado()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -363,6 +377,15 @@ CREATE POLICY "reservas_insert_own"
 CREATE POLICY "reservas_update_own_or_admin"
   ON reservas FOR UPDATE
   USING (usuario_id = get_my_profile_id() OR is_admin());
+
+CREATE POLICY "reservas_select_coach_of_class"
+  ON reservas FOR SELECT
+  USING (is_coach_of_clase(clase_id));
+
+CREATE POLICY "reservas_update_coach_of_class"
+  ON reservas FOR UPDATE
+  USING (is_coach_of_clase(clase_id))
+  WITH CHECK (is_coach_of_clase(clase_id));
 
 -- ─── STORAGE ─────────────────────────────────────────────────────────────────
 

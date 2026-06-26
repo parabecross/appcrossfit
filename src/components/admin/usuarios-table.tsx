@@ -15,13 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import type { Profile, Membresia, Plan } from "@/types/database";
 import { useRouter } from "@/i18n/routing";
@@ -39,7 +32,9 @@ export function UsuariosTable({
   locale: string;
 }) {
   const t = useTranslations("admin");
-  const ta = useTranslations("accountStatus");
+  const ts = useTranslations("accountStatus");
+  const tauth = useTranslations("auth");
+  const tc = useTranslations("common");
   const tm = useTranslations("membership.status");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -124,7 +119,7 @@ export function UsuariosTable({
                 />
               </div>
               <div>
-                <Label>Teléfono</Label>
+                <Label>{tauth("phone")}</Label>
                 <Input
                   value={form.telefono}
                   onChange={(e) =>
@@ -132,25 +127,9 @@ export function UsuariosTable({
                   }
                 />
               </div>
-              <div>
-                <Label>Rol</Label>
-                <Select
-                  value={form.rol}
-                  onValueChange={(v) => setForm({ ...form, rol: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="socio">Socio</SelectItem>
-                    <SelectItem value="coach">Coach</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
               <Button onClick={createUser} disabled={creating} className="w-full">
-                {creating ? "..." : "Create"}
+                {creating ? tc("loading") : t("createUser")}
               </Button>
             </div>
           </DialogContent>
@@ -188,7 +167,7 @@ export function UsuariosTable({
                       u.estado_cuenta === "activo" ? "success" : "warning"
                     }
                   >
-                    {ta(u.estado_cuenta)}
+                    {ts(u.estado_cuenta)}
                   </Badge>
                 </td>
                 <td className="p-3 hidden lg:table-cell">

@@ -10,6 +10,7 @@ const publicPaths = ["/login", "/registro"];
 const coachForbiddenAdminPaths = [
   "/admin/dashboard",
   "/admin/usuarios",
+  "/admin/coaches",
   "/admin/planes",
   "/admin/estadisticas",
 ];

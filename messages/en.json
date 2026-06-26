@@ -42,6 +42,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "coaches": "Coaches",
     "users": "Users",
     "classes": "Classes",
     "plans": "Plans",
@@ -95,10 +96,21 @@
     "attended": "Attended",
     "noShow": "No show",
     "enrolled": "Enrolled",
+    "noEnrolled": "No one enrolled in this class",
+    "myClasses": "My classes",
+    "coachClassesDesc": "Select a class to mark attendance with ✓ or ✗.",
+    "selectClassForAttendance": "Select a class",
+    "className": "Class name",
+    "classDate": "Date",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "maxSpots": "Max capacity",
     "status": {
       "programada": "Scheduled",
       "cancelada": "Cancelled"
-    }
+    },
+    "yourCoach": "Your coach",
+    "coachNoBio": "No description yet"
   },
   "admin": {
     "dashboard": "Control panel",
@@ -108,12 +120,30 @@
     "alerts": "Expiry alerts",
     "expiringSoon": "Expiring soon (3 days)",
     "expired": "Expired",
-    "createUser": "Create user",
+    "createUser": "Create member",
+    "createUserSuccess": "Member created. Confirmation email sent if enabled in Supabase.",
+    "createCoach": "Create coach",
+    "createCoachDesc": "Set email and password. The coach will receive a confirmation email and can sign in with those credentials.",
+    "createCoachSuccess": "Coach created. Confirmation email sent — share the password so they can sign in after confirming.",
+    "coachesTitle": "Coaches",
+    "coachesSubtitle": "Add coaches manually. They only see their classes and can mark attendance.",
+    "editCoach": "Edit coach",
+    "viewCredentials": "View credentials",
+    "loginUser": "Username (email)",
+    "passwordNotStored": "For security, the original password is not stored. You can reset it here and see the new one once.",
+    "resetPassword": "Reset password",
+    "newPasswordPlaceholder": "New password (min. 6 characters)",
+    "newPasswordSet": "New password set — share it with the coach:",
+    "coachCreated": "Coach created",
+    "saveCredentials": "Save these credentials. The password cannot be viewed again.",
     "userDetail": "User detail",
     "deleteUser": "Delete member",
     "deleteUserConfirm": "Permanently delete {name}?",
     "deleteUserWarning": "This cannot be undone. Their memberships, bookings, and attendance history will also be deleted.",
-    "deleteUserSuccess": "Member deleted successfully"
+    "deleteUserSuccess": "Member deleted successfully",
+    "coachProfileDesc": "Your photo and bio are shown to members on the classes you teach.",
+    "coachBioPlaceholder": "E.g. Olympic lifting and mobility specialist. 5 years of CrossFit experience.",
+    "coachBioHint": "Visible to members when they book your classes."
   },
   "plans": {
     "title": "Plans",

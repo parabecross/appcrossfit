@@ -24,56 +24,45 @@ export async function POST(request: NextRequest) {
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json(
-      {
-        error:
-          "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor. Configúrala en Vercel.",
-      },
+      { error: "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor." },
       { status: 500 }
     );
   }
 
   const body = await request.json();
-  const { email, password, nombre, telefono, rol = "socio" } = body;
+  const { user_id, password } = body;
 
-  if (!email || !password || !nombre) {
-    return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
-  }
-
-  if (!["socio", "coach", "admin"].includes(rol)) {
-    return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
+  if (!user_id || !password || password.length < 6) {
+    return NextResponse.json(
+      { error: "Contraseña inválida (mínimo 6 caracteres)" },
+      { status: 400 }
+    );
   }
 
   const admin = createAdminClient();
 
-  // email_confirm: false → Supabase envía correo de confirmación (si está activo en Auth)
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: false,
-    user_metadata: {
-      nombre_completo: nombre,
-      telefono,
-      rol,
-    },
-  });
+  const { data: target } = await admin
+    .from("profiles")
+    .select("rol")
+    .eq("user_id", user_id)
+    .single();
+
+  if (!target || target.rol !== "coach") {
+    return NextResponse.json({ error: "Coach no encontrado" }, { status: 403 });
+  }
+
+  const { data: authUser, error } = await admin.auth.admin.updateUserById(
+    user_id,
+    { password }
+  );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  if (data.user) {
-    await admin
-      .from("profiles")
-      .update({
-        rol,
-        estado_cuenta: rol === "socio" ? "pendiente_pago" : "activo",
-      })
-      .eq("user_id", data.user.id);
-  }
-
   return NextResponse.json({
     success: true,
-    userId: data.user?.id,
-    emailSent: true,
+    email: authUser.user?.email ?? null,
+    password,
   });
 }

@@ -13,10 +13,19 @@ import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { useRouter } from "@/i18n/routing";
 import type { Profile } from "@/types/database";
 
-export function ProfileForm({ profile }: { profile: Profile }) {
+export function ProfileForm({
+  profile,
+  variant = "default",
+  subtitle,
+}: {
+  profile: Profile;
+  variant?: "default" | "coach";
+  subtitle?: string;
+}) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const tn = useTranslations("nav");
+  const ta = useTranslations("admin");
   const router = useRouter();
   const supabase = createClient();
   const [form, setForm] = useState({
@@ -67,6 +76,9 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <h1 className="text-2xl md:text-3xl font-black brand-text">
         {tn("profile")}
       </h1>
+      {subtitle && (
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>{profile.nombre_completo}</CardTitle>
@@ -102,8 +114,19 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             <Label>{t("bio")}</Label>
             <Textarea
               value={form.bio}
+              placeholder={
+                variant === "coach"
+                  ? ta("coachBioPlaceholder")
+                  : t("bioPlaceholder")
+              }
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              rows={variant === "coach" ? 4 : 3}
             />
+            {variant === "coach" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {ta("coachBioHint")}
+              </p>
+            )}
           </div>
           <Button onClick={save} disabled={loading}>
             {loading ? tc("loading") : tc("save")}

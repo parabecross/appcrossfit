@@ -61,6 +61,8 @@ export interface Clase {
   created_at: string;
   updated_at: string;
   coach_nombre?: string;
+  coach_foto_url?: string | null;
+  coach_bio?: string | null;
   cupo_ocupado?: number;
 }
 

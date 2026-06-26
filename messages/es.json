@@ -42,6 +42,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "coaches": "Coaches",
     "users": "Usuarios",
     "classes": "Clases",
     "plans": "Planes",
@@ -95,10 +96,21 @@
     "attended": "Asistió",
     "noShow": "No asistió",
     "enrolled": "Inscritos",
+    "noEnrolled": "Nadie inscrito en esta clase",
+    "myClasses": "Mis clases",
+    "coachClassesDesc": "Selecciona una clase para marcar asistencia con ✓ o ✗.",
+    "selectClassForAttendance": "Selecciona una clase",
+    "className": "Nombre de la clase",
+    "classDate": "Fecha",
+    "startTime": "Hora inicio",
+    "endTime": "Hora fin",
+    "maxSpots": "Cupo máximo",
     "status": {
       "programada": "Programada",
       "cancelada": "Cancelada"
-    }
+    },
+    "yourCoach": "Tu coach",
+    "coachNoBio": "Sin descripción aún"
   },
   "admin": {
     "dashboard": "Panel de control",
@@ -108,12 +120,30 @@
     "alerts": "Alertas de vencimiento",
     "expiringSoon": "Por vencer (3 días)",
     "expired": "Vencidos",
-    "createUser": "Crear usuario",
+    "createUser": "Crear socio",
+    "createUserSuccess": "Socio creado. Se envió correo de confirmación si está activo en Supabase.",
+    "createCoach": "Crear coach",
+    "createCoachDesc": "Define correo y contraseña. El coach recibirá un email para confirmar su cuenta y podrá entrar con esas credenciales.",
+    "createCoachSuccess": "Coach creado. Se envió un correo de confirmación — comparte la contraseña con el coach para que pueda entrar tras confirmar.",
+    "coachesTitle": "Coaches",
+    "coachesSubtitle": "Agrega coaches manualmente. Ellos solo verán sus clases y podrán marcar asistencia.",
+    "editCoach": "Editar coach",
+    "viewCredentials": "Ver credenciales",
+    "loginUser": "Usuario (correo)",
+    "passwordNotStored": "Por seguridad, la contraseña original no se guarda. Puedes restablecerla aquí y ver la nueva una sola vez.",
+    "resetPassword": "Restablecer contraseña",
+    "newPasswordPlaceholder": "Nueva contraseña (mín. 6 caracteres)",
+    "newPasswordSet": "Nueva contraseña establecida — compártela con el coach:",
+    "coachCreated": "Coach creado",
+    "saveCredentials": "Guarda estas credenciales. La contraseña no se podrá ver de nuevo.",
     "userDetail": "Detalle de usuario",
     "deleteUser": "Eliminar socio",
     "deleteUserConfirm": "¿Eliminar a {name} permanentemente?",
     "deleteUserWarning": "Esta acción no se puede deshacer. Se borrarán también sus membresías, reservas e historial de asistencia.",
-    "deleteUserSuccess": "Socio eliminado correctamente"
+    "deleteUserSuccess": "Socio eliminado correctamente",
+    "coachProfileDesc": "Tu foto y descripción se muestran a los socios en las clases que impartes.",
+    "coachBioPlaceholder": "Ej: Especialista en halterofilia y movilidad. 5 años de experiencia en CrossFit.",
+    "coachBioHint": "Visible para los socios al reservar tus clases."
   },
   "plans": {
     "title": "Planes",

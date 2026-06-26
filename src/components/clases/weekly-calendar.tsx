@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
+import { CoachInfo } from "@/components/clases/coach-info";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Reserva } from "@/types/database";
@@ -138,8 +139,14 @@ export function WeeklyCalendar({
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}
-                    {clase.coach_nombre && ` · ${t("coach")}: ${clase.coach_nombre}`}
                   </p>
+                  {clase.coach_nombre && (
+                    <CoachInfo
+                      nombre={clase.coach_nombre}
+                      fotoUrl={clase.coach_foto_url}
+                      bio={clase.coach_bio}
+                    />
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <CupoProgress occupied={occupied} max={clase.cupo_maximo} />

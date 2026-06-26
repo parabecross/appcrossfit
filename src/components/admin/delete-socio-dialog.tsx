@@ -37,24 +37,34 @@ export function DeleteSocioDialog({
   const handleDelete = async () => {
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/admin/eliminar-usuario", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? tc("error"));
+    try {
+      const res = await fetch("/api/admin/eliminar-usuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const text = await res.text();
+      let data: { error?: string } = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(tc("error"));
+      }
+      if (!res.ok) {
+        setError(data.error ?? tc("error"));
+        return;
+      }
+      setSuccess(true);
+      setOpen(false);
+      if (redirectAfterDelete) {
+        router.push("/admin/usuarios");
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setError(tc("error"));
+    } finally {
       setLoading(false);
-      return;
-    }
-    setSuccess(true);
-    setLoading(false);
-    setOpen(false);
-    if (redirectAfterDelete) {
-      router.push("/admin/usuarios");
-    } else {
-      router.refresh();
     }
   };
 
