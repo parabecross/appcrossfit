@@ -3,7 +3,7 @@ import { getPrExercise } from "./constants";
 
 export function formatPrValue(valor: number, unidad: PrUnidad): string {
   if (unidad === "segundos") return formatSeconds(valor);
-  if (unidad === "kg") return `${valor} kg`;
+  if (unidad === "lbs") return `${valor} lb`;
   if (unidad === "reps") return `${valor} reps`;
   if (unidad === "metros") return `${valor} m`;
   return String(valor);
@@ -64,7 +64,7 @@ export function comparePrDelta(
   if (unidad === "segundos") {
     return `-${Math.round(previousValor - newValor)}s`;
   }
-  if (unidad === "kg") return `+${diff} kg`;
+  if (unidad === "lbs") return `+${diff} lb`;
   if (unidad === "reps") return `+${diff} reps`;
   return `+${diff}`;
 }

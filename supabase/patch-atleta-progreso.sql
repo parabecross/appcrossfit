@@ -1,6 +1,6 @@
 -- Run in Supabase SQL Editor: progreso personal del atleta (PRs + skills)
 
-CREATE TYPE pr_unidad AS ENUM ('kg', 'reps', 'segundos', 'metros');
+CREATE TYPE pr_unidad AS ENUM ('lbs', 'reps', 'segundos', 'metros');
 CREATE TYPE skill_estado AS ENUM ('en_proceso', 'logrado', 'dominado');
 
 CREATE TABLE IF NOT EXISTS atleta_pr_marcas (
@@ -45,6 +45,8 @@ CREATE INDEX IF NOT EXISTS idx_atleta_skill_hist ON atleta_skill_historial(usuar
 CREATE OR REPLACE FUNCTION log_atleta_skill_change()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN

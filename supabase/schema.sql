@@ -106,7 +106,7 @@ CREATE UNIQUE INDEX idx_reservas_activa
 
 -- ─── PROGRESO ATLETA ─────────────────────────────────────────────────────────
 
-CREATE TYPE pr_unidad AS ENUM ('kg', 'reps', 'segundos', 'metros');
+CREATE TYPE pr_unidad AS ENUM ('lbs', 'reps', 'segundos', 'metros');
 CREATE TYPE skill_estado AS ENUM ('en_proceso', 'logrado', 'dominado');
 
 CREATE TABLE atleta_pr_marcas (
@@ -151,6 +151,8 @@ CREATE INDEX idx_atleta_skill_hist ON atleta_skill_historial(usuario_id, created
 CREATE OR REPLACE FUNCTION log_atleta_skill_change()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN

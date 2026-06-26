@@ -5,7 +5,7 @@ export type MembresiaEstado = "vigente" | "vencida" | "cancelada";
 export type MetodoAsignacion = "automatico" | "manual";
 export type ClaseEstado = "programada" | "cancelada";
 export type ReservaEstado = "confirmada" | "cancelada" | "asistio" | "no_asistio";
-export type PrUnidad = "kg" | "reps" | "segundos" | "metros";
+export type PrUnidad = "lbs" | "reps" | "segundos" | "metros";
 export type SkillEstado = "en_proceso" | "logrado" | "dominado";
 
 export interface Profile {

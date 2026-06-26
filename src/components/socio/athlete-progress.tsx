@@ -550,7 +550,7 @@ export function AthleteProgress({
               <Input
                 value={prForm.valor}
                 placeholder={
-                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "kg" ? "100" : "20"
+                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "lbs" ? "225" : "20"
                 }
                 onChange={(e) =>
                   setPrForm({ ...prForm, valor: e.target.value })
