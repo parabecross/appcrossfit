@@ -27,7 +27,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
-import { getClassDates, dateStringToLocalDate, toDateString, findOverlappingClasses } from "@/lib/clases/helpers";
+import {
+  getClassDates,
+  dateStringToLocalDate,
+  toDateString,
+  findOverlappingClasses,
+  hasClassEnded,
+} from "@/lib/clases/helpers";
 import {
   cn,
   formatShortDay,
@@ -78,6 +84,7 @@ export function AdminClasesClient({
   const [focusDate, setFocusDate] = useState<string | null>(null);
   const [pendingReservaId, setPendingReservaId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(today);
+  const [calendarDay, setCalendarDay] = useState(today);
   const [selectedClase, setSelectedClase] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"list" | "attendance">("list");
 
@@ -131,6 +138,11 @@ export function AdminClasesClient({
     [sortedClases]
   );
 
+  const dayClases = useMemo(
+    () => sortedClases.filter((c) => c.fecha === selectedDay),
+    [sortedClases, selectedDay]
+  );
+
   useEffect(() => {
     if (daysWithClasses.length === 0) return;
     if (!daysWithClasses.includes(selectedDay)) {
@@ -138,7 +150,16 @@ export function AdminClasesClient({
     }
   }, [daysWithClasses, selectedDay]);
 
-  const dayClases = sortedClases.filter((c) => c.fecha === selectedDay);
+  useEffect(() => {
+    if (dayClases.length === 0) {
+      setSelectedClase(null);
+      return;
+    }
+    const stillOnDay = dayClases.some((c) => c.id === selectedClase);
+    if (!stillOnDay) {
+      setSelectedClase(dayClases[0].id);
+    }
+  }, [selectedDay, dayClases, selectedClase]);
 
   const enrollmentCount = (claseId: string) =>
     localReservas.filter(
@@ -148,6 +169,39 @@ export function AdminClasesClient({
     ).length;
 
   const selectedClaseData = localClases.find((c) => c.id === selectedClase);
+  const canMarkAttendance = selectedClaseData
+    ? hasClassEnded(
+        selectedClaseData.fecha,
+        selectedClaseData.hora_fin,
+        gymTimezone
+      )
+    : false;
+
+  const attendanceDayClasses = useMemo(
+    () =>
+      [...localClases]
+        .filter((c) => c.fecha === calendarDay && c.estado === "programada")
+        .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio)),
+    [localClases, calendarDay]
+  );
+
+  const handleCalendarDayChange = useCallback(
+    (date: string) => {
+      setCalendarDay(date);
+      const dayClasses = localClases
+        .filter((c) => c.fecha === date && c.estado === "programada")
+        .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+      setSelectedClase(dayClasses[0]?.id ?? null);
+    },
+    [localClases]
+  );
+
+  useEffect(() => {
+    if (selectedClaseData && selectedClaseData.fecha !== calendarDay) {
+      setCalendarDay(selectedClaseData.fecha);
+    }
+  }, [selectedClaseData, calendarDay]);
+
   const claseReservas = localReservas.filter(
     (r) =>
       r.clase_id === selectedClase &&
@@ -247,6 +301,8 @@ export function AdminClasesClient({
     reservaId: string,
     estado: "asistio" | "no_asistio"
   ) => {
+    if (!canMarkAttendance) return;
+
     const previous = localReservas.find((r) => r.id === reservaId);
     if (!previous) return;
 
@@ -332,6 +388,11 @@ export function AdminClasesClient({
 
   const AttendanceList = ({ compact = false }: { compact?: boolean }) => (
     <div className="space-y-2">
+      {!canMarkAttendance && selectedClaseData && (
+        <p className="text-xs text-muted-foreground rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+          {t("attendanceAfterClass")}
+        </p>
+      )}
       {claseReservas.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 py-12 text-center">
           <Users className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
@@ -350,7 +411,7 @@ export function AdminClasesClient({
               <p className="font-semibold truncate text-base">
                 {r.profile?.nombre_completo ?? "—"}
               </p>
-              {r.estado !== "confirmada" && (
+              {canMarkAttendance && r.estado !== "confirmada" && (
                 <Badge
                   variant={r.estado === "asistio" ? "success" : "destructive"}
                   className="mt-1.5"
@@ -358,37 +419,43 @@ export function AdminClasesClient({
                   {r.estado === "asistio" ? t("attended") : t("noShow")}
                 </Badge>
               )}
-              {r.estado === "confirmada" && (
+              {(!canMarkAttendance || r.estado === "confirmada") && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {t("enrolled")}
                 </p>
               )}
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                size={compact ? "icon" : "default"}
-                variant={r.estado === "asistio" ? "default" : "outline"}
-                className={cn(
-                  compact ? "h-11 w-11" : "h-11 px-4",
-                  r.estado === "asistio" && "bg-green-600 hover:bg-green-600"
-                )}
-                disabled={pendingReservaId === r.id}
-                onClick={() => markAttendance(r.id, "asistio")}
-              >
-                <Check className="h-5 w-5" />
-                {!compact && <span className="ml-1 hidden sm:inline">{t("attended")}</span>}
-              </Button>
-              <Button
-                size={compact ? "icon" : "default"}
-                variant={r.estado === "no_asistio" ? "destructive" : "outline"}
-                className={compact ? "h-11 w-11" : "h-11 px-4"}
-                disabled={pendingReservaId === r.id}
-                onClick={() => markAttendance(r.id, "no_asistio")}
-              >
-                <X className="h-5 w-5" />
-                {!compact && <span className="ml-1 hidden sm:inline">{t("noShow")}</span>}
-              </Button>
-            </div>
+            {canMarkAttendance ? (
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size={compact ? "icon" : "default"}
+                  variant={r.estado === "asistio" ? "default" : "outline"}
+                  className={cn(
+                    compact ? "h-11 w-11" : "h-11 px-4",
+                    r.estado === "asistio" && "bg-green-600 hover:bg-green-600"
+                  )}
+                  disabled={pendingReservaId === r.id}
+                  onClick={() => markAttendance(r.id, "asistio")}
+                >
+                  <Check className="h-5 w-5" />
+                  {!compact && (
+                    <span className="ml-1 hidden sm:inline">{t("attended")}</span>
+                  )}
+                </Button>
+                <Button
+                  size={compact ? "icon" : "default"}
+                  variant={r.estado === "no_asistio" ? "destructive" : "outline"}
+                  className={compact ? "h-11 w-11" : "h-11 px-4"}
+                  disabled={pendingReservaId === r.id}
+                  onClick={() => markAttendance(r.id, "no_asistio")}
+                >
+                  <X className="h-5 w-5" />
+                  {!compact && (
+                    <span className="ml-1 hidden sm:inline">{t("noShow")}</span>
+                  )}
+                </Button>
+              </div>
+            ) : null}
           </div>
         ))
       )}
@@ -405,9 +472,12 @@ export function AdminClasesClient({
     selected: boolean;
   }) => {
     const count = enrollmentCount(c.id);
-    const attended = localReservas.filter(
-      (r) => r.clase_id === c.id && r.estado === "asistio"
-    ).length;
+    const classEnded = hasClassEnded(c.fecha, c.hora_fin, gymTimezone);
+    const attended = classEnded
+      ? localReservas.filter(
+          (r) => r.clase_id === c.id && r.estado === "asistio"
+        ).length
+      : 0;
 
     return (
       <div
@@ -736,6 +806,7 @@ export function AdminClasesClient({
         canEditClass
         coaches={coaches}
         onClassSelect={setSelectedClase}
+        onDayChange={handleCalendarDayChange}
         selectedClaseId={selectedClase}
         onClassDeleted={handleClassDeleted}
         onClassUpdated={handleClassUpdated}
@@ -809,9 +880,9 @@ export function AdminClasesClient({
               <SelectValue placeholder={t("selectClassForAttendance")} />
             </SelectTrigger>
             <SelectContent>
-              {localClases.map((c) => (
+              {attendanceDayClasses.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.nombre} — {formatShortDay(c.fecha, locale)}
+                  {c.nombre} — {formatTime(c.hora_inicio)}
                 </SelectItem>
               ))}
             </SelectContent>

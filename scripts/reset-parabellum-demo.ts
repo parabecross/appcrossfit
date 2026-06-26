@@ -124,6 +124,66 @@ async function insertReserva(
   if (error) throw new Error(`Reserva: ${error.message}`);
 }
 
+async function markPastClassAttendance(claseId: string, usuarioIds: string[]) {
+  for (let j = 0; j < usuarioIds.length; j++) {
+    const estado = j === 0 ? "no_asistio" : "asistio";
+    const { data: row, error: findErr } = await supabase
+      .from("reservas")
+      .select("id")
+      .eq("clase_id", claseId)
+      .eq("usuario_id", usuarioIds[j])
+      .single();
+    if (findErr || !row) {
+      throw new Error(`Reserva no encontrada para marcar asistencia: ${findErr?.message}`);
+    }
+    const { error } = await supabase
+      .from("reservas")
+      .update({ estado })
+      .eq("id", row.id);
+    if (error) throw new Error(`Marcar asistencia: ${error.message}`);
+  }
+}
+
+async function deleteAllBoxClases(
+  staffIds: string[],
+  boxProfileIds: string[]
+) {
+  const claseIdSet = new Set<string>();
+
+  if (staffIds.length > 0) {
+    const { data } = await supabase
+      .from("clases")
+      .select("id")
+      .in("coach_id", staffIds);
+    for (const c of data ?? []) claseIdSet.add(c.id);
+  }
+
+  if (boxProfileIds.length > 0) {
+    const { data: reservas } = await supabase
+      .from("reservas")
+      .select("clase_id")
+      .in("usuario_id", boxProfileIds);
+    for (const r of reservas ?? []) claseIdSet.add(r.clase_id);
+  }
+
+  const { data: orphans } = await supabase
+    .from("clases")
+    .select("id")
+    .is("coach_id", null);
+  for (const c of orphans ?? []) claseIdSet.add(c.id);
+
+  const claseIds = Array.from(claseIdSet);
+  if (claseIds.length === 0) return 0;
+
+  await supabase.from("reservas").delete().in("clase_id", claseIds);
+  if (boxProfileIds.length > 0) {
+    await supabase.from("reservas").delete().in("usuario_id", boxProfileIds);
+  }
+  const { error } = await supabase.from("clases").delete().in("id", claseIds);
+  if (error) throw error;
+  return claseIds.length;
+}
+
 async function main() {
   console.log("🥊 Reset demo Parabellum Cross...\n");
 
@@ -154,22 +214,8 @@ async function main() {
     .map((p) => p.id);
 
   // ─── Limpiar reservas y clases ────────────────────────────────────────────
-  if (boxProfileIds.length > 0) {
-    await supabase.from("reservas").delete().in("usuario_id", boxProfileIds);
-  }
-
-  if (staffIds.length > 0) {
-    const { data: clasesBox } = await supabase
-      .from("clases")
-      .select("id")
-      .in("coach_id", staffIds);
-    const claseIds = (clasesBox ?? []).map((c) => c.id);
-    if (claseIds.length > 0) {
-      await supabase.from("reservas").delete().in("clase_id", claseIds);
-      await supabase.from("clases").delete().in("id", claseIds);
-    }
-  }
-  console.log("✓ Reservas y clases anteriores eliminadas");
+  const deletedClases = await deleteAllBoxClases(staffIds, boxProfileIds);
+  console.log(`✓ ${deletedClases} clases y reservas anteriores eliminadas`);
 
   // ─── Eliminar socios y coaches (conservar admin) ──────────────────────────
   const toDelete = (profiles ?? []).filter((p) => {
@@ -273,21 +319,22 @@ async function main() {
   }
   console.log("✓ 10 atletas con membresías");
 
-  // ─── Clases: 5 pasadas + 5 futuras (cada coach solo 2 clases) ─────────────
+  // ─── Clases: 5 pasadas + 5 futuras (todas con coach asignado) ─────────────
+  // Nota: getClasesByDateRange solo muestra clases con coach_id del box.
   const pastClasses = [
-    { offset: -8, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: coachMaria },
-    { offset: -6, nombre: "Hyrox", start: "07:00", end: "08:00", coach: null },
-    { offset: -5, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachDiego },
-    { offset: -3, nombre: "Gimnasia", start: "09:00", end: "10:00", coach: null },
-    { offset: -1, nombre: "WOD Tarde", start: "18:30", end: "19:30", coach: null },
+    { offset: -5, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: coachMaria },
+    { offset: -4, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachDiego },
+    { offset: -3, nombre: "Hyrox", start: "07:00", end: "08:00", coach: coachMaria },
+    { offset: -2, nombre: "Gimnasia", start: "18:30", end: "19:30", coach: coachDiego },
+    { offset: -1, nombre: "WOD Tarde", start: "09:00", end: "10:00", coach: coachMaria },
   ];
 
   const futureClasses = [
-    { offset: 1, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: null },
-    { offset: 1, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachMaria },
-    { offset: 2, nombre: "Hyrox", start: "07:00", end: "08:00", coach: null },
+    { offset: 1, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: coachDiego },
+    { offset: 2, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachMaria },
     { offset: 3, nombre: "Gimnasia", start: "18:30", end: "19:30", coach: coachDiego },
-    { offset: 5, nombre: "WOD Tarde", start: "09:00", end: "10:00", coach: null },
+    { offset: 4, nombre: "Hyrox", start: "07:00", end: "08:00", coach: coachMaria },
+    { offset: 5, nombre: "WOD Tarde", start: "09:00", end: "10:00", coach: coachDiego },
   ];
 
   const claseRecords: {
@@ -326,6 +373,7 @@ async function main() {
   let reservaCount = 0;
   const pastClases = claseRecords.filter((c) => c.past);
   const futureClases = claseRecords.filter((c) => !c.past);
+  const pastAttendeesByClass = new Map<string, string[]>();
 
   for (let i = 0; i < pastClases.length; i++) {
     const { id: claseId } = pastClases[i];
@@ -335,8 +383,9 @@ async function main() {
         ? [...attendees, ...socioIds.slice(0, 6 - attendees.length)]
         : attendees;
 
-    for (let j = 0; j < padded.length; j++) {
-      await insertReserva(claseId, padded[j], "confirmada");
+    pastAttendeesByClass.set(claseId, padded);
+    for (const uid of padded) {
+      await insertReserva(claseId, uid, "confirmada");
       reservaCount++;
     }
   }
@@ -358,22 +407,28 @@ async function main() {
     if (error) throw error;
   }
 
-  const { data: pastReservas } = await supabase
-    .from("reservas")
-    .select("id, usuario_id, clase_id")
-    .in(
-      "clase_id",
-      pastClases.map((c) => c.id)
-    );
-
-  let idx = 0;
-  for (const r of pastReservas ?? []) {
-    const estado = idx % 5 === 0 ? "no_asistio" : "asistio";
-    await supabase.from("reservas").update({ estado }).eq("id", r.id);
-    idx++;
+  let asistioCount = 0;
+  let noAsistioCount = 0;
+  for (const c of pastClases) {
+    const attendees = pastAttendeesByClass.get(c.id) ?? [];
+    await markPastClassAttendance(c.id, attendees);
+    asistioCount += Math.max(0, attendees.length - 1);
+    noAsistioCount += attendees.length > 0 ? 1 : 0;
   }
 
-  console.log(`✓ ${reservaCount} reservas (pasadas y futuras)`);
+  console.log(
+    `✓ ${reservaCount} reservas · pasadas: ${asistioCount} asistieron, ${noAsistioCount} no asistieron`
+  );
+
+  const futureIds = futureClases.map((c) => c.id);
+  if (futureIds.length > 0) {
+    const { error } = await supabase
+      .from("reservas")
+      .update({ estado: "confirmada" })
+      .in("clase_id", futureIds)
+      .in("estado", ["asistio", "no_asistio"]);
+    if (error) throw error;
+  }
 
   // ─── Progreso: PRs, skills, objetivos ─────────────────────────────────────
   const prPool = PR_EXERCISES.slice(0, 8);
@@ -440,15 +495,96 @@ async function main() {
   }
   console.log("✓ PRs, skills y objetivos por atleta");
 
+  // ─── Atleta demo: Lucía (avance y estadísticas completas) ─────────────────
+  const luciaId = socioIds[0];
+  await supabase.from("atleta_pr_marcas").insert([
+    {
+      usuario_id: luciaId,
+      ejercicio: "back_squat",
+      record_tipo: "pr",
+      valor: 225,
+      unidad: "lbs",
+      fecha: addDays(hoy, -3),
+    },
+    {
+      usuario_id: luciaId,
+      ejercicio: "deadlift",
+      record_tipo: "pr",
+      valor: 275,
+      unidad: "lbs",
+      fecha: addDays(hoy, -1),
+    },
+    {
+      usuario_id: luciaId,
+      ejercicio: "clean_jerk",
+      record_tipo: "pr",
+      valor: 155,
+      unidad: "lbs",
+      fecha: hoy,
+    },
+  ]);
+
+  for (const skill of ["pull_ups", "chest_to_bar", "double_unders"] as const) {
+    await supabase.from("atleta_skills").upsert(
+      {
+        usuario_id: luciaId,
+        skill,
+        estado: skill === "double_unders" ? "en_proceso" : "dominado",
+      },
+      { onConflict: "usuario_id,skill" }
+    );
+  }
+
+  await supabase.from("atleta_objetivos").insert([
+    {
+      usuario_id: luciaId,
+      nombre: "Back squat 250 lb",
+      estado: "en_proceso",
+      progreso_pct: 72,
+      fecha_objetivo: addDays(hoy, 45),
+    },
+    {
+      usuario_id: luciaId,
+      nombre: "Primer muscle-up",
+      estado: "completado",
+      progreso_pct: 100,
+      fecha_objetivo: addDays(hoy, -5),
+    },
+  ]);
+
+  for (const c of claseRecords) {
+    const { data: existing } = await supabase
+      .from("reservas")
+      .select("id")
+      .eq("clase_id", c.id)
+      .eq("usuario_id", luciaId)
+      .maybeSingle();
+
+    if (existing) {
+      if (c.past) {
+        await supabase
+          .from("reservas")
+          .update({ estado: "asistio" })
+          .eq("id", existing.id);
+      }
+    } else if (!c.past) {
+      await insertReserva(c.id, luciaId, "confirmada");
+    }
+  }
+  console.log("✓ Atleta demo: Lucía Herrera");
+
   console.log("\n══════════════════════════════════════════");
   console.log("  RESET DEMO COMPLETADO");
   console.log("══════════════════════════════════════════");
   console.log(`\n  Box: ${box.name}`);
   console.log(`  Admin:    ${ADMIN_EMAIL}`);
-  console.log(`  Coaches:  coach.maria@, coach.diego@ (2 clases c/u)`);
-  console.log(`  Atletas:  10 (lucia.herrera@ … ricardo.pena@email.com)`);
-  console.log(`  Clases:   5 pasadas + 5 futuras`);
+  console.log(`  Coaches:  coach.maria@, coach.diego@`);
+  console.log(`  Clases:   5 pasadas + 5 futuras (todas visibles en admin)`);
   console.log(`  Password: ${PASSWORD}`);
+  console.log("\n  ── Atleta demo (progreso y estadísticas) ──");
+  console.log("  Email:    lucia.herrera@email.com");
+  console.log(`  Password: ${PASSWORD}`);
+  console.log("  Rutas:    /mi-progreso · /mis-reservas · /perfil");
   console.log("\n══════════════════════════════════════════\n");
 }
 

@@ -159,6 +159,7 @@
     "attended": "Asistió",
     "noShow": "No asistió",
     "enrolled": "Inscritos",
+    "attendanceAfterClass": "La asistencia se marca cuando la clase termina. Por ahora solo están inscritos.",
     "noEnrolled": "Nadie inscrito en esta clase",
     "myClasses": "Mis clases",
     "coachClassesDesc": "Selecciona una clase para marcar asistencia con ✓ o ✗.",

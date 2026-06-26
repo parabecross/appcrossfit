@@ -159,6 +159,7 @@
     "attended": "Attended",
     "noShow": "No show",
     "enrolled": "Enrolled",
+    "attendanceAfterClass": "Mark attendance after the class ends. Athletes are enrolled for now.",
     "noEnrolled": "No one enrolled in this class",
     "myClasses": "My classes",
     "coachClassesDesc": "Select a class to mark attendance with ✓ or ✗.",

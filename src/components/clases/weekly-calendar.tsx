@@ -34,6 +34,7 @@ interface WeeklyCalendarProps {
   locale: string;
   isAdmin?: boolean;
   onClassSelect?: (claseId: string) => void;
+  onDayChange?: (date: string) => void;
   selectedClaseId?: string | null;
   onClassDeleted?: (claseId: string) => void;
   onClassUpdated?: (clase: Clase) => void;
@@ -51,6 +52,7 @@ export function WeeklyCalendar({
   locale,
   isAdmin = false,
   onClassSelect,
+  onDayChange,
   selectedClaseId,
   onClassDeleted,
   onClassUpdated,
@@ -225,6 +227,7 @@ export function WeeklyCalendar({
                 type="button"
                 onClick={() => {
                   setSelected(ds);
+                  onDayChange?.(ds);
                   setCancelError(null);
                   setBookError(null);
                 }}
