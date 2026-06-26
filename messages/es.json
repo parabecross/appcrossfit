@@ -14,7 +14,8 @@
     "error": "Algo salió mal",
     "success": "Listo",
     "noData": "Sin datos",
-    "language": "Idioma"
+    "language": "Idioma",
+    "close": "Cerrar"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -110,7 +111,8 @@
       "cancelada": "Cancelada"
     },
     "yourCoach": "Tu coach",
-    "coachNoBio": "Sin descripción aún"
+    "coachNoBio": "Sin descripción aún",
+    "tapClassForAttendance": "Toca una clase arriba para marcar asistencia"
   },
   "admin": {
     "dashboard": "Panel de control",

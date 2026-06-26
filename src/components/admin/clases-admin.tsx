@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, X } from "lucide-react";
+import { ArrowLeft, Check, Users, X } from "lucide-react";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
-import { cn, formatTime } from "@/lib/utils";
+import { getWeekDates, toDateString } from "@/lib/clases/helpers";
+import {
+  cn,
+  formatShortDay,
+  formatTime,
+  formatWeekdayShort,
+} from "@/lib/utils";
 import type { Clase, Profile, Reserva } from "@/types/database";
 
 type ReservaRow = Reserva & { profile: Profile | null };
@@ -49,15 +55,21 @@ export function AdminClasesClient({
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
+  const week = getWeekDates();
+  const today = toDateString(new Date());
+
   const [localReservas, setLocalReservas] = useState(reservas);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingReservaId, setPendingReservaId] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(today);
   const [selectedClase, setSelectedClase] = useState<string | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<"list" | "attendance">("list");
 
   useEffect(() => {
     setLocalReservas(reservas);
   }, [reservas]);
+
   const [form, setForm] = useState<{
     nombre: string;
     fecha: string;
@@ -67,12 +79,40 @@ export function AdminClasesClient({
     coach_id: string;
   }>({
     nombre: "",
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: today,
     hora_inicio: "07:00",
     hora_fin: "08:00",
     cupo_maximo: APP_CONFIG.CUPO_DEFAULT,
     coach_id: coaches[0]?.id ?? "",
   });
+
+  const sortedClases = useMemo(
+    () =>
+      [...clases].sort((a, b) =>
+        `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)
+      ),
+    [clases]
+  );
+
+  const dayClases = sortedClases.filter((c) => c.fecha === selectedDay);
+
+  const enrollmentCount = (claseId: string) =>
+    localReservas.filter(
+      (r) =>
+        r.clase_id === claseId &&
+        ["confirmada", "asistio", "no_asistio"].includes(r.estado)
+    ).length;
+
+  const selectedClaseData = clases.find((c) => c.id === selectedClase);
+  const claseReservas = localReservas.filter(
+    (r) =>
+      r.clase_id === selectedClase &&
+      ["confirmada", "asistio", "no_asistio"].includes(r.estado)
+  );
+
+  const markedCount = claseReservas.filter((r) =>
+    ["asistio", "no_asistio"].includes(r.estado)
+  ).length;
 
   const createClase = async () => {
     setLoading(true);
@@ -117,63 +157,103 @@ export function AdminClasesClient({
     router.refresh();
   };
 
-  const selectedClaseData = clases.find((c) => c.id === selectedClase);
-  const claseReservas = localReservas.filter(
-    (r) =>
-      r.clase_id === selectedClase &&
-      ["confirmada", "asistio", "no_asistio"].includes(r.estado)
+  const openAttendance = (claseId: string) => {
+    setSelectedClase(claseId);
+    setMobilePanel("attendance");
+  };
+
+  const DayPicker = () => (
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+      {week.map((d) => {
+        const ds = toDateString(d);
+        const isSelected = ds === selectedDay;
+        const count = sortedClases.filter((c) => c.fecha === ds).length;
+        return (
+          <button
+            key={ds}
+            type="button"
+            onClick={() => setSelectedDay(ds)}
+            className={cn(
+              "flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
+              isSelected
+                ? "brand-gradient text-white glow-primary"
+                : "bg-secondary/60 text-muted-foreground"
+            )}
+          >
+            <span>{formatWeekdayShort(d, locale)}</span>
+            {count > 0 && (
+              <span
+                className={cn(
+                  "mt-0.5 text-[10px] font-normal",
+                  isSelected ? "text-white/80" : "text-muted-foreground"
+                )}
+              >
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 
-  const sortedClases = [...clases].sort((a, b) =>
-    `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)
-  );
-
-  const AttendanceList = () => (
+  const AttendanceList = ({ compact = false }: { compact?: boolean }) => (
     <div className="space-y-2">
       {claseReservas.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("noEnrolled")}</p>
+        <div className="rounded-2xl border border-dashed border-white/10 py-12 text-center">
+          <Users className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">{t("noEnrolled")}</p>
+        </div>
       ) : (
         claseReservas.map((r) => (
           <div
             key={r.id}
-            className="flex items-center justify-between gap-3 rounded-lg bg-secondary/30 px-3 py-2"
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-secondary/20",
+              compact ? "px-3 py-3" : "px-4 py-4"
+            )}
           >
-            <div className="min-w-0">
-              <p className="font-medium truncate">
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate text-base">
                 {r.profile?.nombre_completo ?? "—"}
               </p>
               {r.estado !== "confirmada" && (
                 <Badge
                   variant={r.estado === "asistio" ? "success" : "destructive"}
-                  className="mt-1"
+                  className="mt-1.5"
                 >
                   {r.estado === "asistio" ? t("attended") : t("noShow")}
                 </Badge>
               )}
+              {r.estado === "confirmada" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("enrolled")}
+                </p>
+              )}
             </div>
-            <div className="flex gap-1 shrink-0">
+            <div className="flex gap-2 shrink-0">
               <Button
-                size="icon"
+                size={compact ? "icon" : "default"}
                 variant={r.estado === "asistio" ? "default" : "outline"}
                 className={cn(
-                  "h-9 w-9",
+                  compact ? "h-11 w-11" : "h-11 px-4",
                   r.estado === "asistio" && "bg-green-600 hover:bg-green-600"
                 )}
                 disabled={pendingReservaId === r.id}
                 onClick={() => markAttendance(r.id, "asistio")}
-                title={t("attended")}
               >
-                <Check className="h-4 w-4" />
+                <Check className="h-5 w-5" />
+                {!compact && <span className="ml-1 hidden sm:inline">{t("attended")}</span>}
               </Button>
               <Button
-                size="icon"
+                size={compact ? "icon" : "default"}
                 variant={r.estado === "no_asistio" ? "destructive" : "outline"}
-                className="h-9 w-9"
+                className={compact ? "h-11 w-11" : "h-11 px-4"}
                 disabled={pendingReservaId === r.id}
                 onClick={() => markAttendance(r.id, "no_asistio")}
-                title={t("noShow")}
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
+                {!compact && <span className="ml-1 hidden sm:inline">{t("noShow")}</span>}
               </Button>
             </div>
           </div>
@@ -182,88 +262,178 @@ export function AdminClasesClient({
     </div>
   );
 
+  const ClassCard = ({
+    c,
+    onSelect,
+    selected,
+  }: {
+    c: Clase;
+    onSelect: () => void;
+    selected: boolean;
+  }) => {
+    const count = enrollmentCount(c.id);
+    const attended = localReservas.filter(
+      (r) => r.clase_id === c.id && r.estado === "asistio"
+    ).length;
+
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "w-full rounded-2xl border px-4 py-4 text-left transition-all active:scale-[0.98]",
+          selected
+            ? "border-primary/60 bg-primary/10 ring-1 ring-primary/40"
+            : "border-white/10 bg-card/50 hover:border-white/20"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-bold text-base">{c.nombre}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {formatTime(c.hora_inicio)} – {formatTime(c.hora_fin)}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge variant="secondary" className="font-semibold">
+              {count} {t("enrolled").toLowerCase()}
+            </Badge>
+            {attended > 0 && (
+              <span className="text-[10px] text-green-400">
+                {attended} ✓
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   if (isCoach) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-black brand-text">{t("title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("coachClassesDesc")}</p>
+      <div className="space-y-4 md:space-y-6">
+        {/* Mobile: full-screen attendance panel */}
+        <div className={cn("md:hidden", mobilePanel === "list" && "hidden")}>
+          {selectedClaseData && (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setMobilePanel("list")}
+                className="flex items-center gap-2 text-sm font-medium text-primary -ml-1 py-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t("myClasses")}
+              </button>
+
+              <div className="rounded-2xl brand-gradient p-4 text-white">
+                <p className="text-xs font-medium uppercase tracking-wide opacity-80">
+                  {t("attendance")}
+                </p>
+                <p className="text-xl font-black mt-1">{selectedClaseData.nombre}</p>
+                <p className="text-sm opacity-90 mt-0.5">
+                  {formatShortDay(selectedClaseData.fecha, locale)} ·{" "}
+                  {formatTime(selectedClaseData.hora_inicio)} –{" "}
+                  {formatTime(selectedClaseData.hora_fin)}
+                </p>
+                {claseReservas.length > 0 && (
+                  <p className="text-xs mt-2 opacity-80">
+                    {markedCount}/{claseReservas.length} {t("attendance").toLowerCase()}
+                  </p>
+                )}
+              </div>
+
+              <AttendanceList />
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("myClasses")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {sortedClases.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("noClasses")}</p>
-              ) : (
-                sortedClases.map((c) => {
-                  const count = localReservas.filter(
-                    (r) =>
-                      r.clase_id === c.id &&
-                      ["confirmada", "asistio", "no_asistio"].includes(r.estado)
-                  ).length;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setSelectedClase(c.id)}
-                      className={cn(
-                        "w-full rounded-lg border border-white/10 px-4 py-3 text-left transition-colors hover:bg-white/5",
-                        selectedClase === c.id &&
-                          "border-primary bg-primary/10 ring-1 ring-primary"
-                      )}
-                    >
-                      <p className="font-semibold">{c.nombre}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {c.fecha} · {formatTime(c.hora_inicio)} –{" "}
-                        {formatTime(c.hora_fin)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t("enrolled")}: {count}
-                      </p>
-                    </button>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+        {/* Mobile: class list */}
+        <div className={cn("md:hidden space-y-4", mobilePanel === "attendance" && "hidden")}>
+          <p className="text-sm text-muted-foreground">{t("coachClassesDesc")}</p>
+          <DayPicker />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("attendance")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedClaseData ? (
-                <>
-                  <p className="text-sm font-medium mb-3">
-                    {selectedClaseData.nombre} — {selectedClaseData.fecha}
+          {dayClases.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center">
+              <p className="text-muted-foreground">{t("noClasses")}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dayClases.map((c) => (
+                <ClassCard
+                  key={c.id}
+                  c={c}
+                  selected={selectedClase === c.id}
+                  onSelect={() => openAttendance(c.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: two columns */}
+        <div className="hidden md:block space-y-6">
+          <div>
+            <h1 className="text-3xl font-black brand-text">{t("title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("coachClassesDesc")}</p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="border-white/5">
+              <CardHeader className="pb-3">
+                <CardTitle>{t("myClasses")}</CardTitle>
+                <DayPicker />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dayClases.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("noClasses")}</p>
+                ) : (
+                  dayClases.map((c) => (
+                    <ClassCard
+                      key={c.id}
+                      c={c}
+                      selected={selectedClase === c.id}
+                      onSelect={() => setSelectedClase(c.id)}
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/5">
+              <CardHeader>
+                <CardTitle>{t("attendance")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedClaseData ? (
+                  <>
+                    <p className="text-sm font-medium mb-4">
+                      {selectedClaseData.nombre} —{" "}
+                      {formatShortDay(selectedClaseData.fecha, locale)}
+                    </p>
+                    <AttendanceList compact />
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("selectClassForAttendance")}
                   </p>
-                  <AttendanceList />
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t("selectClassForAttendance")}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-black brand-text">{t("title")}</h1>
+    <div className="space-y-5 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <h1 className="text-2xl md:text-3xl font-black brand-text">{t("title")}</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>{t("create")}</Button>
+            <Button className="w-full sm:w-auto">{t("create")}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t("create")}</DialogTitle>
             </DialogHeader>
@@ -359,9 +529,45 @@ export function AdminClasesClient({
         canBook={false}
         locale={locale}
         isAdmin
+        onClassSelect={setSelectedClase}
+        selectedClaseId={selectedClase}
       />
 
-      <Card>
+      {/* Mobile: slide-up attendance when class selected */}
+      <div
+        className={cn(
+          "md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-card shadow-2xl transition-transform duration-300 safe-bottom pb-20",
+          selectedClase ? "translate-y-0" : "translate-y-full pointer-events-none"
+        )}
+      >
+        {selectedClaseData && (
+          <div className="p-4 space-y-4">
+            <div className="mx-auto h-1 w-10 rounded-full bg-white/20" />
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                  {t("attendance")}
+                </p>
+                <p className="font-bold text-lg">{selectedClaseData.nombre}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatShortDay(selectedClaseData.fecha, locale)}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedClase(null)}
+              >
+                {tc("close")}
+              </Button>
+            </div>
+            <AttendanceList />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: attendance card */}
+      <Card className="hidden md:block border-white/5">
         <CardHeader>
           <CardTitle>{t("attendance")}</CardTitle>
         </CardHeader>
@@ -376,14 +582,21 @@ export function AdminClasesClient({
             <SelectContent>
               {clases.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.nombre} — {c.fecha}
+                  {c.nombre} — {formatShortDay(c.fecha, locale)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {selectedClase && <AttendanceList />}
+          {selectedClase && <AttendanceList compact />}
         </CardContent>
       </Card>
+
+      {/* Mobile hint */}
+      {!selectedClase && (
+        <p className="md:hidden text-center text-sm text-muted-foreground pb-2">
+          {t("tapClassForAttendance")}
+        </p>
+      )}
     </div>
   );
 }

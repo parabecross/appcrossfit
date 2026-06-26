@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { cn, formatTime } from "@/lib/utils";
+import { cn, formatTime, formatWeekdayShort } from "@/lib/utils";
 import { getWeekDates, toDateString, canCancelReservation } from "@/lib/clases/helpers";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,8 @@ interface WeeklyCalendarProps {
   canBook: boolean;
   locale: string;
   isAdmin?: boolean;
+  onClassSelect?: (claseId: string) => void;
+  selectedClaseId?: string | null;
 }
 
 export function WeeklyCalendar({
@@ -30,6 +32,8 @@ export function WeeklyCalendar({
   canBook,
   locale,
   isAdmin = false,
+  onClassSelect,
+  selectedClaseId,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -82,27 +86,24 @@ export function WeeklyCalendar({
     setLoading(null);
   };
 
-  const dayLabel = (d: Date) =>
-    d.toLocaleDateString(locale === "es" ? "es-MX" : "en-US", {
-      weekday: "short",
-      day: "numeric",
-    });
+  const dayLabel = (d: Date) => formatWeekdayShort(d, locale);
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2 overflow-x-auto pb-2">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
         {week.map((d) => {
           const ds = toDateString(d);
           const isSelected = ds === selected;
           return (
             <button
               key={ds}
+              type="button"
               onClick={() => setSelected(ds)}
               className={cn(
-                "flex flex-col items-center min-w-[64px] rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                "flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
                 isSelected
                   ? "brand-gradient text-white glow-primary"
-                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                  : "bg-secondary/60 text-muted-foreground"
               )}
             >
               {dayLabel(d)}
@@ -118,7 +119,7 @@ export function WeeklyCalendar({
       {dayClases.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">{t("noClasses")}</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-4 md:grid-cols-2">
           {dayClases.map((clase) => {
             const occupied = clase.cupo_ocupado ?? 0;
             const full = occupied >= clase.cupo_maximo;
@@ -129,7 +130,22 @@ export function WeeklyCalendar({
               : false;
 
             return (
-              <Card key={clase.id}>
+              <Card
+                key={clase.id}
+                className={cn(
+                  "border-white/5 transition-all rounded-2xl",
+                  isAdmin &&
+                    onClassSelect &&
+                    selectedClaseId === clase.id &&
+                    "ring-2 ring-primary/50 border-primary/30",
+                  isAdmin && onClassSelect && "cursor-pointer active:scale-[0.99]"
+                )}
+                onClick={
+                  isAdmin && onClassSelect
+                    ? () => onClassSelect(clase.id)
+                    : undefined
+                }
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{clase.nombre}</CardTitle>

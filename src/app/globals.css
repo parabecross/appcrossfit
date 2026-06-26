@@ -51,4 +51,13 @@
   .glow-primary {
     box-shadow: 0 0 40px -10px hsl(var(--brand-glow) / 0.4);
   }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-page {
+    @apply pb-24 md:pb-0;
+  }
 }

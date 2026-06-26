@@ -76,10 +76,10 @@ export function UsuariosTable({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
         <Input
-          placeholder="Search..."
+          placeholder={tc("search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
         <Dialog>
           <DialogTrigger asChild>
@@ -136,7 +136,7 @@ export function UsuariosTable({
         </Dialog>
       </div>
 
-      <div className="rounded-xl border border-white/5 overflow-hidden">
+      <div className="rounded-xl border border-white/5 overflow-hidden hidden md:block">
         <table className="w-full text-sm">
           <thead className="bg-secondary/50">
             <tr>
@@ -198,6 +198,46 @@ export function UsuariosTable({
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {filtered.map((u) => (
+          <div
+            key={u.id}
+            className="rounded-2xl border border-white/10 bg-card/50 p-4 space-y-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-bold text-base truncate">{u.nombre_completo}</p>
+                {u.telefono && (
+                  <p className="text-sm text-muted-foreground mt-0.5">{u.telefono}</p>
+                )}
+              </div>
+              <Badge
+                variant={u.estado_cuenta === "activo" ? "success" : "warning"}
+              >
+                {ts(u.estado_cuenta)}
+              </Badge>
+            </div>
+            {u.membresia && (
+              <p className="text-sm text-muted-foreground">
+                {u.membresia.plan?.nombre} · {tm(u.membresia.estado)} ·{" "}
+                {formatDate(u.membresia.fecha_fin, locale)}
+              </p>
+            )}
+            <div className="flex items-center gap-2 pt-1">
+              <Link href={`/admin/usuarios/${u.id}`} className="flex-1">
+                <Button variant="outline" className="w-full">
+                  Ver detalle
+                </Button>
+              </Link>
+              <DeleteSocioDialog userId={u.user_id} nombre={u.nombre_completo} />
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-center text-muted-foreground py-8">{tc("noData")}</p>
+        )}
       </div>
     </div>
   );

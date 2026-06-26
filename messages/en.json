@@ -14,7 +14,8 @@
     "error": "Something went wrong",
     "success": "Done",
     "noData": "No data",
-    "language": "Language"
+    "language": "Language",
+    "close": "Close"
   },
   "auth": {
     "login": "Log in",
@@ -110,7 +111,8 @@
       "cancelada": "Cancelled"
     },
     "yourCoach": "Your coach",
-    "coachNoBio": "No description yet"
+    "coachNoBio": "No description yet",
+    "tapClassForAttendance": "Tap a class above to mark attendance"
   },
   "admin": {
     "dashboard": "Control panel",
