@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { computeFechaFin } from "@/lib/membresias/helpers";
+import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { isAdminLikeRole } from "@/lib/auth/roles";
 
 async function requireAdmin() {
@@ -116,7 +116,10 @@ export async function POST(request: NextRequest) {
 
     const { error: updateError } = await supabase
       .from("membresias")
-      .update({ fecha_fin })
+      .update({
+        fecha_fin,
+        estado: syncMembresiaEstadoLocal(fecha_fin, "vigente"),
+      })
       .eq("id", membresia_id);
 
     if (updateError) {
@@ -124,6 +127,74 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, fecha_fin });
+  }
+
+  if (action === "update") {
+    const { membresia_id, plan_id, fecha_inicio, fecha_fin } = body;
+
+    if (!membresia_id || !plan_id || !fecha_inicio || !fecha_fin) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    if (fecha_fin < fecha_inicio) {
+      return NextResponse.json(
+        { error: "End date must be on or after start date" },
+        { status: 400 }
+      );
+    }
+
+    const { data: plan, error: planError } = await supabase
+      .from("planes")
+      .select("id")
+      .eq("id", plan_id)
+      .eq("activo", true)
+      .single();
+
+    if (planError || !plan) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 400 });
+    }
+
+    const { data: membresia, error: fetchError } = await supabase
+      .from("membresias")
+      .select("id, usuario_id, estado")
+      .eq("id", membresia_id)
+      .single();
+
+    if (fetchError || !membresia) {
+      return NextResponse.json({ error: "Membership not found" }, { status: 404 });
+    }
+
+    if (membresia.estado === "cancelada") {
+      return NextResponse.json(
+        { error: "Cannot edit a cancelled membership" },
+        { status: 400 }
+      );
+    }
+
+    const estado = syncMembresiaEstadoLocal(fecha_fin, "vigente");
+
+    const { error: updateError } = await supabase
+      .from("membresias")
+      .update({
+        plan_id,
+        fecha_inicio,
+        fecha_fin,
+        estado,
+      })
+      .eq("id", membresia_id);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 400 });
+    }
+
+    if (estado === "vigente") {
+      await supabase
+        .from("profiles")
+        .update({ estado_cuenta: "activo" })
+        .eq("id", membresia.usuario_id);
+    }
+
+    return NextResponse.json({ success: true, fecha_fin, estado });
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });

@@ -50,6 +50,8 @@ export function UserDetailClient({
   const [activateOpen, setActivateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [activateFechaFin, setActivateFechaFin] = useState("");
+  const [editPlanId, setEditPlanId] = useState("");
+  const [editFechaInicio, setEditFechaInicio] = useState("");
   const [editFechaFin, setEditFechaFin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -58,6 +60,17 @@ export function UserDetailClient({
     ? syncMembresiaEstadoLocal(current.fecha_fin, current.estado)
     : null;
   const hasActiveMembership = currentEstado === "vigente";
+  const canEditMembership =
+    !!current && current.estado !== "cancelada";
+
+  const openEditDialog = () => {
+    if (!current) return;
+    setError(null);
+    setEditPlanId(current.plan_id);
+    setEditFechaInicio(current.fecha_inicio);
+    setEditFechaFin(current.fecha_fin);
+    setEditOpen(true);
+  };
 
   const getSelectedPlan = () => planes.find((p) => p.id === planId);
 
@@ -119,12 +132,22 @@ export function UserDetailClient({
     }
   };
 
-  const updateFechaFin = async () => {
+  const updateMembership = async () => {
     if (!current) return;
     setError(null);
     setSuccess(false);
 
-    if (!editFechaFin) {
+    if (!editPlanId) {
+      setError(t("selectPlan"));
+      return;
+    }
+
+    if (!editFechaInicio || !editFechaFin) {
+      setError(t("invalidDate"));
+      return;
+    }
+
+    if (editFechaFin < editFechaInicio) {
       setError(t("invalidDate"));
       return;
     }
@@ -132,8 +155,10 @@ export function UserDetailClient({
     setLoading(true);
     try {
       await callMembresiaApi({
-        action: "update_end",
+        action: "update",
         membresia_id: current.id,
+        plan_id: editPlanId,
+        fecha_inicio: editFechaInicio,
         fecha_fin: editFechaFin,
       });
       setSuccess(true);
@@ -220,41 +245,66 @@ export function UserDetailClient({
       <Card>
         <CardHeader>
           <CardTitle>
-            {hasActiveMembership ? t("manageMembership") : t("assignPlan")}
+            {current ? t("manageMembership") : t("assignPlan")}
           </CardTitle>
           <CardDescription>
-            {hasActiveMembership
-              ? t("manageActiveDesc")
+            {current
+              ? hasActiveMembership
+                ? t("manageActiveDesc")
+                : t("manageExpiredDesc")
               : t("assignPlanDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           {planes.length === 0 ? (
             <p className="text-sm text-muted-foreground">{tc("noData")}</p>
-          ) : hasActiveMembership ? (
+          ) : canEditMembership ? (
             <Dialog
               open={editOpen}
               onOpenChange={(open) => {
-                if (open) {
-                  setError(null);
-                  setEditFechaFin(current?.fecha_fin ?? defaultFechaFin());
-                }
-                setEditOpen(open);
+                if (open) openEditDialog();
+                else setEditOpen(false);
               }}
             >
               <DialogTrigger asChild>
-                <Button variant="secondary">{t("editEndDate")}</Button>
+                <Button>{t("editMembership")}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{t("editEndDate")}</DialogTitle>
+                  <DialogTitle>{t("editMembership")}</DialogTitle>
                 </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  {t("editMembershipDesc")}
+                </p>
                 <div className="space-y-3">
+                  <div>
+                    <Label>{t("currentPlan")}</Label>
+                    <Select value={editPlanId} onValueChange={setEditPlanId}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planes.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-fecha-inicio">{t("startDate")}</Label>
+                    <Input
+                      id="edit-fecha-inicio"
+                      type="date"
+                      value={editFechaInicio}
+                      onChange={(e) => setEditFechaInicio(e.target.value)}
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="edit-fecha-fin">{t("expires")}</Label>
                     <Input
                       id="edit-fecha-fin"
-                      name="edit-fecha-fin"
                       type="date"
                       value={editFechaFin}
                       onChange={(e) => setEditFechaFin(e.target.value)}
@@ -265,11 +315,11 @@ export function UserDetailClient({
                   )}
                   <Button
                     type="button"
-                    onClick={updateFechaFin}
+                    onClick={updateMembership}
                     disabled={loading}
                     className="w-full"
                   >
-                    {loading ? tc("loading") : t("extend")}
+                    {loading ? tc("loading") : tc("save")}
                   </Button>
                 </div>
               </DialogContent>
