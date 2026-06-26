@@ -10,12 +10,16 @@ export function AthronLogo({
 }) {
   return (
     <Image
-      src="/athron-logo.jpg"
+      src="/athron-logo.png"
       alt="ATHRON — Train. Track. Progress."
       width={320}
       height={320}
       priority={priority}
-      className={cn("h-auto w-full max-w-[220px] mx-auto object-contain", className)}
+      unoptimized
+      className={cn(
+        "h-auto w-full max-w-[240px] mx-auto object-contain drop-shadow-[0_0_24px_rgba(234,88,12,0.15)]",
+        className
+      )}
     />
   );
 }

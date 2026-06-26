@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { AthronLogo } from "@/components/brand/athron-logo";
 
@@ -62,12 +62,11 @@ export function LoginForm() {
     <Card className="w-full max-w-md glow-primary">
       <CardHeader className="text-center">
         <div className="mx-auto mb-3">
-          <AthronLogo priority className="max-w-[200px]" />
+          <AthronLogo priority className="max-w-[240px]" />
         </div>
         <div className="mx-auto mb-2">
           <LanguageSwitcher />
         </div>
-        <CardDescription>{t("loginSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

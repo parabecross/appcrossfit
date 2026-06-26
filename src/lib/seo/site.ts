@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
+/** URL canónica de producción — no usar VERCEL_URL (rompe WhatsApp). */
+export const CANONICAL_SITE_URL = "https://appcrossfit.vercel.app";
+
 export function getSiteUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "https://appcrossfit.vercel.app";
+  return CANONICAL_SITE_URL;
 }
 
 const descriptions: Record<"es" | "en", string> = {
@@ -48,15 +48,16 @@ export function buildSiteMetadata(locale: "es" | "en" = "es"): Metadata {
       type: "website",
       locale: locale === "es" ? "es_MX" : "en_US",
       alternateLocale: locale === "es" ? ["en_US"] : ["es_MX"],
-      url: siteUrl,
+      url: `${siteUrl}/${locale}/login`,
       siteName: APP_CONFIG.BRAND_NAME,
       title,
       description,
       images: [
         {
           url: ogImage,
-          width: 1024,
-          height: 1024,
+          secureUrl: ogImage,
+          width: 1200,
+          height: 630,
           alt: "ATHRON — Train. Track. Progress.",
           type: "image/jpeg",
         },

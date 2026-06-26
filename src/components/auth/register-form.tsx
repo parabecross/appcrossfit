@@ -172,7 +172,7 @@ export function RegisterForm() {
     <Card className="w-full max-w-md glow-primary">
       <CardHeader className="text-center">
         <div className="mx-auto mb-3">
-          <AthronLogo className="max-w-[200px]" />
+          <AthronLogo className="max-w-[240px]" />
         </div>
         <div className="mx-auto mb-2">
           <LanguageSwitcher />
