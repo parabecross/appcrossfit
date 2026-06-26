@@ -267,6 +267,90 @@
   "progress": {
     "title": "Mi progreso",
     "subtitle": "Registra tus PRs y skills para ver tu evolución en CrossFit.",
+    "expediente": {
+      "label": "Expediente deportivo",
+      "title": "Mi progreso",
+      "subtitle": "Tu evolución, constancia y marcas en un solo lugar.",
+      "pageSubtitle": "Expediente deportivo — evolución, constancia y progreso personal.",
+      "viewAll": "Ver expediente completo"
+    },
+    "dashboard": {
+      "streak": "Racha actual",
+      "streakValue": "{count, plural, =1 {1 día} other {# días}}",
+      "noStreak": "Sin racha activa",
+      "streakHint": "Días consecutivos entrenando",
+      "classesMonth": "Clases este mes",
+      "classesMonthHint": "Asistencias confirmadas",
+      "attendanceRate": "Asistencia",
+      "attendanceRateHint": "Asistió vs no asistió",
+      "totalClasses": "Total clases",
+      "totalClassesHint": "Clases asistidas",
+      "prsLogged": "PRs registrados",
+      "skillsHint": "Skills logradas o dominadas",
+      "activeGoal": "Objetivo activo",
+      "noActiveGoal": "Sin objetivo activo",
+      "goalProgress": "{pct}% de avance",
+      "badges": "Insignias",
+      "badgesValue": "{unlocked}/{total}",
+      "badgesHint": "Logros desbloqueados",
+      "skillBadgesValue": "{unlocked}/{total}",
+      "skillBadgesHint": "Insignias de skills logradas"
+    },
+    "badgesSection": {
+      "skills": "Insignias de skills",
+      "skillsSubtitle": "Se desbloquean al marcar Logrado o Dominado",
+      "milestones": "Hitos",
+      "locked": "Bloqueada"
+    },
+    "badges": {
+      "primer_pr": "Primer PR",
+      "siete_dias": "7 días entrenando",
+      "treinta_dias": "30 días entrenando",
+      "cien_clases": "100 clases",
+      "objetivo_cumplido": "Objetivo cumplido",
+      "skill_pull_ups": "Pull-ups logradas",
+      "skill_chest_to_bar": "Chest to Bar logrado",
+      "skill_bar_muscle_up": "Bar Muscle Up logrado",
+      "skill_ring_muscle_up": "Ring Muscle Up logrado",
+      "skill_handstand_push_up": "Handstand Push-up logrado",
+      "skill_handstand_walk": "Handstand Walk logrado",
+      "skill_double_unders": "Double Unders logrados",
+      "skill_rope_climb": "Rope Climb logrado",
+      "skill_pistols": "Pistols logrados",
+      "skill_kipping_pull_up": "Kipping Pull-up logrado",
+      "skill_butterfly_pull_up": "Butterfly Pull-up logrado"
+    },
+    "goals": {
+      "add": "Nuevo objetivo",
+      "empty": "Crea tu primer objetivo personal para mantener el foco.",
+      "name": "Nombre del objetivo",
+      "namePlaceholder": "Ej: Primer Pull Up, Snatch 100 kg, Murph RX",
+      "nameRequired": "Ingresa un nombre para el objetivo",
+      "invalidProgress": "El avance debe estar entre 0 y 100",
+      "progress": "Avance",
+      "targetDate": "Fecha objetivo",
+      "notes": "Notas",
+      "notesPlaceholder": "Detalles, plan de entrenamiento, competencia...",
+      "markComplete": "Marcar completado",
+      "status": {
+        "en_proceso": "En proceso",
+        "completado": "Completado",
+        "pausado": "Pausado",
+        "cancelado": "Cancelado"
+      }
+    },
+    "sportsProfile": {
+      "label": "Información deportiva",
+      "title": "Perfil deportivo",
+      "weight": "Peso corporal (kg)",
+      "height": "Estatura (cm)",
+      "yearsTraining": "Años entrenando",
+      "favoriteModality": "Modalidad favorita",
+      "favoriteModalityPlaceholder": "CrossFit, Hyrox, Weightlifting...",
+      "notes": "Notas",
+      "notesPlaceholder": "Lesiones, preferencias, horarios...",
+      "saved": "Perfil deportivo guardado"
+    },
     "lastRecord": "Último record",
     "totalRecords": "Records registrados",
     "skillsAchieved": "Skills logradas",
@@ -301,6 +385,7 @@
     "tabs": {
       "prs": "PRs / RM",
       "skills": "Skills",
+      "goals": "Objetivos",
       "history": "Historial"
     },
     "skillStatus": {
@@ -309,6 +394,7 @@
       "dominado": "Dominado"
     },
     "unit": {
+      "kg": "Peso (kg)",
       "lbs": "Peso (lb)",
       "reps": "Repeticiones",
       "segundos": "Tiempo",

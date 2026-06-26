@@ -27,7 +27,9 @@ export function formatRecordTipoLabel(
 
 export function formatPrValue(valor: number, unidad: PrUnidad): string {
   if (unidad === "segundos") return formatSeconds(valor);
-  if (unidad === "lbs") return `${valor} lb`;
+  if (unidad === "kg" || unidad === "lbs") {
+    return `${valor} kg`;
+  }
   if (unidad === "reps") return `${valor} reps`;
   if (unidad === "metros") return `${valor} m`;
   return String(valor);
@@ -88,7 +90,7 @@ export function comparePrDelta(
   if (unidad === "segundos") {
     return `-${Math.round(previousValor - newValor)}s`;
   }
-  if (unidad === "lbs") return `+${diff} lb`;
+  if (unidad === "kg" || unidad === "lbs") return `+${diff} kg`;
   if (unidad === "reps") return `+${diff} reps`;
   return `+${diff}`;
 }

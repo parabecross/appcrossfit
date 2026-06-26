@@ -5,7 +5,8 @@ export type MembresiaEstado = "vigente" | "vencida" | "cancelada";
 export type MetodoAsignacion = "automatico" | "manual";
 export type ClaseEstado = "programada" | "cancelada";
 export type ReservaEstado = "confirmada" | "cancelada" | "asistio" | "no_asistio";
-export type PrUnidad = "lbs" | "reps" | "segundos" | "metros";
+export type PrUnidad = "kg" | "lbs" | "reps" | "segundos" | "metros";
+export type ObjetivoEstado = "en_proceso" | "completado" | "pausado" | "cancelado";
 export type SkillEstado = "en_proceso" | "logrado" | "dominado";
 export type RecordTipo = "pr" | "rm";
 
@@ -145,6 +146,28 @@ export interface AtletaSkillHistorial {
   created_at: string;
 }
 
+export interface AtletaObjetivo {
+  id: string;
+  usuario_id: string;
+  nombre: string;
+  estado: ObjetivoEstado;
+  progreso_pct: number;
+  fecha_objetivo: string | null;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AtletaPerfilDeportivo {
+  usuario_id: string;
+  peso_corporal_kg: number | null;
+  estatura_cm: number | null;
+  anos_entrenando: number | null;
+  modalidad_favorita: string | null;
+  notas: string | null;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -168,6 +191,16 @@ export interface Database {
         Row: AtletaSkillHistorial;
         Insert: Partial<AtletaSkillHistorial>;
         Update: Partial<AtletaSkillHistorial>;
+      };
+      atleta_objetivos: {
+        Row: AtletaObjetivo;
+        Insert: Partial<AtletaObjetivo>;
+        Update: Partial<AtletaObjetivo>;
+      };
+      atleta_perfil_deportivo: {
+        Row: AtletaPerfilDeportivo;
+        Insert: Partial<AtletaPerfilDeportivo>;
+        Update: Partial<AtletaPerfilDeportivo>;
       };
     };
   };

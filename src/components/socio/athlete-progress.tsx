@@ -3,11 +3,9 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  Award,
   Dumbbell,
   Plus,
   Sparkles,
-  Target,
   TrendingUp,
   Trophy,
 } from "lucide-react";
@@ -40,7 +38,6 @@ import {
 } from "@/lib/progreso/constants";
 import {
   comparePrDelta,
-  countAchievedSkills,
   formatPrValue,
   formatRecordTipoLabel,
   getLatestPrPerExercise,
@@ -49,11 +46,15 @@ import {
   isPrImprovement,
   parseTimeInput,
   secondsToTimeInput,
-  suggestNextGoal,
 } from "@/lib/progreso/helpers";
 import { getPrMotivationMessage } from "@/lib/progreso/motivation";
 import { cn, formatCompactDate } from "@/lib/utils";
+import { ProgressDashboard } from "@/components/socio/progress/progress-dashboard";
+import { ProgressGoals } from "@/components/socio/progress/progress-goals";
+import { ProgressBadgesPanel } from "@/components/socio/progress/progress-badges-panel";
+import type { AttendanceStats } from "@/lib/progreso/attendance";
 import type {
+  AtletaObjetivo,
   AtletaPrMarca,
   AtletaSkill,
   AtletaSkillHistorial,
@@ -61,19 +62,25 @@ import type {
   RecordTipo,
 } from "@/types/database";
 
-type Tab = "prs" | "skills" | "history";
+type Tab = "prs" | "skills" | "goals" | "history";
 
 export function AthleteProgress({
   profileId,
   marcas: initialMarcas,
   skills: initialSkills,
   skillHistorial: initialHist,
+  objetivos: initialObjetivos,
+  activeGoal,
+  attendance,
   locale,
 }: {
   profileId: string;
   marcas: AtletaPrMarca[];
   skills: AtletaSkill[];
   skillHistorial: AtletaSkillHistorial[];
+  objetivos: AtletaObjetivo[];
+  activeGoal: AtletaObjetivo | null;
+  attendance: AttendanceStats & { attendanceRate: number | null };
   locale: string;
 }) {
   const t = useTranslations("progress");
@@ -84,6 +91,7 @@ export function AthleteProgress({
   const [marcas, setMarcas] = useState(initialMarcas);
   const [skills, setSkills] = useState(initialSkills);
   const [skillHistorial, setSkillHistorial] = useState(initialHist);
+  const [objetivos] = useState(initialObjetivos);
   const [tab, setTab] = useState<Tab>("prs");
   const [prOpen, setPrOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(PR_EXERCISES[0].key);
@@ -99,23 +107,6 @@ export function AthleteProgress({
   const [celebration, setCelebration] = useState<string | null>(null);
 
   const latestMarcas = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
-  const achievedSkills = countAchievedSkills(skills);
-  const nextGoal = suggestNextGoal(latestMarcas, skills);
-
-  const latestRecord = useMemo(() => {
-    if (marcas.length === 0) return null;
-    return [...marcas].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
-  }, [marcas]);
-  const latestSkill = useMemo(() => {
-    if (skills.length === 0) return null;
-    return [...skills].sort(
-      (a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    )[0];
-  }, [skills]);
 
   const exerciseDef = PR_EXERCISES.find((e) => e.key === selectedExercise)!;
 
@@ -176,11 +167,11 @@ export function AthleteProgress({
     }
 
     const rmReps =
-      prForm.recordTipo === "rm" && def.unit === "lbs"
+      prForm.recordTipo === "rm" && def.unit === "kg"
         ? parseInt(prForm.rmReps, 10)
         : null;
 
-    if (prForm.recordTipo === "rm" && def.unit === "lbs" && (!rmReps || rmReps <= 0)) {
+    if (prForm.recordTipo === "rm" && def.unit === "kg" && (!rmReps || rmReps <= 0)) {
       setError(t("invalidReps"));
       setLoading(false);
       return;
@@ -300,9 +291,9 @@ export function AthleteProgress({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {celebration && (
-        <div className="flex gap-3 items-start rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3">
+        <div className="flex gap-3 items-start rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
           <Trophy className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
           <div>
             <Badge variant="success" className="mb-1.5">
@@ -313,59 +304,35 @@ export function AthleteProgress({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard
-          icon={Trophy}
-          label={t("lastRecord")}
-          value={
-            latestRecord
-              ? `${t(`exercises.${latestRecord.ejercicio}`)} · ${formatPrValue(latestRecord.valor, latestRecord.unidad)} · ${formatRecordTipoLabel(latestRecord, t)}`
-              : t("noData")
-          }
-        />
-        <StatCard
-          icon={Dumbbell}
-          label={t("totalRecords")}
-          value={String(marcas.length)}
-        />
-        <StatCard
-          icon={Award}
-          label={t("skillsAchieved")}
-          value={`${achievedSkills}/${SKILL_KEYS.length}`}
-        />
-        <StatCard
-          icon={Sparkles}
-          label={t("lastSkillUpdate")}
-          value={
-            latestSkill
-              ? t(`skills.${latestSkill.skill}`)
-              : t("noData")
-          }
-        />
-        <StatCard
-          icon={Target}
-          label={t("nextGoal")}
-          value={
-            nextGoal
-              ? PR_EXERCISES.some((e) => e.key === nextGoal)
-                ? t(`exercises.${nextGoal}`)
-                : t(`skills.${nextGoal}`)
-              : t("noData")
-          }
-        />
-      </div>
+      <ProgressDashboard
+        marcas={marcas}
+        skills={skills}
+        objetivos={objetivos}
+        activeGoal={activeGoal}
+        attendance={attendance}
+      />
+
+      <ProgressBadgesPanel
+        input={{
+          marcas,
+          skills,
+          objetivos,
+          totalClasses: attendance.totalClasses,
+          uniqueTrainingDays: attendance.uniqueTrainingDays,
+        }}
+      />
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {(["prs", "skills", "history"] as Tab[]).map((key) => (
+        {(["prs", "skills", "goals", "history"] as Tab[]).map((key) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
             className={cn(
-              "shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all",
+              "shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
               tab === key
-                ? "brand-gradient text-white"
-                : "bg-secondary/60 text-muted-foreground"
+                ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/20"
+                : "bg-white/[0.04] text-muted-foreground border border-white/5 hover:border-orange-500/20"
             )}
           >
             {t(`tabs.${key}`)}
@@ -516,6 +483,14 @@ export function AthleteProgress({
         </div>
       )}
 
+      {tab === "goals" && (
+        <ProgressGoals
+          profileId={profileId}
+          objetivos={objetivos}
+          locale={locale}
+        />
+      )}
+
       {tab === "history" && (
         <div className="space-y-3">
           {marcas.length === 0 && skillHistorial.length === 0 ? (
@@ -661,7 +636,7 @@ export function AthleteProgress({
                 </SelectContent>
               </Select>
             </div>
-            {prForm.recordTipo === "rm" && exerciseDef.unit === "lbs" && (
+            {prForm.recordTipo === "rm" && exerciseDef.unit === "kg" && (
               <div>
                 <Label>{t("rmReps")}</Label>
                 <Select
@@ -702,7 +677,7 @@ export function AthleteProgress({
               <Input
                 value={prForm.valor}
                 placeholder={
-                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "lbs" ? "225" : "20"
+                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "kg" ? "100" : "20"
                 }
                 onChange={(e) =>
                   setPrForm({ ...prForm, valor: e.target.value })
@@ -738,27 +713,5 @@ export function AthleteProgress({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card className="border-white/5 rounded-2xl">
-      <CardContent className="p-4 space-y-2">
-        <Icon className="h-4 w-4 text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p className="text-sm font-semibold leading-snug line-clamp-2">{value}</p>
-      </CardContent>
-    </Card>
   );
 }

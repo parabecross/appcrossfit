@@ -267,6 +267,90 @@
   "progress": {
     "title": "My progress",
     "subtitle": "Track your PRs and skills to see your CrossFit evolution.",
+    "expediente": {
+      "label": "Athletic record",
+      "title": "My progress",
+      "subtitle": "Your evolution, consistency, and marks in one place.",
+      "pageSubtitle": "Athletic record — evolution, consistency, and personal progress.",
+      "viewAll": "View full record"
+    },
+    "dashboard": {
+      "streak": "Current streak",
+      "streakValue": "{count, plural, =1 {1 day} other {# days}}",
+      "noStreak": "No active streak",
+      "streakHint": "Consecutive training days",
+      "classesMonth": "Classes this month",
+      "classesMonthHint": "Confirmed attendance",
+      "attendanceRate": "Attendance",
+      "attendanceRateHint": "Attended vs no-show",
+      "totalClasses": "Total classes",
+      "totalClassesHint": "Classes attended",
+      "prsLogged": "PRs logged",
+      "skillsHint": "Skills achieved or mastered",
+      "activeGoal": "Active goal",
+      "noActiveGoal": "No active goal",
+      "goalProgress": "{pct}% progress",
+      "badges": "Badges",
+      "badgesValue": "{unlocked}/{total}",
+      "badgesHint": "Unlocked achievements",
+      "skillBadgesValue": "{unlocked}/{total}",
+      "skillBadgesHint": "Skill badges unlocked"
+    },
+    "badgesSection": {
+      "skills": "Skill badges",
+      "skillsSubtitle": "Unlock when marked Achieved or Mastered",
+      "milestones": "Milestones",
+      "locked": "Locked"
+    },
+    "badges": {
+      "primer_pr": "First PR",
+      "siete_dias": "7 training days",
+      "treinta_dias": "30 training days",
+      "cien_clases": "100 classes",
+      "objetivo_cumplido": "Goal completed",
+      "skill_pull_ups": "Pull-ups achieved",
+      "skill_chest_to_bar": "Chest to Bar achieved",
+      "skill_bar_muscle_up": "Bar Muscle Up achieved",
+      "skill_ring_muscle_up": "Ring Muscle Up achieved",
+      "skill_handstand_push_up": "Handstand Push-up achieved",
+      "skill_handstand_walk": "Handstand Walk achieved",
+      "skill_double_unders": "Double Unders achieved",
+      "skill_rope_climb": "Rope Climb achieved",
+      "skill_pistols": "Pistols achieved",
+      "skill_kipping_pull_up": "Kipping Pull-up achieved",
+      "skill_butterfly_pull_up": "Butterfly Pull-up achieved"
+    },
+    "goals": {
+      "add": "New goal",
+      "empty": "Create your first personal goal to stay focused.",
+      "name": "Goal name",
+      "namePlaceholder": "E.g. First Pull Up, Snatch 100 kg, Murph RX",
+      "nameRequired": "Enter a goal name",
+      "invalidProgress": "Progress must be between 0 and 100",
+      "progress": "Progress",
+      "targetDate": "Target date",
+      "notes": "Notes",
+      "notesPlaceholder": "Details, training plan, competition...",
+      "markComplete": "Mark complete",
+      "status": {
+        "en_proceso": "In progress",
+        "completado": "Completed",
+        "pausado": "Paused",
+        "cancelado": "Cancelled"
+      }
+    },
+    "sportsProfile": {
+      "label": "Sports info",
+      "title": "Sports profile",
+      "weight": "Body weight (kg)",
+      "height": "Height (cm)",
+      "yearsTraining": "Years training",
+      "favoriteModality": "Favorite modality",
+      "favoriteModalityPlaceholder": "CrossFit, Hyrox, Weightlifting...",
+      "notes": "Notes",
+      "notesPlaceholder": "Injuries, preferences, schedule...",
+      "saved": "Sports profile saved"
+    },
     "lastRecord": "Latest record",
     "totalRecords": "Records logged",
     "skillsAchieved": "Skills achieved",
@@ -301,6 +385,7 @@
     "tabs": {
       "prs": "PRs / RM",
       "skills": "Skills",
+      "goals": "Goals",
       "history": "History"
     },
     "skillStatus": {
@@ -309,6 +394,7 @@
       "dominado": "Mastered"
     },
     "unit": {
+      "kg": "Weight (kg)",
       "lbs": "Weight (lb)",
       "reps": "Reps",
       "segundos": "Time",
