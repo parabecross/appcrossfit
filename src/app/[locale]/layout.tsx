@@ -1,10 +1,24 @@
+import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { buildSiteMetadata } from "@/lib/seo/site";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = routing.locales.includes(locale as "es" | "en")
+    ? (locale as "es" | "en")
+    : "es";
+  return buildSiteMetadata(loc);
 }
 
 export default async function LocaleLayout({
