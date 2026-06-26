@@ -25,9 +25,18 @@ export function MembershipBanner({
         });
 
   return (
-    <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
-      <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-      <p className="text-sm text-red-200">{message}</p>
+    <div className="flex items-start gap-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/20">
+        <AlertTriangle className="h-4 w-4 text-orange-400" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-orange-200">
+          {type === "pending" ? t("pendingTitle") : t("expiredTitle")}
+        </p>
+        <p className="text-sm text-orange-200/80 mt-0.5 leading-relaxed">
+          {message}
+        </p>
+      </div>
     </div>
   );
 }

@@ -77,7 +77,16 @@
     "manageActiveDesc": "Este socio ya tiene plan vigente. Usa editar fecha para extender el vencimiento.",
     "assignSuccess": "Membresía actualizada correctamente",
     "selectPlan": "Selecciona un plan primero",
-    "invalidDate": "La fecha de vencimiento no es válida"
+    "invalidDate": "La fecha de vencimiento no es válida",
+    "pendingTitle": "Cuenta pendiente",
+    "expiredTitle": "Membresía vencida",
+    "daysRemaining": "{days, plural, =0 {Vence hoy} =1 {Queda 1 día} other {Quedan # días}}"
+  },
+  "socio": {
+    "greeting": "Hola, {name}",
+    "bookingsSubtitle": "Elige el día y reserva tu clase en segundos.",
+    "membershipSubtitle": "Consulta tu plan y fechas de vencimiento.",
+    "profileSubtitle": "Actualiza tu foto y datos de contacto."
   },
   "classes": {
     "title": "Clases",
@@ -112,7 +121,9 @@
     },
     "yourCoach": "Tu coach",
     "coachNoBio": "Sin descripción aún",
-    "tapClassForAttendance": "Toca una clase arriba para marcar asistencia"
+    "tapClassForAttendance": "Toca una clase arriba para marcar asistencia",
+    "bookedToday": "{count, plural, =1 {Tienes 1 reserva hoy} other {Tienes # reservas hoy}}",
+    "tryAnotherDay": "Prueba otro día de la semana"
   },
   "admin": {
     "dashboard": "Panel de control",

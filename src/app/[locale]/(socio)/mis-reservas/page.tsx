@@ -7,6 +7,8 @@ import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
+import { SocioPageHeader } from "@/components/socio/socio-page-header";
+import { Badge } from "@/components/ui/badge";
 
 export default async function MisReservasPage({
   params,
@@ -14,7 +16,8 @@ export default async function MisReservasPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations("nav");
+  const t = await getTranslations("socio");
+  const tm = await getTranslations("membership.status");
   const profile = await requireRole(locale, ["socio"]);
 
   const week = getWeekDates();
@@ -33,11 +36,25 @@ export default async function MisReservasPage({
     profile.estado_cuenta === "pendiente_pago" ||
     reserveCheck.reason === "expired";
 
+  const firstName = profile.nombre_completo.split(" ")[0];
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-black brand-text">
-        {t("myBookings")}
-      </h1>
+    <div className="space-y-5">
+      <SocioPageHeader
+        title={t("greeting", { name: firstName })}
+        subtitle={t("bookingsSubtitle")}
+        badge={
+          membership?.estado === "vigente" ? (
+            <Badge variant="success" className="shrink-0 mt-1">
+              {tm("vigente")}
+            </Badge>
+          ) : membership?.estado === "vencida" ? (
+            <Badge variant="destructive" className="shrink-0 mt-1">
+              {tm("vencida")}
+            </Badge>
+          ) : null
+        }
+      />
 
       {showBanner && (
         <MembershipBanner

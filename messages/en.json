@@ -77,7 +77,16 @@
     "manageActiveDesc": "This member already has an active plan. Use edit end date to extend.",
     "assignSuccess": "Membership updated successfully",
     "selectPlan": "Select a plan first",
-    "invalidDate": "Invalid expiry date"
+    "invalidDate": "Invalid expiry date",
+    "pendingTitle": "Account pending",
+    "expiredTitle": "Membership expired",
+    "daysRemaining": "{days, plural, =0 {Expires today} =1 {1 day left} other {# days left}}"
+  },
+  "socio": {
+    "greeting": "Hi, {name}",
+    "bookingsSubtitle": "Pick a day and book your class in seconds.",
+    "membershipSubtitle": "Check your plan and expiry dates.",
+    "profileSubtitle": "Update your photo and contact details."
   },
   "classes": {
     "title": "Classes",
@@ -112,7 +121,9 @@
     },
     "yourCoach": "Your coach",
     "coachNoBio": "No description yet",
-    "tapClassForAttendance": "Tap a class above to mark attendance"
+    "tapClassForAttendance": "Tap a class above to mark attendance",
+    "bookedToday": "{count, plural, =1 {You have 1 booking today} other {You have # bookings today}}",
+    "tryAnotherDay": "Try another day of the week"
   },
   "admin": {
     "dashboard": "Control panel",

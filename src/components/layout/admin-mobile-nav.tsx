@@ -72,7 +72,7 @@ export function AdminMobileNav({ isCoach = false }: { isCoach?: boolean }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-background/90 backdrop-blur-md md:hidden">
+      <header className="sticky top-0 z-40 w-full shrink-0 border-b border-white/5 bg-background/90 backdrop-blur-md md:hidden safe-top">
         <div className="flex items-center justify-between gap-3 px-4 py-3 safe-top">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl brand-gradient">

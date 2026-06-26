@@ -48,7 +48,7 @@ export function AdminSidebar({ isCoach = false }: { isCoach?: boolean }) {
   };
 
   return (
-    <aside className="hidden md:flex w-64 flex-col border-r border-white/5 bg-card/50 min-h-screen">
+    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/5 bg-card/50 min-h-screen">
       <div className="p-6 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg brand-gradient">
