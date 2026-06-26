@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBoxConfig } from "@/lib/box/config";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
 import type { AlertaMembresia, Profile } from "@/types/database";
@@ -38,6 +39,7 @@ async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
 
 export async function getAlertasMembresia(boxId?: string) {
   const resolvedBoxId = await resolveQueryBoxId(boxId);
+  const boxConfig = await getBoxConfig(resolvedBoxId);
   const supabase = await createClient();
   const { data: socios } = await supabase
     .from("profiles")
@@ -49,13 +51,10 @@ export async function getAlertasMembresia(boxId?: string) {
 
   const memMap = await getMembresiasMapForUsuarios(socios.map((s) => s.id));
   const alertas: AlertaMembresia[] = [];
-  const in3 = new Date();
-  in3.setDate(in3.getDate() + 3);
-  const in3Str = in3.toISOString().split("T")[0];
 
   for (const s of socios) {
     const mem = memMap.get(s.id) ?? null;
-    const displayStatus = getSocioDisplayStatus(s, mem);
+    const displayStatus = getSocioDisplayStatus(s, mem, boxConfig.timezone);
 
     if (displayStatus === "vencida" || displayStatus === "sin_membresia") {
       alertas.push({
@@ -67,11 +66,7 @@ export async function getAlertasMembresia(boxId?: string) {
         fecha_fin: mem?.fecha_fin ?? null,
         tipo_alerta: "vencida",
       });
-    } else if (
-      displayStatus === "por_vencer" &&
-      mem &&
-      mem.fecha_fin <= in3Str
-    ) {
+    } else if (displayStatus === "por_vencer" && mem) {
       alertas.push({
         profile_id: s.id,
         nombre_completo: s.nombre_completo,
@@ -88,6 +83,7 @@ export async function getAlertasMembresia(boxId?: string) {
 
 export async function getKpis(boxId?: string) {
   const resolvedBoxId = await resolveQueryBoxId(boxId);
+  const boxConfig = await getBoxConfig(resolvedBoxId);
   const supabase = await createClient();
   const { data: socios } = await supabase
     .from("profiles")
@@ -105,7 +101,7 @@ export async function getKpis(boxId?: string) {
 
   for (const s of socios ?? []) {
     const mem = memMap.get(s.id) ?? null;
-    const displayStatus = getSocioDisplayStatus(s, mem);
+    const displayStatus = getSocioDisplayStatus(s, mem, boxConfig.timezone);
 
     switch (displayStatus) {
       case "pendiente_pago":

@@ -54,9 +54,11 @@ function socioStatusLabel(
 export function UsuariosTable({
   users,
   locale,
+  gymTimezone,
 }: {
   users: UserRow[];
   locale: string;
+  gymTimezone?: string;
 }) {
   const t = useTranslations("admin");
   const ts = useTranslations("accountStatus");
@@ -181,9 +183,13 @@ export function UsuariosTable({
           </thead>
           <tbody>
             {filtered.map((u) => {
-              const status = getSocioDisplayStatus(u, u.membresia);
+              const status = getSocioDisplayStatus(u, u.membresia, gymTimezone);
               const membresiaEstado = u.membresia
-                ? syncMembresiaEstadoLocal(u.membresia.fecha_fin, u.membresia.estado)
+                ? syncMembresiaEstadoLocal(
+                    u.membresia.fecha_fin,
+                    u.membresia.estado,
+                    gymTimezone
+                  )
                 : null;
 
               return (
@@ -233,9 +239,13 @@ export function UsuariosTable({
 
       <div className="md:hidden space-y-3">
         {filtered.map((u) => {
-          const status = getSocioDisplayStatus(u, u.membresia);
+          const status = getSocioDisplayStatus(u, u.membresia, gymTimezone);
           const membresiaEstado = u.membresia
-            ? syncMembresiaEstadoLocal(u.membresia.fecha_fin, u.membresia.estado)
+            ? syncMembresiaEstadoLocal(
+                u.membresia.fecha_fin,
+                u.membresia.estado,
+                gymTimezone
+              )
             : null;
 
           return (

@@ -1,4 +1,16 @@
 import { APP_CONFIG } from "@/lib/config/app-config";
+import {
+  addDaysToDateString,
+  todayInTimezone,
+  toDateString,
+} from "@/lib/dates/date-only";
+
+export {
+  addDaysToDateString,
+  dateStringToLocalDate,
+  todayInTimezone,
+  toDateString,
+} from "@/lib/dates/date-only";
 
 function getGymWallClock(timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -160,33 +172,6 @@ export function getWeekDates(baseDate: Date = new Date()): Date[] {
   });
 }
 
-export function toDateString(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-export function todayInTimezone(timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const get = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "01";
-
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
-export function addDaysToDateString(dateStr: string, days: number): string {
-  const d = dateStringToLocalDate(dateStr);
-  d.setDate(d.getDate() + days);
-  return toDateString(d);
-}
-
 /** Rango de fechas para que el socio vea clases futuras (no solo la semana calendario). */
 export function getSocioClasesDateRange(timeZone?: string): {
   from: string;
@@ -205,11 +190,6 @@ export function getClassDates(
       clases.filter((c) => c.estado === "programada").map((c) => c.fecha)
     )
   ).sort();
-}
-
-export function dateStringToLocalDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d);
 }
 
 /** @deprecated Use getClassDates — only days in the current calendar week */

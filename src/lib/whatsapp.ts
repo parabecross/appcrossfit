@@ -1,4 +1,9 @@
 import { APP_CONFIG } from "@/lib/config/app-config";
+import {
+  daysUntilDateOnly,
+  isDateBeforeToday,
+  todayInTimezone,
+} from "@/lib/dates/date-only";
 import { formatDate } from "@/lib/utils";
 
 export function formatPhoneForWhatsApp(phone: string | null | undefined): string | null {
@@ -17,23 +22,27 @@ export function buildWhatsAppUrl(
   return `https://wa.me/${formatted}?text=${encodeURIComponent(message)}`;
 }
 
-export function daysUntilExpiry(fechaFin: string): number {
-  const end = new Date(`${fechaFin}T23:59:59`);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+export function daysUntilExpiry(
+  fechaFin: string,
+  timeZone?: string
+): number {
+  return daysUntilDateOnly(fechaFin, todayInTimezone(timeZone));
 }
 
 export function isExpiringSoon(
   fechaFin: string,
-  days = APP_CONFIG.ALERTA_VENCIMIENTO_DIAS
+  days = APP_CONFIG.ALERTA_VENCIMIENTO_DIAS,
+  timeZone?: string
 ): boolean {
-  const remaining = daysUntilExpiry(fechaFin);
+  const remaining = daysUntilExpiry(fechaFin, timeZone);
   return remaining >= 0 && remaining <= days;
 }
 
-export function isMembershipExpired(fechaFin: string): boolean {
-  return daysUntilExpiry(fechaFin) < 0;
+export function isMembershipExpired(
+  fechaFin: string,
+  timeZone?: string
+): boolean {
+  return isDateBeforeToday(fechaFin, todayInTimezone(timeZone));
 }
 
 export function buildRenewalReminderMessage(

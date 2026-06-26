@@ -1,16 +1,20 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { dateStringToLocalDate } from "@/lib/dates/date-only";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatDate(date: string | Date, locale = "es") {
+  const value =
+    typeof date === "string" ? dateStringToLocalDate(date) : date;
   return new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(typeof date === "string" ? new Date(date) : date);
+  }).format(value);
 }
 
 export function formatCompactDate(dateStr: string, locale = "es") {
