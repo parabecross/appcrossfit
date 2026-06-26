@@ -1,24 +1,15 @@
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
-import { getBoxConfig } from "@/lib/box/config";
-import { getAlertasMembresia, getKpis } from "@/lib/queries/memberships";
-import {
-  getStatsData,
-  computeFrequencyStats,
-  computeDemandStats,
-  computeTrendStats,
-} from "@/lib/queries/stats";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  FrequencyChart,
-  DemandChart,
-  TrendChart,
-} from "@/components/stats/charts";
-import { Users, AlertTriangle, Clock, UserCheck } from "lucide-react";
-import {
-  ExpiredMembersList,
-  ExpiringMembersList,
-} from "@/components/admin/dashboard-alerts";
+import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
+import { DemandChart, TrendChart } from "@/components/stats/charts";
+import { DashboardExecutiveSummary } from "@/components/admin/dashboard/dashboard-executive-summary";
+import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
+import { DashboardBoxStatus } from "@/components/admin/dashboard/dashboard-box-status";
+import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
+import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-priority-alerts";
+import { DashboardTodayTimeline } from "@/components/admin/dashboard/dashboard-today-timeline";
+import { DashboardAthleteProgress } from "@/components/admin/dashboard/dashboard-athlete-progress";
+import { DashboardWeeklySummary } from "@/components/admin/dashboard/dashboard-weekly-summary";
 
 export default async function AdminDashboardPage({
   params,
@@ -26,130 +17,178 @@ export default async function AdminDashboardPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const profile = await requireAdmin(locale);
-  const boxConfig = await getBoxConfig(profile.box_id);
+  await requireAdmin(locale);
   const t = await getTranslations("admin");
+  const td = await getTranslations("adminDashboard");
   const ts = await getTranslations("stats");
+  const tp = await getTranslations("progress");
 
-  const [kpis, alertas, statsRaw] = await Promise.all([
-    getKpis(),
-    getAlertasMembresia(),
-    getStatsData(),
-  ]);
-
-  const frequency = computeFrequencyStats(statsRaw.reservas);
-  const demand = computeDemandStats(statsRaw.reservas, locale);
-  const trend = computeTrendStats(statsRaw.reservas);
-
-  const vencidas = alertas.filter((a) => a.tipo_alerta === "vencida");
-  const porVencer = alertas.filter((a) => a.tipo_alerta === "por_vencer");
-
-  const kpiCards = [
-    {
-      label: t("activeMembers"),
-      value: kpis.activos,
-      icon: UserCheck,
-      color: "text-green-400",
-    },
-    {
-      label: t("expiredMembers"),
-      value: kpis.vencidos,
-      icon: AlertTriangle,
-      color: "text-red-400",
-    },
-    {
-      label: t("pendingMembers"),
-      value: kpis.pendientes,
-      icon: Clock,
-      color: "text-orange-400",
-    },
-    {
-      label: "Total",
-      value: kpis.total,
-      icon: Users,
-      color: "text-primary",
-    },
-  ];
+  const data = await getAdminDashboardData(undefined, locale);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pb-8">
       <div>
         <h1 className="text-3xl font-black tracking-tight brand-text">
           {t("dashboard")}
         </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {data.boxName} · {data.today}
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpiCards.map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <p className="text-3xl font-black mt-1">{value}</p>
-                </div>
-                <Icon className={`h-8 w-8 ${color}`} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <section className="space-y-3">
+        <p className="text-sm font-bold">{td("quickActions.title")}</p>
+        <DashboardQuickActions
+          labels={{
+            newClass: td("quickActions.newClass"),
+            newAthlete: td("quickActions.newAthlete"),
+            newCoach: td("quickActions.newCoach"),
+            assignMembership: td("quickActions.assignMembership"),
+          }}
+        />
+      </section>
+
+      <DashboardExecutiveSummary
+        data={data.executive}
+        labels={{
+          title: td("executive.title"),
+          classesToday: td("executive.classesToday"),
+          reservationsToday: td("executive.reservationsToday"),
+          attendanceToday: td("executive.attendanceToday"),
+          avgOccupancy: td("executive.avgOccupancy"),
+          expiringSoon: td("executive.expiringSoon"),
+          pendingPayment: td("executive.pendingPayment"),
+          recentPrs: td("executive.recentPrs"),
+          inactiveAthletes: td("executive.inactiveAthletes"),
+        }}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <DashboardPriorityAlerts
+            membershipAlerts={data.membershipAlerts}
+            inactiveAthletesHigh={data.inactiveAthletesHigh}
+            athletesWithoutWeekBooking={data.athletesWithoutWeekBooking}
+            lowOccupancyClasses={data.lowOccupancyClasses}
+            locale={locale}
+            boxName={data.boxName}
+            labels={{
+              title: td("alerts.title"),
+              priorityHigh: td("alerts.priorityHigh"),
+              priorityMedium: td("alerts.priorityMedium"),
+              priorityLow: td("alerts.priorityLow"),
+              expired: t("expired"),
+              expiring: t("expiringSoon"),
+              inactive: td("alerts.inactive"),
+              noWeekBooking: td("alerts.noWeekBooking"),
+              lowOccupancy: td("alerts.lowOccupancy"),
+              empty: td("alerts.empty"),
+            }}
+            formatInactiveDays={(days) =>
+              td("alerts.inactiveDays", { days })
+            }
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <DashboardBoxStatus
+            data={data.boxStatus}
+            labels={{
+              title: td("boxStatus.title"),
+              subtitle: td("boxStatus.subtitle"),
+              activeMembers: t("activeMembers"),
+              totalMembers: td("boxStatus.totalMembers"),
+              expired: t("expiredMembers"),
+              expiringSoon: t("expiringSoon"),
+              occupancy: td("boxStatus.occupancy"),
+              attendanceToday: td("executive.attendanceToday"),
+              attendanceRate: td("boxStatus.attendanceRate"),
+              noData: td("boxStatus.noData"),
+            }}
+          />
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-red-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-400">
-              <AlertTriangle className="h-5 w-5" />
-              {t("expired")} ({vencidas.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            <ExpiredMembersList items={vencidas} locale={locale} boxName={boxConfig.name} />
-          </CardContent>
-        </Card>
+      <DashboardUpcomingClasses
+        classes={data.todayClasses}
+        labels={{
+          title: td("upcomingClasses.title"),
+          empty: td("upcomingClasses.empty"),
+          cupo: td("upcomingClasses.cupo"),
+          status: {
+            available: td("upcomingClasses.status.available"),
+            almost_full: td("upcomingClasses.status.almostFull"),
+            full: td("upcomingClasses.status.full"),
+          },
+        }}
+      />
 
-        <Card className="border-orange-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-400">
-              <Clock className="h-5 w-5" />
-              {t("expiringSoon")} ({porVencer.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            <ExpiringMembersList items={porVencer} locale={locale} boxName={boxConfig.name} />
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardTodayTimeline
+        events={data.todayActivity}
+        labels={{
+          title: td("today.title"),
+          empty: td("today.empty"),
+          types: {
+            reserva: td("today.types.reserva"),
+            asistencia: td("today.types.asistencia"),
+            pr: td("today.types.pr"),
+            skill: td("today.types.skill"),
+            membresia: td("today.types.membresia"),
+          },
+        }}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{ts("trend")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TrendChart data={trend} locale={locale} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{ts("demand")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DemandChart data={demand} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {frequency.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{ts("frequency")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FrequencyChart data={frequency.slice(0, 8)} />
-          </CardContent>
-        </Card>
+      {(data.recentPrs.length > 0 || data.recentSkills.length > 0) && (
+        <DashboardAthleteProgress
+          recentPrs={data.recentPrs}
+          recentSkills={data.recentSkills}
+          topConsistent={data.topConsistentAthletes}
+          labels={{
+            title: td("athleteProgress.title"),
+            recentPrs: td("athleteProgress.recentPrs"),
+            recentSkills: td("athleteProgress.recentSkills"),
+            topConsistent: td("athleteProgress.topConsistent"),
+            empty: td("athleteProgress.empty"),
+            perWeek: ts("frequencyUnit"),
+          }}
+          exerciseLabel={(key) => tp(`exercises.${key}`)}
+          skillLabel={(key) => tp(`skills.${key}`)}
+        />
       )}
+
+      <DashboardWeeklySummary
+        data={data.weeklySummary}
+        labels={{
+          title: td("weekly.title"),
+          subtitle: td("weekly.subtitle"),
+          attendance: td("weekly.attendance"),
+          attendanceVsLast: td("weekly.attendanceVsLast"),
+          topClass: td("weekly.topClass"),
+          topClassBookings: td("weekly.topClassBookings"),
+          prs: td("weekly.prs"),
+          goals: td("weekly.goals"),
+          memberships: td("weekly.memberships"),
+          noTopClass: td("weekly.noTopClass"),
+          deltaUp: td("weekly.deltaUp"),
+          deltaDown: td("weekly.deltaDown"),
+          deltaSame: td("weekly.deltaSame"),
+        }}
+      />
+
+      <section className="space-y-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {td("charts.sectionTitle")}
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5">
+            <p className="text-sm font-semibold mb-3">{ts("trend")}</p>
+            <TrendChart data={data.charts.trend} locale={locale} />
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5">
+            <p className="text-sm font-semibold mb-3">{ts("demand")}</p>
+            <DemandChart data={data.charts.demand} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -232,6 +232,91 @@
     "membershipExpiredAlert": "Membership expired",
     "expiresInDays": "Expires in {days, plural, =0 {less than 1 day} =1 {1 day} other {# days}} — send WhatsApp reminder"
   },
+  "adminDashboard": {
+    "executive": {
+      "title": "Executive summary",
+      "classesToday": "Classes today",
+      "reservationsToday": "Bookings today",
+      "attendanceToday": "Attendance today",
+      "avgOccupancy": "Avg. occupancy",
+      "expiringSoon": "Expiring soon",
+      "pendingPayment": "Pending payment",
+      "recentPrs": "Recent PRs",
+      "inactiveAthletes": "Not training"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newClass": "New class",
+      "newAthlete": "New athlete",
+      "newCoach": "New coach",
+      "assignMembership": "Assign membership"
+    },
+    "boxStatus": {
+      "title": "Box status",
+      "subtitle": "Clear operations and membership metrics",
+      "totalMembers": "Total members",
+      "occupancy": "Occupancy today",
+      "attendanceRate": "Recent attendance rate",
+      "noData": "No data"
+    },
+    "upcomingClasses": {
+      "title": "Upcoming classes",
+      "empty": "No classes scheduled for today.",
+      "cupo": "Spots",
+      "status": {
+        "available": "Available",
+        "almostFull": "Almost full",
+        "full": "Full"
+      }
+    },
+    "alerts": {
+      "title": "Attention required",
+      "priorityHigh": "High",
+      "priorityMedium": "Medium",
+      "priorityLow": "Low",
+      "inactive": "No training 10+ days",
+      "inactiveDays": "{days} days without attending",
+      "noWeekBooking": "No booking this week",
+      "lowOccupancy": "Low occupancy classes today",
+      "empty": "All good. No pending alerts."
+    },
+    "today": {
+      "title": "What happened today",
+      "empty": "No activity recorded today yet.",
+      "types": {
+        "reserva": "New booking",
+        "asistencia": "Attendance",
+        "pr": "New PR",
+        "skill": "Skill achieved",
+        "membresia": "Membership assigned"
+      }
+    },
+    "weekly": {
+      "title": "Weekly summary",
+      "subtitle": "Comparison and wins for the current week",
+      "attendance": "Attendance this week",
+      "attendanceVsLast": "Last week: {last}",
+      "topClass": "Most booked class",
+      "topClassBookings": "{count} bookings",
+      "prs": "PRs logged",
+      "goals": "Goals completed",
+      "memberships": "Memberships renewed",
+      "noTopClass": "No data yet",
+      "deltaUp": "+{delta} vs last week",
+      "deltaDown": "-{delta} vs last week",
+      "deltaSame": "Same as last week"
+    },
+    "charts": {
+      "sectionTitle": "Trends"
+    },
+    "athleteProgress": {
+      "title": "Athlete progress",
+      "recentPrs": "Recent PRs",
+      "recentSkills": "Recent skills",
+      "topConsistent": "Most consistent",
+      "empty": "No progress data yet."
+    }
+  },
   "plans": {
     "title": "Plans",
     "name": "Name",

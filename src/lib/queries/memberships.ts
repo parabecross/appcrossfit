@@ -17,7 +17,7 @@ export async function getMembresiaActual(profileId: string) {
   return data;
 }
 
-async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
+export async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
   if (usuarioIds.length === 0) return new Map<string, Awaited<ReturnType<typeof getMembresiaActual>>>();
 
   const supabase = await createClient();
