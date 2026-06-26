@@ -344,44 +344,52 @@ export function AthleteProgress({
       )}
 
       {tab === "prs" && (
-        <div className="space-y-3">
-          <div className="flex justify-end">
-            <Button size="sm" className="gap-1.5" onClick={() => openPrDialog()}>
-              <Plus className="h-4 w-4" />
-              {t("addPr")}
-            </Button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {PR_EXERCISES.map((ex) => {
-              const latest = latestPrs.get(ex.key);
-              const previous = latest
-                ? getPreviousPr(marcas, ex.key, latest.id)
-                : null;
-              const delta =
-                latest && previous
-                  ? comparePrDelta(ex.key, latest.valor, previous.valor, ex.unit)
-                  : "";
+        <div className="space-y-4">
+          {PR_EXERCISES.filter((ex) => latestPrs.has(ex.key)).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 py-14 text-center space-y-4">
+              <p className="text-sm text-muted-foreground px-6">
+                {t("noPrsYet")}
+              </p>
+              <Button className="gap-1.5" onClick={() => openPrDialog()}>
+                <Plus className="h-4 w-4" />
+                {t("addRecord")}
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-end">
+                <Button size="sm" className="gap-1.5" onClick={() => openPrDialog()}>
+                  <Plus className="h-4 w-4" />
+                  {t("addRecord")}
+                </Button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {PR_EXERCISES.filter((ex) => latestPrs.has(ex.key)).map((ex) => {
+                  const latest = latestPrs.get(ex.key)!;
+                  const previous = getPreviousPr(marcas, ex.key, latest.id);
+                  const delta =
+                    previous
+                      ? comparePrDelta(ex.key, latest.valor, previous.valor, ex.unit)
+                      : "";
 
-              return (
-                <Card key={ex.key} className="border-white/5 rounded-2xl">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base">
-                        {t(`exercises.${ex.key}`)}
-                      </CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-primary"
-                        onClick={() => openPrDialog(ex.key)}
-                      >
-                        {latest ? tc("edit") : t("add")}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {latest ? (
-                      <>
+                  return (
+                    <Card key={ex.key} className="border-white/5 rounded-2xl">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base">
+                            {t(`exercises.${ex.key}`)}
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-primary"
+                            onClick={() => openPrDialog(ex.key)}
+                          >
+                            {tc("edit")}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
                         <p className="text-2xl font-black brand-text">
                           {formatPrValue(latest.valor, latest.unidad)}
                         </p>
@@ -394,17 +402,13 @@ export function AthleteProgress({
                             {t("vsPrevious", { delta })}
                           </div>
                         )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        {t("noPrYet")}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -508,7 +512,7 @@ export function AthleteProgress({
       <Dialog open={prOpen} onOpenChange={setPrOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t("addPr")}</DialogTitle>
+            <DialogTitle>{t("addRecord")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>

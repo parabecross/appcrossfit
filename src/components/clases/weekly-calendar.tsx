@@ -70,6 +70,7 @@ export function WeeklyCalendar({
   const [localReservas, setLocalReservas] = useState(reservas);
   const [loading, setLoading] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [bookError, setBookError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalReservas(reservas);
@@ -104,6 +105,7 @@ export function WeeklyCalendar({
 
     setLoading(claseId);
     setCancelError(null);
+    setBookError(null);
 
     const tempId = `temp-${Date.now()}`;
     const optimistic: Reserva = {
@@ -130,6 +132,18 @@ export function WeeklyCalendar({
 
     if (error || !data) {
       setLocalReservas((prev) => prev.filter((r) => r.id !== tempId));
+      const msg = error?.message ?? "";
+      if (msg.includes("20 minutos") || msg.includes("20 minutes")) {
+        setBookError(
+          t("bookTooLate", { minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS })
+        );
+      } else if (msg.includes("finalizó") || msg.includes("ended")) {
+        setBookError(t("classEnded"));
+      } else if (msg.includes("llena") || msg.includes("cupo")) {
+        setBookError(t("full"));
+      } else {
+        setBookError(msg || tc("error"));
+      }
       return;
     }
 
@@ -193,6 +207,7 @@ export function WeeklyCalendar({
                 onClick={() => {
                   setSelected(ds);
                   setCancelError(null);
+                  setBookError(null);
                 }}
                 className={cn(
                   "relative flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
@@ -224,6 +239,12 @@ export function WeeklyCalendar({
           <CheckCircle2 className="h-4 w-4 shrink-0 text-green-400" />
           {t("bookedToday", { count: myBookingsToday })}
         </div>
+      )}
+
+      {bookError && (
+        <p className="text-sm text-red-400 text-center rounded-xl bg-red-500/10 px-4 py-3">
+          {bookError}
+        </p>
       )}
 
       {cancelError && (

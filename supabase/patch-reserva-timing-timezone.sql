@@ -1,7 +1,10 @@
--- Run in Supabase SQL Editor: cierra reservas 20 min antes del inicio
+-- Run in Supabase SQL Editor: corrige zona horaria del cierre de reservas
+-- (Sin esto, Supabase en UTC bloquea clases de la tarde como si ya hubieran pasado)
 
 CREATE OR REPLACE FUNCTION check_reserva_timing()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 DECLARE
   clase_rec RECORD;
   class_start TIMESTAMPTZ;
@@ -32,10 +35,4 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_reserva_timing ON reservas;
-CREATE TRIGGER trg_reserva_timing
-  BEFORE INSERT ON reservas
-  FOR EACH ROW
-  EXECUTE FUNCTION check_reserva_timing();
+$$;

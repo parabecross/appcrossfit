@@ -313,9 +313,10 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   clase_rec RECORD;
-  class_start TIMESTAMP;
-  class_end TIMESTAMP;
-  cutoff TIMESTAMP;
+  class_start TIMESTAMPTZ;
+  class_end TIMESTAMPTZ;
+  cutoff TIMESTAMPTZ;
+  gym_tz TEXT := 'America/Mexico_City';
 BEGIN
   SELECT fecha, hora_inicio, hora_fin, estado
   INTO clase_rec
@@ -326,8 +327,8 @@ BEGIN
     RAISE EXCEPTION 'Clase no disponible para reservar';
   END IF;
 
-  class_start := clase_rec.fecha::timestamp + clase_rec.hora_inicio;
-  class_end := clase_rec.fecha::timestamp + clase_rec.hora_fin;
+  class_start := (clase_rec.fecha + clase_rec.hora_inicio)::timestamp AT TIME ZONE gym_tz;
+  class_end := (clase_rec.fecha + clase_rec.hora_fin)::timestamp AT TIME ZONE gym_tz;
   cutoff := class_start - INTERVAL '20 minutes';
 
   IF NOW() >= class_end THEN
