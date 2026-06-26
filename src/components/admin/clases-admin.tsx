@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Check, Users, X } from "lucide-react";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
@@ -40,6 +40,7 @@ import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { ScheduleOverlapDialog } from "@/components/admin/schedule-overlap-dialog";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { getSampleWorkout } from "@/lib/clases/sample-workouts";
+import { useReservasRealtime } from "@/lib/hooks/use-reservas-realtime";
 
 type ReservaRow = Reserva & { profile: Profile | null };
 
@@ -87,6 +88,17 @@ export function AdminClasesClient({
   useEffect(() => {
     setLocalClases(clases);
   }, [clases]);
+
+  const claseIds = useMemo(
+    () => localClases.map((c) => c.id),
+    [localClases]
+  );
+
+  const handleReservasRealtime = useCallback((updated: ReservaRow[]) => {
+    setLocalReservas(updated);
+  }, []);
+
+  useReservasRealtime(claseIds, handleReservasRealtime);
 
   const [form, setForm] = useState<{
     nombre: string;

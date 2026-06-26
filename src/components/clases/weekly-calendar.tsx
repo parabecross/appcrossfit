@@ -22,6 +22,7 @@ import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { createClient } from "@/lib/supabase/client";
+import { countReservasForClase } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva } from "@/types/database";
 
@@ -268,7 +269,9 @@ export function WeeklyCalendar({
       ) : (
         <div className="grid gap-3 md:gap-4 md:grid-cols-2">
           {dayClases.map((clase) => {
-            const occupied = clase.cupo_ocupado ?? 0;
+            const occupied = isAdmin
+              ? countReservasForClase(localReservas, clase.id)
+              : (clase.cupo_ocupado ?? 0);
             const full = occupied >= clase.cupo_maximo;
             const reservation = myReservation(clase.id);
             const booked = !!reservation;
