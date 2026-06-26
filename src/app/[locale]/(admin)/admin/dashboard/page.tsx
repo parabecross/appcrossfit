@@ -10,6 +10,7 @@ import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-
 import { DashboardTodayTimeline } from "@/components/admin/dashboard/dashboard-today-timeline";
 import { DashboardAthleteProgress } from "@/components/admin/dashboard/dashboard-athlete-progress";
 import { DashboardWeeklySummary } from "@/components/admin/dashboard/dashboard-weekly-summary";
+import { DashboardBoxHeader } from "@/components/admin/dashboard/dashboard-box-header";
 
 export default async function AdminDashboardPage({
   params,
@@ -27,14 +28,16 @@ export default async function AdminDashboardPage({
 
   return (
     <div className="space-y-6 pb-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight brand-text">
-          {t("dashboard")}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {data.boxName} · {data.today}
-        </p>
-      </div>
+      <DashboardBoxHeader
+        boxName={data.boxName}
+        today={data.today}
+        locale={locale}
+        labels={{
+          pageTitle: t("dashboard"),
+          poweredBy: td("header.poweredBy"),
+          platformTagline: td("header.platformTagline"),
+        }}
+      />
 
       <section className="space-y-3">
         <p className="text-sm font-bold">{td("quickActions.title")}</p>

@@ -234,6 +234,10 @@
     "expiresInDays": "Expires in {days, plural, =0 {less than 1 day} =1 {1 day} other {# days}} — send WhatsApp reminder"
   },
   "adminDashboard": {
+    "header": {
+      "poweredBy": "Powered by",
+      "platformTagline": "Train. Track. Progress."
+    },
     "executive": {
       "title": "Executive summary",
       "classesToday": "Classes today",

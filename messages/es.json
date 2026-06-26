@@ -234,6 +234,10 @@
     "expiresInDays": "Vence en {days, plural, =0 {menos de 1 día} =1 {1 día} other {# días}} — envía recordatorio por WhatsApp"
   },
   "adminDashboard": {
+    "header": {
+      "poweredBy": "Operado con",
+      "platformTagline": "Train. Track. Progress."
+    },
     "executive": {
       "title": "Resumen ejecutivo",
       "classesToday": "Clases hoy",
