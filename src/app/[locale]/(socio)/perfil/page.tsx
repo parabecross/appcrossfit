@@ -1,9 +1,7 @@
 import { requireRole } from "@/lib/auth/get-profile";
-import { getBoxConfig } from "@/lib/box/config";
-import { getAtletaExpediente } from "@/lib/queries/expediente";
+import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/socio/profile-form";
-import { ExpedienteSummary } from "@/components/socio/expediente-summary";
-import { SportsProfileForm } from "@/components/socio/sports-profile-form";
+import type { AtletaPerfilDeportivo } from "@/types/database";
 
 export default async function PerfilPage({
   params,
@@ -12,23 +10,18 @@ export default async function PerfilPage({
 }) {
   const { locale } = await params;
   const profile = await requireRole(locale, ["socio"]);
-  const boxConfig = await getBoxConfig(profile.box_id);
-  const expediente = await getAtletaExpediente(profile.id, boxConfig.timezone);
+  const supabase = await createClient();
+
+  const { data: perfilDeportivo } = await supabase
+    .from("atleta_perfil_deportivo")
+    .select("*")
+    .eq("usuario_id", profile.id)
+    .maybeSingle();
 
   return (
-    <div className="space-y-8 pb-24 md:pb-0">
-      <ProfileForm profile={profile} />
-      <ExpedienteSummary
-        marcas={expediente.marcas}
-        skills={expediente.skills}
-        objetivos={expediente.objetivos}
-        activeGoal={expediente.activeGoal}
-        attendance={expediente.attendance}
-      />
-      <SportsProfileForm
-        profileId={profile.id}
-        initial={expediente.perfilDeportivo}
-      />
-    </div>
+    <ProfileForm
+      profile={profile}
+      perfilDeportivo={(perfilDeportivo ?? null) as AtletaPerfilDeportivo | null}
+    />
   );
 }

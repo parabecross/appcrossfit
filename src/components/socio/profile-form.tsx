@@ -13,28 +13,38 @@ import { uploadAvatarForUser } from "@/lib/avatars/upload";
 import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { useRouter } from "@/i18n/routing";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
-import type { Profile } from "@/types/database";
+import type { AtletaPerfilDeportivo, Profile } from "@/types/database";
 
 export function ProfileForm({
   profile,
   variant = "default",
   subtitle,
+  perfilDeportivo = null,
 }: {
   profile: Profile;
   variant?: "default" | "coach";
   subtitle?: string;
+  perfilDeportivo?: AtletaPerfilDeportivo | null;
 }) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const tn = useTranslations("nav");
   const ts = useTranslations("socio");
   const ta = useTranslations("admin");
+  const tsp = useTranslations("progress.sportsProfile");
   const router = useRouter();
   const supabase = createClient();
   const [form, setForm] = useState({
     nombre_completo: profile.nombre_completo,
     telefono: profile.telefono ?? "",
     bio: profile.bio ?? "",
+  });
+  const [sportsForm, setSportsForm] = useState({
+    peso_corporal_kg: perfilDeportivo?.peso_corporal_kg?.toString() ?? "",
+    estatura_cm: perfilDeportivo?.estatura_cm?.toString() ?? "",
+    anos_entrenando: perfilDeportivo?.anos_entrenando?.toString() ?? "",
+    modalidad_favorita: perfilDeportivo?.modalidad_favorita ?? "",
+    notas: perfilDeportivo?.notas ?? "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState(profile.foto_url);
@@ -78,6 +88,35 @@ export function ProfileForm({
       setError(updateError.message);
       setLoading(false);
       return;
+    }
+
+    if (variant === "default") {
+      const { error: sportsError } = await supabase
+        .from("atleta_perfil_deportivo")
+        .upsert(
+          {
+            usuario_id: profile.id,
+            peso_corporal_kg: sportsForm.peso_corporal_kg
+              ? parseFloat(sportsForm.peso_corporal_kg)
+              : null,
+            estatura_cm: sportsForm.estatura_cm
+              ? parseInt(sportsForm.estatura_cm, 10)
+              : null,
+            anos_entrenando: sportsForm.anos_entrenando
+              ? parseInt(sportsForm.anos_entrenando, 10)
+              : null,
+            modalidad_favorita:
+              sportsForm.modalidad_favorita.trim() || null,
+            notas: sportsForm.notas.trim() || null,
+          },
+          { onConflict: "usuario_id" }
+        );
+
+      if (sportsError) {
+        setError(sportsError.message);
+        setLoading(false);
+        return;
+      }
     }
 
     setSaved(true);
@@ -163,6 +202,93 @@ export function ProfileForm({
             </p>
           )}
         </div>
+
+        {variant === "default" && (
+          <>
+            <div className="border-t border-white/10 pt-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-400/90">
+                {tsp("label")}
+              </p>
+              <p className="text-sm font-semibold mt-1">{tsp("title")}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>{tsp("weight")}</Label>
+                <Input
+                  className="h-12 rounded-xl"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="75"
+                  value={sportsForm.peso_corporal_kg}
+                  onChange={(e) =>
+                    setSportsForm({
+                      ...sportsForm,
+                      peso_corporal_kg: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>{tsp("height")}</Label>
+                <Input
+                  className="h-12 rounded-xl"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="175"
+                  value={sportsForm.estatura_cm}
+                  onChange={(e) =>
+                    setSportsForm({
+                      ...sportsForm,
+                      estatura_cm: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>{tsp("yearsTraining")}</Label>
+                <Input
+                  className="h-12 rounded-xl"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="3"
+                  value={sportsForm.anos_entrenando}
+                  onChange={(e) =>
+                    setSportsForm({
+                      ...sportsForm,
+                      anos_entrenando: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>{tsp("favoriteModality")}</Label>
+                <Input
+                  className="h-12 rounded-xl"
+                  placeholder={tsp("favoriteModalityPlaceholder")}
+                  value={sportsForm.modalidad_favorita}
+                  onChange={(e) =>
+                    setSportsForm({
+                      ...sportsForm,
+                      modalidad_favorita: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <Label>{tsp("notes")}</Label>
+              <Textarea
+                className="rounded-xl min-h-[80px]"
+                rows={2}
+                placeholder={tsp("notesPlaceholder")}
+                value={sportsForm.notas}
+                onChange={(e) =>
+                  setSportsForm({ ...sportsForm, notas: e.target.value })
+                }
+              />
+            </div>
+          </>
+        )}
 
         <div className="hidden md:block space-y-2">
           <Button onClick={save} disabled={loading} className="w-full h-12 rounded-xl">
