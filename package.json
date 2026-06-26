@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
+    "cleanup-parabellum": "tsx scripts/cleanup-parabellum.ts",
     "create-super-admin": "tsx scripts/create-athron-super-admin.ts",
     "process-logo": "node scripts/process-athron-logo.mjs"
   },
