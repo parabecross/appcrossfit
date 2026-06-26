@@ -151,7 +151,7 @@ export function AdminClasesClient({
   }, [daysWithClasses, selectedDay]);
 
   useEffect(() => {
-    if (!selectedClase) return;
+    if (!isCoach || !selectedClase) return;
     if (
       dayClases.length === 0 ||
       !dayClases.some((c) => c.id === selectedClase)
@@ -159,7 +159,14 @@ export function AdminClasesClient({
       setSelectedClase(null);
       setMobilePanel("list");
     }
-  }, [selectedDay, dayClases, selectedClase]);
+  }, [isCoach, selectedDay, dayClases, selectedClase]);
+
+  useEffect(() => {
+    if (isCoach || daysWithClasses.length === 0) return;
+    if (!daysWithClasses.includes(calendarDay)) {
+      setCalendarDay(daysWithClasses[0]);
+    }
+  }, [isCoach, daysWithClasses, calendarDay]);
 
   const enrollmentCount = (claseId: string) =>
     localReservas.filter(
@@ -183,6 +190,15 @@ export function AdminClasesClient({
         .filter((c) => c.fecha === calendarDay && c.estado === "programada")
         .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio)),
     [localClases, calendarDay]
+  );
+
+  const handleClassSelect = useCallback(
+    (claseId: string) => {
+      const clase = localClases.find((c) => c.id === claseId);
+      if (clase) setCalendarDay(clase.fecha);
+      setSelectedClase(claseId);
+    },
+    [localClases]
   );
 
   const handleCalendarDayChange = useCallback(
@@ -808,7 +824,7 @@ export function AdminClasesClient({
         isAdmin
         canEditClass
         coaches={coaches}
-        onClassSelect={(claseId) => setSelectedClase(claseId)}
+        onClassSelect={handleClassSelect}
         onDayChange={handleCalendarDayChange}
         selectedClaseId={selectedClase}
         onClassDeleted={handleClassDeleted}
