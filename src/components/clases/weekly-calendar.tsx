@@ -102,6 +102,22 @@ export function WeeklyCalendar({
         ["confirmada", "asistio"].includes(r.estado)
     );
 
+  const hadReservationOnLoad = (claseId: string) =>
+    reservas.some(
+      (r) =>
+        r.clase_id === claseId &&
+        r.usuario_id === profileId &&
+        ["confirmada", "asistio"].includes(r.estado)
+    );
+
+  const occupiedForSocio = (claseId: string, baseOccupied: number) => {
+    const hasNow = !!myReservation(claseId);
+    const hadOnLoad = hadReservationOnLoad(claseId);
+    if (hasNow && !hadOnLoad) return baseOccupied + 1;
+    if (!hasNow && hadOnLoad) return Math.max(0, baseOccupied - 1);
+    return baseOccupied;
+  };
+
   const handleBook = async (claseId: string) => {
     const clase = clases.find((c) => c.id === claseId);
     if (!clase || !canBookClass(clase.fecha, clase.hora_inicio, gymTimezone)) return;
@@ -271,7 +287,7 @@ export function WeeklyCalendar({
           {dayClases.map((clase) => {
             const occupied = isAdmin
               ? countReservasForClase(localReservas, clase.id)
-              : (clase.cupo_ocupado ?? 0);
+              : occupiedForSocio(clase.id, clase.cupo_ocupado ?? 0);
             const full = occupied >= clase.cupo_maximo;
             const reservation = myReservation(clase.id);
             const booked = !!reservation;

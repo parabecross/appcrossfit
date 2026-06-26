@@ -53,27 +53,33 @@ export async function getClasesByDateRange(
 
   const result = await Promise.all(
     clases.map(async (c) => {
-      const { count } = await supabase
-        .from("reservas")
-        .select("*", { count: "exact", head: true })
-        .eq("clase_id", c.id)
-        .in("estado", ["confirmada", "asistio"]);
-
+      const coach = c.coach_id ? coachMap.get(c.coach_id) : null;
       return {
         ...c,
-        coach_nombre: c.coach_id
-          ? coachMap.get(c.coach_id)?.nombre_completo ?? null
-          : null,
-        coach_foto_url: c.coach_id
-          ? coachMap.get(c.coach_id)?.foto_url ?? null
-          : null,
-        coach_bio: c.coach_id
-          ? coachMap.get(c.coach_id)?.bio ?? null
-          : null,
-        cupo_ocupado: count ?? 0,
+        coach_nombre: coach?.nombre_completo ?? null,
+        coach_foto_url: coach?.foto_url ?? null,
+        coach_bio: coach?.bio ?? null,
+        cupo_ocupado: 0,
       };
     })
   );
 
-  return result;
+  const claseIds = result.map((c) => c.id);
+  if (claseIds.length === 0) return result;
+
+  const { data: cupoRows } = await supabase.rpc("clases_cupo_ocupado", {
+    p_clase_ids: claseIds,
+  });
+
+  const cupoMap = new Map(
+    (cupoRows ?? []).map((row: { clase_id: string; ocupado: number }) => [
+      row.clase_id,
+      row.ocupado,
+    ])
+  );
+
+  return result.map((c) => ({
+    ...c,
+    cupo_ocupado: cupoMap.get(c.id) ?? 0,
+  }));
 }
