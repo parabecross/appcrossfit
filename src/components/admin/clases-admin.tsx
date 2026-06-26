@@ -151,13 +151,13 @@ export function AdminClasesClient({
   }, [daysWithClasses, selectedDay]);
 
   useEffect(() => {
-    if (dayClases.length === 0) {
+    if (!selectedClase) return;
+    if (
+      dayClases.length === 0 ||
+      !dayClases.some((c) => c.id === selectedClase)
+    ) {
       setSelectedClase(null);
-      return;
-    }
-    const stillOnDay = dayClases.some((c) => c.id === selectedClase);
-    if (!stillOnDay) {
-      setSelectedClase(dayClases[0].id);
+      setMobilePanel("list");
     }
   }, [selectedDay, dayClases, selectedClase]);
 
@@ -188,10 +188,13 @@ export function AdminClasesClient({
   const handleCalendarDayChange = useCallback(
     (date: string) => {
       setCalendarDay(date);
-      const dayClasses = localClases
-        .filter((c) => c.fecha === date && c.estado === "programada")
-        .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
-      setSelectedClase(dayClasses[0]?.id ?? null);
+      setSelectedClase((current) => {
+        if (!current) return null;
+        const match = localClases.find(
+          (c) => c.id === current && c.fecha === date
+        );
+        return match ? current : null;
+      });
     },
     [localClases]
   );
@@ -805,7 +808,7 @@ export function AdminClasesClient({
         isAdmin
         canEditClass
         coaches={coaches}
-        onClassSelect={setSelectedClase}
+        onClassSelect={(claseId) => setSelectedClase(claseId)}
         onDayChange={handleCalendarDayChange}
         selectedClaseId={selectedClase}
         onClassDeleted={handleClassDeleted}
