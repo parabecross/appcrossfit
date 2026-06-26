@@ -25,11 +25,13 @@ export function formatRecordTipoLabel(
   return t(`recordTipo.${tipo}`);
 }
 
+function isWeightUnit(unidad: PrUnidad): boolean {
+  return unidad === "lbs" || unidad === "kg";
+}
+
 export function formatPrValue(valor: number, unidad: PrUnidad): string {
   if (unidad === "segundos") return formatSeconds(valor);
-  if (unidad === "kg" || unidad === "lbs") {
-    return `${valor} kg`;
-  }
+  if (isWeightUnit(unidad)) return `${valor} lb`;
   if (unidad === "reps") return `${valor} reps`;
   if (unidad === "metros") return `${valor} m`;
   return String(valor);
@@ -90,7 +92,7 @@ export function comparePrDelta(
   if (unidad === "segundos") {
     return `-${Math.round(previousValor - newValor)}s`;
   }
-  if (unidad === "kg" || unidad === "lbs") return `+${diff} kg`;
+  if (isWeightUnit(unidad)) return `+${diff} lb`;
   if (unidad === "reps") return `+${diff} reps`;
   return `+${diff}`;
 }

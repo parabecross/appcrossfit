@@ -167,11 +167,11 @@ export function AthleteProgress({
     }
 
     const rmReps =
-      prForm.recordTipo === "rm" && def.unit === "kg"
+      prForm.recordTipo === "rm" && def.unit === "lbs"
         ? parseInt(prForm.rmReps, 10)
         : null;
 
-    if (prForm.recordTipo === "rm" && def.unit === "kg" && (!rmReps || rmReps <= 0)) {
+    if (prForm.recordTipo === "rm" && def.unit === "lbs" && (!rmReps || rmReps <= 0)) {
       setError(t("invalidReps"));
       setLoading(false);
       return;
@@ -636,7 +636,7 @@ export function AthleteProgress({
                 </SelectContent>
               </Select>
             </div>
-            {prForm.recordTipo === "rm" && exerciseDef.unit === "kg" && (
+            {prForm.recordTipo === "rm" && exerciseDef.unit === "lbs" && (
               <div>
                 <Label>{t("rmReps")}</Label>
                 <Select
@@ -677,7 +677,7 @@ export function AthleteProgress({
               <Input
                 value={prForm.valor}
                 placeholder={
-                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "kg" ? "100" : "20"
+                  exerciseDef.timeInput ? "7:30" : exerciseDef.unit === "lbs" ? "225" : "20"
                 }
                 onChange={(e) =>
                   setPrForm({ ...prForm, valor: e.target.value })

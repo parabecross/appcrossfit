@@ -394,8 +394,8 @@
       "dominado": "Mastered"
     },
     "unit": {
-      "kg": "Weight (kg)",
       "lbs": "Weight (lb)",
+      "kg": "Weight (lb)",
       "reps": "Reps",
       "segundos": "Time",
       "metros": "Distance (m)"

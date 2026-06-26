@@ -10,14 +10,14 @@ export interface PrExerciseDef {
 }
 
 export const PR_EXERCISES: PrExerciseDef[] = [
-  { key: "back_squat", unit: "kg", higherIsBetter: true },
-  { key: "front_squat", unit: "kg", higherIsBetter: true },
-  { key: "deadlift", unit: "kg", higherIsBetter: true },
-  { key: "bench_press", unit: "kg", higherIsBetter: true },
-  { key: "shoulder_press", unit: "kg", higherIsBetter: true },
-  { key: "clean", unit: "kg", higherIsBetter: true },
-  { key: "snatch", unit: "kg", higherIsBetter: true },
-  { key: "clean_jerk", unit: "kg", higherIsBetter: true },
+  { key: "back_squat", unit: "lbs", higherIsBetter: true },
+  { key: "front_squat", unit: "lbs", higherIsBetter: true },
+  { key: "deadlift", unit: "lbs", higherIsBetter: true },
+  { key: "bench_press", unit: "lbs", higherIsBetter: true },
+  { key: "shoulder_press", unit: "lbs", higherIsBetter: true },
+  { key: "clean", unit: "lbs", higherIsBetter: true },
+  { key: "snatch", unit: "lbs", higherIsBetter: true },
+  { key: "clean_jerk", unit: "lbs", higherIsBetter: true },
   { key: "pull_ups", unit: "reps", higherIsBetter: true },
   { key: "toes_to_bar", unit: "reps", higherIsBetter: true },
   { key: "double_unders", unit: "reps", higherIsBetter: true },

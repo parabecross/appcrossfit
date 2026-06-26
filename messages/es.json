@@ -394,8 +394,8 @@
       "dominado": "Dominado"
     },
     "unit": {
-      "kg": "Peso (kg)",
       "lbs": "Peso (lb)",
+      "kg": "Peso (lb)",
       "reps": "Repeticiones",
       "segundos": "Tiempo",
       "metros": "Distancia (m)"
