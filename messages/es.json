@@ -193,6 +193,7 @@
     "alerts": "Alertas de vencimiento",
     "expiringSoon": "Por vencer (3 días)",
     "expired": "Vencidos",
+    "socioStatusPorVencer": "Por vencer",
     "createUser": "Crear socio",
     "createUserSuccess": "Socio creado. Se envió correo de confirmación si está activo en Supabase.",
     "createCoach": "Crear coach",

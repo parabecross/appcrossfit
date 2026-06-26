@@ -121,6 +121,36 @@ export function toDateString(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+export function todayInTimezone(timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const get = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "01";
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+export function addDaysToDateString(dateStr: string, days: number): string {
+  const d = dateStringToLocalDate(dateStr);
+  d.setDate(d.getDate() + days);
+  return toDateString(d);
+}
+
+/** Rango de fechas para que el socio vea clases futuras (no solo la semana calendario). */
+export function getSocioClasesDateRange(timeZone?: string): {
+  from: string;
+  to: string;
+} {
+  const from = timeZone ? todayInTimezone(timeZone) : toDateString(new Date());
+  const to = addDaysToDateString(from, APP_CONFIG.SOCIO_CLASES_HORIZON_DIAS);
+  return { from, to };
+}
+
 export function getClassDates(
   clases: { fecha: string; estado: string }[]
 ): string[] {

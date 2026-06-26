@@ -193,6 +193,7 @@
     "alerts": "Expiry alerts",
     "expiringSoon": "Expiring soon (3 days)",
     "expired": "Expired",
+    "socioStatusPorVencer": "Expiring soon",
     "createUser": "Create member",
     "createUserSuccess": "Member created. Confirmation email sent if enabled in Supabase.",
     "createCoach": "Create coach",

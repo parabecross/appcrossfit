@@ -7,6 +7,8 @@ export const APP_CONFIG = {
   CUPO_DEFAULT: 12,
   /** Días de alerta antes del vencimiento */
   ALERTA_VENCIMIENTO_DIAS: 3,
+  /** Días hacia adelante que ve el socio al reservar (mín. 4 días con clases) */
+  SOCIO_CLASES_HORIZON_DIAS: 14,
   /** Semanas en gráfica de tendencia */
   TENDENCIA_SEMANAS: 8,
   /** Zona horaria del gym (fallback; Fase 3: por box) */

@@ -54,9 +54,10 @@ export function UserDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const current = membresias[0];
-  const hasActiveMembership =
-    !!current &&
-    syncMembresiaEstadoLocal(current.fecha_fin, current.estado) === "vigente";
+  const currentEstado = current
+    ? syncMembresiaEstadoLocal(current.fecha_fin, current.estado)
+    : null;
+  const hasActiveMembership = currentEstado === "vigente";
 
   const getSelectedPlan = () => planes.find((p) => p.id === planId);
 
@@ -204,14 +205,12 @@ export function UserDetailClient({
                 ? formatDate(current.fecha_fin, locale)
                 : "—"}
             </p>
-            {current && (
+            {currentEstado && (
               <Badge
-                variant={
-                  current.estado === "vigente" ? "success" : "destructive"
-                }
+                variant={currentEstado === "vigente" ? "success" : "destructive"}
                 className="mt-2"
               >
-                {tm(current.estado)}
+                {tm(currentEstado)}
               </Badge>
             )}
           </CardContent>

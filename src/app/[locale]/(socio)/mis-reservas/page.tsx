@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
-import { getWeekDates, toDateString } from "@/lib/clases/helpers";
+import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
@@ -22,9 +22,7 @@ export default async function MisReservasPage({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
 
-  const week = getWeekDates();
-  const from = toDateString(week[0]);
-  const to = toDateString(week[6]);
+  const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
   const supabase = await createClient();
   const [clases, membership, { data: reservas }] = await Promise.all([

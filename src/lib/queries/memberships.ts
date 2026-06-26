@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
+import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
 import type { AlertaMembresia, Profile } from "@/types/database";
 
 export async function getMembresiaActual(profileId: string) {
@@ -48,13 +49,15 @@ export async function getAlertasMembresia(boxId?: string) {
 
   const memMap = await getMembresiasMapForUsuarios(socios.map((s) => s.id));
   const alertas: AlertaMembresia[] = [];
-  const today = new Date();
   const in3 = new Date();
-  in3.setDate(today.getDate() + 3);
+  in3.setDate(in3.getDate() + 3);
+  const in3Str = in3.toISOString().split("T")[0];
 
   for (const s of socios) {
     const mem = memMap.get(s.id) ?? null;
-    if (!mem || s.estado_cuenta === "pendiente_pago") {
+    const displayStatus = getSocioDisplayStatus(s, mem);
+
+    if (displayStatus === "vencida" || displayStatus === "sin_membresia") {
       alertas.push({
         profile_id: s.id,
         nombre_completo: s.nombre_completo,
@@ -64,20 +67,11 @@ export async function getAlertasMembresia(boxId?: string) {
         fecha_fin: mem?.fecha_fin ?? null,
         tipo_alerta: "vencida",
       });
-      continue;
-    }
-    const fin = new Date(mem.fecha_fin);
-    if (fin < today) {
-      alertas.push({
-        profile_id: s.id,
-        nombre_completo: s.nombre_completo,
-        telefono: s.telefono,
-        user_id: s.user_id,
-        plan_nombre: mem.plan?.nombre ?? null,
-        fecha_fin: mem.fecha_fin,
-        tipo_alerta: "vencida",
-      });
-    } else if (fin <= in3) {
+    } else if (
+      displayStatus === "por_vencer" &&
+      mem &&
+      mem.fecha_fin <= in3Str
+    ) {
       alertas.push({
         profile_id: s.id,
         nombre_completo: s.nombre_completo,
@@ -108,21 +102,22 @@ export async function getKpis(boxId?: string) {
   const memMap = await getMembresiasMapForUsuarios(
     (socios ?? []).map((s) => s.id)
   );
-  const today = new Date();
 
   for (const s of socios ?? []) {
-    if (s.estado_cuenta === "pendiente_pago") {
-      pendientes++;
-      continue;
+    const mem = memMap.get(s.id) ?? null;
+    const displayStatus = getSocioDisplayStatus(s, mem);
+
+    switch (displayStatus) {
+      case "pendiente_pago":
+        pendientes++;
+        break;
+      case "vencida":
+      case "sin_membresia":
+        vencidos++;
+        break;
+      default:
+        activos++;
     }
-    const mem = memMap.get(s.id);
-    if (!mem) {
-      vencidos++;
-      continue;
-    }
-    const fin = new Date(mem.fecha_fin);
-    if (fin < today) vencidos++;
-    else activos++;
   }
 
   return { activos, vencidos, pendientes, total: socios?.length ?? 0 };

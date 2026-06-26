@@ -16,12 +16,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/utils";
+import {
+  getSocioDisplayStatus,
+  socioDisplayStatusBadgeVariant,
+  syncMembresiaEstadoLocal,
+  type SocioDisplayStatus,
+} from "@/lib/membresias/helpers";
 import type { Profile, Membresia, Plan } from "@/types/database";
 import { useRouter } from "@/i18n/routing";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 
 interface UserRow extends Profile {
   membresia: (Membresia & { plan: Plan | null }) | null;
+}
+
+function socioStatusLabel(
+  status: SocioDisplayStatus,
+  ts: (key: string) => string,
+  tm: (key: string) => string,
+  tmem: (key: string) => string,
+  tadmin: (key: string) => string
+): string {
+  switch (status) {
+    case "pendiente_pago":
+      return ts("pendiente_pago");
+    case "activo":
+      return ts("activo");
+    case "vencida":
+      return tm("vencida");
+    case "sin_membresia":
+      return tmem("noMembership");
+    case "por_vencer":
+      return tadmin("socioStatusPorVencer");
+  }
 }
 
 export function UsuariosTable({
@@ -36,6 +63,7 @@ export function UsuariosTable({
   const tauth = useTranslations("auth");
   const tc = useTranslations("common");
   const tm = useTranslations("membership.status");
+  const tmem = useTranslations("membership");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -152,7 +180,13 @@ export function UsuariosTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u) => (
+            {filtered.map((u) => {
+              const status = getSocioDisplayStatus(u, u.membresia);
+              const membresiaEstado = u.membresia
+                ? syncMembresiaEstadoLocal(u.membresia.fecha_fin, u.membresia.estado)
+                : null;
+
+              return (
               <tr
                 key={u.id}
                 className="border-t border-white/5 hover:bg-white/[0.02]"
@@ -162,19 +196,15 @@ export function UsuariosTable({
                   {u.telefono ?? "—"}
                 </td>
                 <td className="p-3">
-                  <Badge
-                    variant={
-                      u.estado_cuenta === "activo" ? "success" : "warning"
-                    }
-                  >
-                    {ts(u.estado_cuenta)}
+                  <Badge variant={socioDisplayStatusBadgeVariant(status)}>
+                    {socioStatusLabel(status, ts, tm, tmem, t)}
                   </Badge>
                 </td>
                 <td className="p-3 hidden lg:table-cell">
                   {u.membresia ? (
                     <span className="text-muted-foreground">
                       {u.membresia.plan?.nombre} ·{" "}
-                      {tm(u.membresia.estado)} ·{" "}
+                      {membresiaEstado ? tm(membresiaEstado) : "—"} ·{" "}
                       {formatDate(u.membresia.fecha_fin, locale)}
                     </span>
                   ) : (
@@ -195,13 +225,20 @@ export function UsuariosTable({
                   </div>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="md:hidden space-y-3">
-        {filtered.map((u) => (
+        {filtered.map((u) => {
+          const status = getSocioDisplayStatus(u, u.membresia);
+          const membresiaEstado = u.membresia
+            ? syncMembresiaEstadoLocal(u.membresia.fecha_fin, u.membresia.estado)
+            : null;
+
+          return (
           <div
             key={u.id}
             className="rounded-2xl border border-white/10 bg-card/50 p-4 space-y-3"
@@ -213,15 +250,14 @@ export function UsuariosTable({
                   <p className="text-sm text-muted-foreground mt-0.5">{u.telefono}</p>
                 )}
               </div>
-              <Badge
-                variant={u.estado_cuenta === "activo" ? "success" : "warning"}
-              >
-                {ts(u.estado_cuenta)}
+              <Badge variant={socioDisplayStatusBadgeVariant(status)}>
+                {socioStatusLabel(status, ts, tm, tmem, t)}
               </Badge>
             </div>
             {u.membresia && (
               <p className="text-sm text-muted-foreground">
-                {u.membresia.plan?.nombre} · {tm(u.membresia.estado)} ·{" "}
+                {u.membresia.plan?.nombre} ·{" "}
+                {membresiaEstado ? tm(membresiaEstado) : "—"} ·{" "}
                 {formatDate(u.membresia.fecha_fin, locale)}
               </p>
             )}
@@ -234,7 +270,8 @@ export function UsuariosTable({
               <DeleteSocioDialog userId={u.user_id} nombre={u.nombre_completo} />
             </div>
           </div>
-        ))}
+        );
+        })}
         {filtered.length === 0 && (
           <p className="text-center text-muted-foreground py-8">{tc("noData")}</p>
         )}
