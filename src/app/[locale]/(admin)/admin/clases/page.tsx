@@ -1,4 +1,6 @@
 import { requireRole } from "@/lib/auth/get-profile";
+import { isAdminLikeRole } from "@/lib/auth/roles";
+import { getBoxConfig } from "@/lib/box/config";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import { getCoaches } from "@/lib/queries/memberships";
 import { getWeekDates, toDateString } from "@/lib/clases/helpers";
@@ -11,7 +13,8 @@ export default async function AdminClasesPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const profile = await requireRole(locale, ["admin", "coach"]);
+  const profile = await requireRole(locale, ["admin", "coach", "box_admin"]);
+  const boxConfig = await getBoxConfig(profile.box_id);
   const week = getWeekDates();
   const from = toDateString(week[0]);
   const rangeEnd = new Date(week[6]);
@@ -24,7 +27,7 @@ export default async function AdminClasesPage({
   }
 
   const coaches =
-    profile.rol === "admin" ? await getCoaches() : [profile];
+    isAdminLikeRole(profile.rol) ? await getCoaches() : [profile];
 
   const supabase = await createClient();
   const { data: reservas } = await supabase
@@ -44,6 +47,7 @@ export default async function AdminClasesPage({
       profileId={profile.id}
       locale={locale}
       isCoach={profile.rol === "coach"}
+      gymTimezone={boxConfig.timezone}
     />
   );
 }

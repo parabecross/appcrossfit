@@ -23,12 +23,13 @@ function getPageTitle(pathname: string, t: (k: string) => string) {
   return APP_CONFIG.BRAND_NAME;
 }
 
-export function SocioDesktopSidebar() {
+export function SocioDesktopSidebar({ brandLabel }: { brandLabel?: string }) {
   const t = useTranslations("nav");
   const ta = useTranslations("auth");
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const brand = brandLabel ?? APP_CONFIG.BRAND_NAME;
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -42,7 +43,7 @@ export function SocioDesktopSidebar() {
           <Dumbbell className="h-4 w-4 text-white" />
         </div>
         <span className="font-black text-xs tracking-wider uppercase brand-text">
-          {APP_CONFIG.BRAND_NAME}
+          {brand}
         </span>
       </div>
       <nav className="flex-1 space-y-1">
@@ -73,12 +74,14 @@ export function SocioDesktopSidebar() {
   );
 }
 
-export function SocioMobileNav() {
+export function SocioMobileNav({ brandLabel }: { brandLabel?: string }) {
   const t = useTranslations("nav");
   const ta = useTranslations("auth");
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  const brand = brandLabel ?? APP_CONFIG.BRAND_NAME;
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -95,7 +98,7 @@ export function SocioMobileNav() {
             </div>
             <div className="min-w-0">
               <p className="font-black text-xs tracking-wider uppercase brand-text truncate">
-                {APP_CONFIG.BRAND_NAME}
+                {brand}
               </p>
               <p className="text-sm font-semibold truncate">
                 {getPageTitle(pathname, t)}

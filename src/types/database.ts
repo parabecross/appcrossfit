@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "socio" | "coach";
+export type UserRole = "admin" | "socio" | "coach" | "box_admin";
 export type AccountStatus = "pendiente_pago" | "activo" | "inactivo";
 export type PlanTipo = "mensual_fijo" | "convenio_externo";
 export type MembresiaEstado = "vigente" | "vencida" | "cancelada";
@@ -7,6 +7,26 @@ export type ClaseEstado = "programada" | "cancelada";
 export type ReservaEstado = "confirmada" | "cancelada" | "asistio" | "no_asistio";
 export type PrUnidad = "lbs" | "reps" | "segundos" | "metros";
 export type SkillEstado = "en_proceso" | "logrado" | "dominado";
+export type RecordTipo = "pr" | "rm";
+
+export type BoxStatus = "active" | "inactive" | "trial";
+export type BoxPlan = "free" | "basic" | "pro" | "enterprise";
+
+export interface Box {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  timezone: string;
+  status: BoxStatus;
+  plan: BoxPlan;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Profile {
   id: string;
@@ -17,6 +37,8 @@ export interface Profile {
   bio: string | null;
   rol: UserRole;
   estado_cuenta: AccountStatus;
+  box_id?: string;
+  is_super_admin?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +116,8 @@ export interface AtletaPrMarca {
   id: string;
   usuario_id: string;
   ejercicio: string;
+  record_tipo: RecordTipo;
+  rm_reps: number | null;
   valor: number;
   unidad: PrUnidad;
   fecha: string;
@@ -124,6 +148,7 @@ export interface AtletaSkillHistorial {
 export interface Database {
   public: {
     Tables: {
+      boxes: { Row: Box; Insert: Partial<Box>; Update: Partial<Box> };
       profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
       planes: { Row: Plan; Insert: Partial<Plan>; Update: Partial<Plan> };
       membresias: { Row: Membresia; Insert: Partial<Membresia>; Update: Partial<Membresia> };

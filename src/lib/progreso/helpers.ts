@@ -1,5 +1,29 @@
-import type { AtletaPrMarca, PrUnidad } from "@/types/database";
+import type { AtletaPrMarca, PrUnidad, RecordTipo } from "@/types/database";
 import { getPrExercise } from "./constants";
+
+export function marcaRecordKey(
+  ejercicio: string,
+  tipo: RecordTipo,
+  rmReps?: number | null
+): string {
+  if (tipo === "rm" && rmReps) return `${ejercicio}:rm:${rmReps}`;
+  return `${ejercicio}:${tipo}`;
+}
+
+export function getRecordTipo(marca: AtletaPrMarca): RecordTipo {
+  return marca.record_tipo ?? "pr";
+}
+
+export function formatRecordTipoLabel(
+  marca: Pick<AtletaPrMarca, "record_tipo" | "rm_reps">,
+  t: (key: string) => string
+): string {
+  const tipo = getRecordTipo(marca as AtletaPrMarca);
+  if (tipo === "rm" && marca.rm_reps) {
+    return `${marca.rm_reps} ${t("recordTipo.rm")}`;
+  }
+  return t(`recordTipo.${tipo}`);
+}
 
 export function formatPrValue(valor: number, unidad: PrUnidad): string {
   if (unidad === "segundos") return formatSeconds(valor);
@@ -74,28 +98,42 @@ export function getLatestPrPerExercise(
 ): Map<string, AtletaPrMarca> {
   const map = new Map<string, AtletaPrMarca>();
   for (const m of marcas) {
-    const existing = map.get(m.ejercicio);
+    const key = marcaRecordKey(m.ejercicio, getRecordTipo(m), m.rm_reps);
+    const existing = map.get(key);
     if (!existing) {
-      map.set(m.ejercicio, m);
+      map.set(key, m);
       continue;
     }
     const def = getPrExercise(m.ejercicio);
     const isBetter = def?.higherIsBetter
       ? m.valor > existing.valor
       : m.valor < existing.valor;
-    if (isBetter) map.set(m.ejercicio, m);
+    if (isBetter) map.set(key, m);
   }
   return map;
+}
+
+/** Ejercicios con al menos un record (cualquier tipo). */
+export function getExercisesWithRecords(marcas: AtletaPrMarca[]): Set<string> {
+  return new Set(marcas.map((m) => m.ejercicio));
 }
 
 export function getPreviousPr(
   marcas: AtletaPrMarca[],
   ejercicio: string,
+  recordTipo: RecordTipo,
+  rmReps?: number | null,
   excludeId?: string
 ): AtletaPrMarca | null {
   const def = getPrExercise(ejercicio);
   const candidates = marcas
-    .filter((m) => m.ejercicio === ejercicio && m.id !== excludeId)
+    .filter(
+      (m) =>
+        m.ejercicio === ejercicio &&
+        getRecordTipo(m) === recordTipo &&
+        (recordTipo !== "rm" || m.rm_reps === rmReps) &&
+        m.id !== excludeId
+    )
     .sort((a, b) => {
       if (def?.higherIsBetter) return b.valor - a.valor;
       return a.valor - b.valor;
@@ -111,11 +149,14 @@ export function countAchievedSkills(
 }
 
 export function suggestNextGoal(
-  latestPrs: Map<string, AtletaPrMarca>,
+  latestMarcas: Map<string, AtletaPrMarca>,
   skills: { skill: string; estado: string }[]
 ): string | null {
+  const withExercise = new Set(
+    Array.from(latestMarcas.values()).map((m) => m.ejercicio)
+  );
   const noPr = ["back_squat", "deadlift", "pull_ups", "clean"].find(
-    (k) => !latestPrs.has(k)
+    (k) => !withExercise.has(k)
   );
   if (noPr) return noPr;
 

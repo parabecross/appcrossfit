@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/types/database";
+import type { Profile, UserRole } from "@/types/database";
 import { redirect } from "next/navigation";
+import { canAccessAdminArea, isAdminLikeRole } from "@/lib/auth/roles";
 
 export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
@@ -24,15 +25,10 @@ export async function requireAuth(locale: string) {
   return profile;
 }
 
-export async function requireRole(
-  locale: string,
-  roles: Array<"admin" | "socio" | "coach">
-) {
+export async function requireRole(locale: string, roles: UserRole[]) {
   const profile = await requireAuth(locale);
   if (!roles.includes(profile.rol)) {
-    if (profile.rol === "admin") redirect(`/${locale}/admin/dashboard`);
-    if (profile.rol === "coach") redirect(`/${locale}/admin/clases`);
-    redirect(`/${locale}/mis-reservas`);
+    redirect(getRedirectForRole(profile.rol, locale));
   }
   return profile;
 }
@@ -40,15 +36,27 @@ export async function requireRole(
 export async function requireAdmin(locale: string) {
   const profile = await requireAuth(locale);
   if (profile.rol === "coach") redirect(`/${locale}/admin/clases`);
-  if (profile.rol !== "admin") redirect(`/${locale}/mis-reservas`);
+  if (!isAdminLikeRole(profile.rol)) redirect(`/${locale}/mis-reservas`);
+  return profile;
+}
+
+export async function requireSuperAdmin(locale: string) {
+  const profile = await requireAuth(locale);
+  if (!profile.is_super_admin) {
+    redirect(getRedirectForRole(profile.rol, locale));
+  }
   return profile;
 }
 
 export function getRedirectForRole(
   rol: Profile["rol"],
-  locale: string
+  locale: string,
+  isSuperAdmin = false
 ): string {
-  if (rol === "admin") return `/${locale}/admin/dashboard`;
+  if (isSuperAdmin) return `/${locale}/admin-athron/dashboard`;
+  if (isAdminLikeRole(rol)) return `/${locale}/admin/dashboard`;
   if (rol === "coach") return `/${locale}/admin/clases`;
   return `/${locale}/mis-reservas`;
 }
+
+export { canAccessAdminArea, isAdminLikeRole };

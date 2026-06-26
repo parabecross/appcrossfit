@@ -2,11 +2,14 @@
 
 CREATE TYPE pr_unidad AS ENUM ('lbs', 'reps', 'segundos', 'metros');
 CREATE TYPE skill_estado AS ENUM ('en_proceso', 'logrado', 'dominado');
+CREATE TYPE record_tipo AS ENUM ('pr', 'rm');
 
 CREATE TABLE IF NOT EXISTS atleta_pr_marcas (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   ejercicio   TEXT NOT NULL,
+  record_tipo record_tipo NOT NULL DEFAULT 'pr',
+  rm_reps     INTEGER CHECK (rm_reps IS NULL OR rm_reps > 0),
   valor       NUMERIC(10,2) NOT NULL CHECK (valor > 0),
   unidad      pr_unidad NOT NULL,
   fecha       DATE NOT NULL DEFAULT CURRENT_DATE,

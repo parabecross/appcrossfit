@@ -9,13 +9,14 @@ export default async function UserDetailPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  await requireAdmin(locale);
+  const adminProfile = await requireAdmin(locale);
   const supabase = await createClient();
 
   const { data: user } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", id)
+    .eq("box_id", adminProfile.box_id)
     .single();
 
   if (!user) notFound();

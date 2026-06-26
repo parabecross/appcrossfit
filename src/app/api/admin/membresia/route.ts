@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { computeFechaFin } from "@/lib/membresias/helpers";
+import { isAdminLikeRole } from "@/lib/auth/roles";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ async function requireAdmin() {
     .eq("user_id", user.id)
     .single();
 
-  if (profile?.rol !== "admin") {
+  if (!profile || !isAdminLikeRole(profile.rol)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
 

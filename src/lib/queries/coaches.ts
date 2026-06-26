@@ -1,14 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import type { Profile } from "@/types/database";
 
 export type CoachWithEmail = Profile & { email: string | null };
 
-export async function getCoachesWithEmail(): Promise<CoachWithEmail[]> {
+export async function getCoachesWithEmail(
+  boxId?: string
+): Promise<CoachWithEmail[]> {
+  const resolvedBoxId = await resolveQueryBoxId(boxId);
   const supabase = await createClient();
   const { data: profiles } = await supabase
     .from("profiles")
     .select("*")
+    .eq("box_id", resolvedBoxId)
     .eq("rol", "coach")
     .order("nombre_completo");
 

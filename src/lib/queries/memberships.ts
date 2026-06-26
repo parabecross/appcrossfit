@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import type { AlertaMembresia, Profile } from "@/types/database";
 
 export async function getMembresiaActual(profileId: string) {
@@ -34,11 +35,13 @@ async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
   return map;
 }
 
-export async function getAlertasMembresia() {
+export async function getAlertasMembresia(boxId?: string) {
+  const resolvedBoxId = await resolveQueryBoxId(boxId);
   const supabase = await createClient();
   const { data: socios } = await supabase
     .from("profiles")
     .select("id, nombre_completo, telefono, user_id, estado_cuenta")
+    .eq("box_id", resolvedBoxId)
     .eq("rol", "socio");
 
   if (!socios) return [];
@@ -89,11 +92,13 @@ export async function getAlertasMembresia() {
   return alertas;
 }
 
-export async function getKpis() {
+export async function getKpis(boxId?: string) {
+  const resolvedBoxId = await resolveQueryBoxId(boxId);
   const supabase = await createClient();
   const { data: socios } = await supabase
     .from("profiles")
     .select("id, estado_cuenta")
+    .eq("box_id", resolvedBoxId)
     .eq("rol", "socio");
 
   let activos = 0;
@@ -123,12 +128,14 @@ export async function getKpis() {
   return { activos, vencidos, pendientes, total: socios?.length ?? 0 };
 }
 
-export async function getCoaches(): Promise<Profile[]> {
+export async function getCoaches(boxId?: string): Promise<Profile[]> {
+  const resolvedBoxId = await resolveQueryBoxId(boxId);
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .in("rol", ["admin", "coach"])
+    .eq("box_id", resolvedBoxId)
+    .in("rol", ["admin", "coach", "box_admin"])
     .order("nombre_completo");
   return data ?? [];
 }

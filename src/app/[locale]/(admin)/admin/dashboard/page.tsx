@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
+import { getBoxConfig } from "@/lib/box/config";
 import { getAlertasMembresia, getKpis } from "@/lib/queries/memberships";
 import {
   getStatsData,
@@ -25,7 +26,8 @@ export default async function AdminDashboardPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdmin(locale);
+  const profile = await requireAdmin(locale);
+  const boxConfig = await getBoxConfig(profile.box_id);
   const t = await getTranslations("admin");
   const ts = await getTranslations("stats");
 
@@ -102,7 +104,7 @@ export default async function AdminDashboardPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            <ExpiredMembersList items={vencidas} locale={locale} />
+            <ExpiredMembersList items={vencidas} locale={locale} boxName={boxConfig.name} />
           </CardContent>
         </Card>
 
@@ -114,7 +116,7 @@ export default async function AdminDashboardPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            <ExpiringMembersList items={porVencer} locale={locale} />
+            <ExpiringMembersList items={porVencer} locale={locale} boxName={boxConfig.name} />
           </CardContent>
         </Card>
       </div>

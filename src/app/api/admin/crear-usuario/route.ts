@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminLikeRole } from "@/lib/auth/roles";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -14,12 +15,16 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("rol")
+    .select("rol, box_id")
     .eq("user_id", user.id)
     .single();
 
-  if (profile?.rol !== "admin") {
+  if (!profile || !isAdminLikeRole(profile.rol)) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+  }
+
+  if (!profile.box_id) {
+    return NextResponse.json({ error: "Perfil sin box asignado" }, { status: 400 });
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -54,6 +59,7 @@ export async function POST(request: NextRequest) {
       nombre_completo: nombre,
       telefono,
       rol,
+      box_id: profile.box_id,
     },
   });
 

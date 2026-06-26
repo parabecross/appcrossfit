@@ -16,6 +16,7 @@ export function WhatsAppReminderButton({
   type = "por_vencer",
   size = "sm",
   className,
+  boxName,
 }: {
   phone: string | null | undefined;
   nombre: string;
@@ -24,9 +25,16 @@ export function WhatsAppReminderButton({
   type?: "por_vencer" | "vencida";
   size?: "sm" | "default";
   className?: string;
+  boxName?: string;
 }) {
   const t = useTranslations("admin");
-  const message = buildRenewalReminderMessage(nombre, fechaFin, locale, type);
+  const message = buildRenewalReminderMessage(
+    nombre,
+    fechaFin,
+    locale,
+    type,
+    boxName
+  );
   const url = buildWhatsAppUrl(phone, message);
 
   if (!url) {

@@ -11,13 +11,14 @@ export default async function AdminUsuariosPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdmin(locale);
+  const adminProfile = await requireAdmin(locale);
   const t = await getTranslations("nav");
   const supabase = await createClient();
 
   const { data: profiles } = await supabase
     .from("profiles")
     .select("*")
+    .eq("box_id", adminProfile.box_id)
     .eq("rol", "socio")
     .order("nombre_completo");
 

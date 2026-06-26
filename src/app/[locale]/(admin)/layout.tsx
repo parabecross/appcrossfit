@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/get-profile";
+import { getBoxConfig } from "@/lib/box/config";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -12,13 +13,21 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const profile = await requireRole(locale, ["admin", "coach"]);
+  const profile = await requireRole(locale, ["admin", "coach", "box_admin"]);
+  const boxConfig = await getBoxConfig(profile.box_id);
 
   return (
     <div className="flex min-h-screen mobile-page w-full overflow-x-hidden">
-      <AdminSidebar isCoach={profile.rol === "coach"} />
+      <AdminSidebar
+        isCoach={profile.rol === "coach"}
+        brandLabel={boxConfig.name}
+        showAthronLink={profile.is_super_admin === true}
+      />
       <div className="flex flex-1 flex-col min-h-screen min-w-0 w-full">
-        <AdminMobileNav isCoach={profile.rol === "coach"} />
+        <AdminMobileNav
+          isCoach={profile.rol === "coach"}
+          brandLabel={boxConfig.name}
+        />
         <header className="hidden md:flex items-center justify-end border-b border-white/5 px-6 py-3 shrink-0">
           <LanguageSwitcher />
         </header>

@@ -42,20 +42,23 @@ import {
   comparePrDelta,
   countAchievedSkills,
   formatPrValue,
+  formatRecordTipoLabel,
   getLatestPrPerExercise,
   getPreviousPr,
+  getRecordTipo,
   isPrImprovement,
   parseTimeInput,
   secondsToTimeInput,
   suggestNextGoal,
 } from "@/lib/progreso/helpers";
 import { getPrMotivationMessage } from "@/lib/progreso/motivation";
-import { cn, formatShortDay } from "@/lib/utils";
+import { cn, formatCompactDate } from "@/lib/utils";
 import type {
   AtletaPrMarca,
   AtletaSkill,
   AtletaSkillHistorial,
   SkillEstado,
+  RecordTipo,
 } from "@/types/database";
 
 type Tab = "prs" | "skills" | "history";
@@ -85,6 +88,8 @@ export function AthleteProgress({
   const [prOpen, setPrOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(PR_EXERCISES[0].key);
   const [prForm, setPrForm] = useState({
+    recordTipo: "pr" as RecordTipo,
+    rmReps: "5",
     valor: "",
     fecha: new Date().toISOString().slice(0, 10),
     notas: "",
@@ -93,11 +98,11 @@ export function AthleteProgress({
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
 
-  const latestPrs = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
+  const latestMarcas = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
   const achievedSkills = countAchievedSkills(skills);
-  const nextGoal = suggestNextGoal(latestPrs, skills);
+  const nextGoal = suggestNextGoal(latestMarcas, skills);
 
-  const latestPr = useMemo(() => {
+  const latestRecord = useMemo(() => {
     if (marcas.length === 0) return null;
     return [...marcas].sort(
       (a, b) =>
@@ -114,12 +119,25 @@ export function AthleteProgress({
 
   const exerciseDef = PR_EXERCISES.find((e) => e.key === selectedExercise)!;
 
-  const openPrDialog = (ejercicio?: string) => {
+  const openPrDialog = (
+    ejercicio?: string,
+    recordTipo: RecordTipo = "pr",
+    initialRmReps?: number
+  ) => {
     const key = ejercicio ?? PR_EXERCISES[0].key;
-    const latest = latestPrs.get(key);
+    const defaultRmReps = initialRmReps ? String(initialRmReps) : "5";
+    const latest = Array.from(latestMarcas.values()).find(
+      (m) =>
+        m.ejercicio === key &&
+        getRecordTipo(m) === recordTipo &&
+        (recordTipo !== "rm" ||
+          m.rm_reps === parseInt(defaultRmReps, 10))
+    );
     const def = PR_EXERCISES.find((e) => e.key === key)!;
     setSelectedExercise(key);
     setPrForm({
+      recordTipo,
+      rmReps: latest?.rm_reps ? String(latest.rm_reps) : defaultRmReps,
       valor: latest
         ? def.timeInput
           ? secondsToTimeInput(latest.valor)
@@ -157,7 +175,23 @@ export function AthleteProgress({
       }
     }
 
-    const previous = getPreviousPr(marcas, selectedExercise);
+    const rmReps =
+      prForm.recordTipo === "rm" && def.unit === "lbs"
+        ? parseInt(prForm.rmReps, 10)
+        : null;
+
+    if (prForm.recordTipo === "rm" && def.unit === "lbs" && (!rmReps || rmReps <= 0)) {
+      setError(t("invalidReps"));
+      setLoading(false);
+      return;
+    }
+
+    const previous = getPreviousPr(
+      marcas,
+      selectedExercise,
+      prForm.recordTipo,
+      rmReps
+    );
     const improved = isPrImprovement(
       selectedExercise,
       valor,
@@ -169,6 +203,8 @@ export function AthleteProgress({
       .insert({
         usuario_id: profileId,
         ejercicio: selectedExercise,
+        record_tipo: prForm.recordTipo,
+        rm_reps: rmReps,
         valor,
         unidad: def.unit,
         fecha: prForm.fecha,
@@ -270,7 +306,7 @@ export function AthleteProgress({
           <Trophy className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
           <div>
             <Badge variant="success" className="mb-1.5">
-              {t("newPrBadge")}
+              {t("newRecordBadge")}
             </Badge>
             <p className="text-sm text-green-200">{celebration}</p>
           </div>
@@ -280,16 +316,16 @@ export function AthleteProgress({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           icon={Trophy}
-          label={t("lastPr")}
+          label={t("lastRecord")}
           value={
-            latestPr
-              ? `${t(`exercises.${latestPr.ejercicio}`)} · ${formatPrValue(latestPr.valor, latestPr.unidad)}`
+            latestRecord
+              ? `${t(`exercises.${latestRecord.ejercicio}`)} · ${formatPrValue(latestRecord.valor, latestRecord.unidad)} · ${formatRecordTipoLabel(latestRecord, t)}`
               : t("noData")
           }
         />
         <StatCard
           icon={Dumbbell}
-          label={t("totalPrs")}
+          label={t("totalRecords")}
           value={String(marcas.length)}
         />
         <StatCard
@@ -345,7 +381,7 @@ export function AthleteProgress({
 
       {tab === "prs" && (
         <div className="space-y-4">
-          {PR_EXERCISES.filter((ex) => latestPrs.has(ex.key)).length === 0 ? (
+          {latestMarcas.size === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 py-14 text-center space-y-4">
               <p className="text-sm text-muted-foreground px-6">
                 {t("noPrsYet")}
@@ -364,40 +400,67 @@ export function AthleteProgress({
                 </Button>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {PR_EXERCISES.filter((ex) => latestPrs.has(ex.key)).map((ex) => {
-                  const latest = latestPrs.get(ex.key)!;
-                  const previous = getPreviousPr(marcas, ex.key, latest.id);
+                {Array.from(latestMarcas.values())
+                  .sort((a, b) => a.ejercicio.localeCompare(b.ejercicio))
+                  .map((latest) => {
+                  const tipo = getRecordTipo(latest);
+                  const previous = getPreviousPr(
+                    marcas,
+                    latest.ejercicio,
+                    tipo,
+                    latest.rm_reps,
+                    latest.id
+                  );
                   const delta =
                     previous
-                      ? comparePrDelta(ex.key, latest.valor, previous.valor, ex.unit)
+                      ? comparePrDelta(
+                          latest.ejercicio,
+                          latest.valor,
+                          previous.valor,
+                          latest.unidad
+                        )
                       : "";
 
                   return (
-                    <Card key={ex.key} className="border-white/5 rounded-2xl">
+                    <Card
+                      key={`${latest.ejercicio}-${tipo}-${latest.rm_reps ?? 0}`}
+                      className="border-white/5 rounded-2xl"
+                    >
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base">
-                            {t(`exercises.${ex.key}`)}
-                          </CardTitle>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CardTitle className="text-base truncate">
+                              {t(`exercises.${latest.ejercicio}`)}
+                            </CardTitle>
+                            <Badge variant="outline" className="shrink-0 text-[10px] px-1.5">
+                              {formatRecordTipoLabel(latest, t)}
+                            </Badge>
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 text-primary"
-                            onClick={() => openPrDialog(ex.key)}
+                            className="h-8 text-primary shrink-0"
+                            onClick={() =>
+                              openPrDialog(
+                                latest.ejercicio,
+                                tipo,
+                                latest.rm_reps ?? undefined
+                              )
+                            }
                           >
                             {tc("edit")}
                           </Button>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-2">
+                      <CardContent className="space-y-1">
                         <p className="text-2xl font-black brand-text">
                           {formatPrValue(latest.valor, latest.unidad)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatShortDay(latest.fecha, locale)}
+                        <p className="text-[11px] text-muted-foreground tabular-nums">
+                          {formatCompactDate(latest.fecha, locale)}
                         </p>
                         {delta && (
-                          <div className="flex items-center gap-1.5 text-xs text-green-400">
+                          <div className="flex items-center gap-1.5 text-xs text-green-400 pt-1">
                             <TrendingUp className="h-3.5 w-3.5" />
                             {t("vsPrevious", { delta })}
                           </div>
@@ -469,11 +532,12 @@ export function AthleteProgress({
                   <Dumbbell className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
-                      {t(`exercises.${m.ejercicio}`)} —{" "}
-                      {formatPrValue(m.valor, m.unidad)}
+                      {t(`exercises.${m.ejercicio}`)} ·{" "}
+                      {formatPrValue(m.valor, m.unidad)} ·{" "}
+                      {formatRecordTipoLabel(m, t)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatShortDay(m.fecha, locale)}
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      {formatCompactDate(m.fecha, locale)}
                     </p>
                     {m.notas && (
                       <p className="text-xs text-muted-foreground mt-1">
@@ -510,18 +574,69 @@ export function AthleteProgress({
       )}
 
       <Dialog open={prOpen} onOpenChange={setPrOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("addRecord")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
+              <Label>{t("recordType")}</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1.5">
+                {(["pr", "rm"] as RecordTipo[]).map((tipo) => (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => {
+                      const reps = tipo === "rm" ? parseInt(prForm.rmReps, 10) : undefined;
+                      const latest = Array.from(latestMarcas.values()).find(
+                        (m) =>
+                          m.ejercicio === selectedExercise &&
+                          getRecordTipo(m) === tipo &&
+                          (tipo !== "rm" || m.rm_reps === reps)
+                      );
+                      const def = PR_EXERCISES.find(
+                        (e) => e.key === selectedExercise
+                      )!;
+                      setPrForm((f) => ({
+                        ...f,
+                        recordTipo: tipo,
+                        valor: latest
+                          ? def.timeInput
+                            ? secondsToTimeInput(latest.valor)
+                            : String(latest.valor)
+                          : "",
+                      }));
+                    }}
+                    className={cn(
+                      "rounded-xl py-2.5 text-sm font-semibold transition-all border",
+                      prForm.recordTipo === tipo
+                        ? "brand-gradient text-white border-transparent"
+                        : "bg-secondary/60 text-muted-foreground border-white/10"
+                    )}
+                  >
+                    {t(`recordTipo.${tipo}`)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                {t(`recordTypeHint.${prForm.recordTipo}`)}
+              </p>
+            </div>
+            <div>
               <Label>{t("exercise")}</Label>
               <Select
                 value={selectedExercise}
                 onValueChange={(v) => {
-                  setSelectedExercise(v);
-                  const latest = latestPrs.get(v);
+                  const reps =
+                    prForm.recordTipo === "rm"
+                      ? parseInt(prForm.rmReps, 10)
+                      : undefined;
+                  const latest = Array.from(latestMarcas.values()).find(
+                    (m) =>
+                      m.ejercicio === v &&
+                      getRecordTipo(m) === prForm.recordTipo &&
+                      (prForm.recordTipo !== "rm" || m.rm_reps === reps)
+                  );
                   const def = PR_EXERCISES.find((e) => e.key === v)!;
                   setPrForm((f) => ({
                     ...f,
@@ -531,6 +646,7 @@ export function AthleteProgress({
                         : String(latest.valor)
                       : "",
                   }));
+                  setSelectedExercise(v);
                 }}
               >
                 <SelectTrigger>
@@ -545,6 +661,38 @@ export function AthleteProgress({
                 </SelectContent>
               </Select>
             </div>
+            {prForm.recordTipo === "rm" && exerciseDef.unit === "lbs" && (
+              <div>
+                <Label>{t("rmReps")}</Label>
+                <Select
+                  value={prForm.rmReps}
+                  onValueChange={(v) => {
+                    const latest = Array.from(latestMarcas.values()).find(
+                      (m) =>
+                        m.ejercicio === selectedExercise &&
+                        getRecordTipo(m) === "rm" &&
+                        m.rm_reps === parseInt(v, 10)
+                    );
+                    setPrForm((f) => ({
+                      ...f,
+                      rmReps: v,
+                      valor: latest ? String(latest.valor) : "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-11 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 5, 10].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {t("rmRepsOption", { count: n })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>
                 {exerciseDef.timeInput
@@ -569,6 +717,7 @@ export function AthleteProgress({
                 onChange={(e) =>
                   setPrForm({ ...prForm, fecha: e.target.value })
                 }
+                className="input-date-compact [color-scheme:dark]"
               />
             </div>
             <div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminLikeRole } from "@/lib/auth/roles";
 
 async function requireAdminApi() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ async function requireAdminApi() {
     .eq("user_id", user.id)
     .single();
 
-  if (profile?.rol !== "admin") {
+  if (!profile || !isAdminLikeRole(profile.rol)) {
     return { error: NextResponse.json({ error: "Acceso denegado" }, { status: 403 }) };
   }
 

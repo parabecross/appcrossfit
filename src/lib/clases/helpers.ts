@@ -1,5 +1,41 @@
 import { APP_CONFIG } from "@/lib/config/app-config";
 
+function getGymWallClock(timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  return {
+    y: get("year"),
+    m: get("month"),
+    d: get("day"),
+    h: get("hour"),
+    min: get("minute"),
+  };
+}
+
+function wallClockToMinutes(fecha: string, hora: string): number {
+  const [y, m, d] = fecha.split("-").map(Number);
+  const [hh, mm] = hora.slice(0, 5).split(":").map(Number);
+  const dayNum = Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+  return dayNum * 24 * 60 + hh * 60 + mm;
+}
+
+function nowWallClockMinutes(timeZone: string): number {
+  const now = getGymWallClock(timeZone);
+  const dayNum = Math.floor(Date.UTC(now.y, now.m - 1, now.d) / 86_400_000);
+  return dayNum * 24 * 60 + now.h * 60 + now.min;
+}
+
 /** Fecha/hora local de la clase (fecha + hora en zona del dispositivo). */
 export function parseClassDateTime(fecha: string, hora: string): Date {
   const [y, m, d] = fecha.split("-").map(Number);
@@ -7,11 +43,28 @@ export function parseClassDateTime(fecha: string, hora: string): Date {
   return new Date(y, m - 1, d, hh, mm, 0, 0);
 }
 
-export function hasClassEnded(fecha: string, horaFin: string): boolean {
+export function hasClassEnded(
+  fecha: string,
+  horaFin: string,
+  timeZone?: string
+): boolean {
+  if (timeZone) {
+    return nowWallClockMinutes(timeZone) >= wallClockToMinutes(fecha, horaFin);
+  }
   return new Date() >= parseClassDateTime(fecha, horaFin);
 }
 
-export function canBookClass(fecha: string, horaInicio: string): boolean {
+export function canBookClass(
+  fecha: string,
+  horaInicio: string,
+  timeZone?: string
+): boolean {
+  if (timeZone) {
+    const classStart = wallClockToMinutes(fecha, horaInicio);
+    const now = nowWallClockMinutes(timeZone);
+    return now < classStart - APP_CONFIG.RESERVA_CIERRE_MINUTOS;
+  }
+
   const classStart = parseClassDateTime(fecha, horaInicio);
   const cutoff = new Date(
     classStart.getTime() - APP_CONFIG.RESERVA_CIERRE_MINUTOS * 60 * 1000
@@ -20,17 +73,26 @@ export function canBookClass(fecha: string, horaInicio: string): boolean {
 }
 
 export function filterClassesForSocio<T extends { fecha: string; hora_fin: string; estado: string }>(
-  clases: T[]
+  clases: T[],
+  timeZone?: string
 ): T[] {
   return clases.filter(
-    (c) => c.estado === "programada" && !hasClassEnded(c.fecha, c.hora_fin)
+    (c) =>
+      c.estado === "programada" && !hasClassEnded(c.fecha, c.hora_fin, timeZone)
   );
 }
 
 export function canCancelReservation(
   claseFecha: string,
-  horaInicio: string
+  horaInicio: string,
+  timeZone?: string
 ): boolean {
+  if (timeZone) {
+    const classStart = wallClockToMinutes(claseFecha, horaInicio);
+    const now = nowWallClockMinutes(timeZone);
+    return now < classStart - APP_CONFIG.CANCELACION_HORAS * 60;
+  }
+
   const classStart = parseClassDateTime(claseFecha, horaInicio);
   const cutoff = new Date(
     classStart.getTime() - APP_CONFIG.CANCELACION_HORAS * 60 * 60 * 1000

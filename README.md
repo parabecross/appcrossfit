@@ -1,6 +1,8 @@
-# Parabellum Cross
+# ATHRON
 
-Sistema web de gestión para gimnasio CrossFit — reservas, membresías, estadísticas y panel admin.
+Plataforma multi-box para gimnasios CrossFit — reservas, membresías, progreso de atletas y panel admin.
+
+El primer box en producción es **Parabellum Cross** (cuentas y datos existentes sin cambios).
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black) ![Supabase](https://img.shields.io/badge/Supabase-Postgres-green) ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-blue)
 
@@ -124,4 +126,4 @@ scripts/
 
 ---
 
-**Parabellum Cross** — Train hard. Book easy.
+**ATHRON** — Train hard. Book easy.

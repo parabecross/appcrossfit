@@ -8,7 +8,7 @@ export default async function AdminMiPerfilPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const profile = await requireRole(locale, ["admin", "coach"]);
+  const profile = await requireRole(locale, ["admin", "coach", "box_admin"]);
   const t = await getTranslations("admin");
 
   return (

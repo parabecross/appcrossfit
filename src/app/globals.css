@@ -60,4 +60,22 @@
   .mobile-page {
     @apply pb-24 md:pb-0;
   }
+  .input-date-compact {
+    @apply h-11 max-h-11 min-h-0 w-full rounded-xl border border-input bg-secondary/50 px-3 text-sm text-foreground;
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 2.75rem;
+  }
+  .input-date-compact::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 0;
+  }
+  .input-date-compact::-webkit-datetime-edit,
+  .input-date-compact::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  .input-date-compact::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
 }

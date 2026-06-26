@@ -13,6 +13,14 @@ export function formatDate(date: string | Date, locale = "es") {
   }).format(typeof date === "string" ? new Date(date) : date);
 }
 
+export function formatCompactDate(dateStr: string, locale = "es") {
+  const d = new Date(`${dateStr}T12:00:00`);
+  return new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
+    day: "numeric",
+    month: "short",
+  }).format(d);
+}
+
 export function formatShortDay(dateStr: string, locale = "es") {
   const d = new Date(`${dateStr}T12:00:00`);
   return new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {

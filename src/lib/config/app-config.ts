@@ -9,8 +9,11 @@ export const APP_CONFIG = {
   ALERTA_VENCIMIENTO_DIAS: 3,
   /** Semanas en gráfica de tendencia */
   TENDENCIA_SEMANAS: 8,
-  /** Zona horaria del gym (horarios de clase en reloj local) */
+  /** Zona horaria del gym (fallback; Fase 3: por box) */
   GYM_TIMEZONE: "America/Mexico_City",
-  /** Nombre de marca (UI only — no hardcodear en lógica de negocio) */
-  BRAND_NAME: "Parabellum Cross",
+  /** Marca de la plataforma */
+  BRAND_NAME: "ATHRON",
+  /** Primer box / fallback multi-tenant */
+  DEFAULT_BOX_NAME: "Parabellum Cross",
+  DEFAULT_BOX_SLUG: "parabellum-cross",
 } as const;

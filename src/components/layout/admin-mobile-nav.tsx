@@ -54,12 +54,19 @@ function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boole
   return isCoach ? "Coach" : "Admin";
 }
 
-export function AdminMobileNav({ isCoach = false }: { isCoach?: boolean }) {
+export function AdminMobileNav({
+  isCoach = false,
+  brandLabel,
+}: {
+  isCoach?: boolean;
+  brandLabel?: string;
+}) {
   const t = useTranslations("nav");
   const ta = useTranslations("auth");
   const pathname = usePathname();
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+  const brand = brandLabel ?? APP_CONFIG.BRAND_NAME;
 
   const tabs = isCoach ? coachTabs : adminTabs;
   const moreActive = !isCoach && adminMoreLinks.some((l) => pathname.startsWith(l.href));
@@ -80,7 +87,7 @@ export function AdminMobileNav({ isCoach = false }: { isCoach?: boolean }) {
             </div>
             <div className="min-w-0">
               <p className="font-black text-xs tracking-wider uppercase brand-text truncate">
-                {APP_CONFIG.BRAND_NAME}
+                {brand}
               </p>
               <p className="text-sm font-semibold truncate">
                 {getPageTitle(pathname, t, isCoach)}

@@ -9,9 +9,11 @@ import type { AlertaMembresia } from "@/types/database";
 export function ExpiringMembersList({
   items,
   locale,
+  boxName,
 }: {
   items: AlertaMembresia[];
   locale: string;
+  boxName?: string;
 }) {
   if (items.length === 0) {
     return <p className="text-muted-foreground text-sm">—</p>;
@@ -40,6 +42,7 @@ export function ExpiringMembersList({
               fechaFin={a.fecha_fin}
               locale={locale}
               type="por_vencer"
+              boxName={boxName}
             />
           )}
         </div>
@@ -51,9 +54,11 @@ export function ExpiringMembersList({
 export function ExpiredMembersList({
   items,
   locale,
+  boxName,
 }: {
   items: AlertaMembresia[];
   locale: string;
+  boxName?: string;
 }) {
   if (items.length === 0) {
     return <p className="text-muted-foreground text-sm">—</p>;
@@ -84,6 +89,7 @@ export function ExpiredMembersList({
               fechaFin={a.fecha_fin}
               locale={locale}
               type="vencida"
+              boxName={boxName}
             />
           )}
         </div>

@@ -39,6 +39,7 @@ interface WeeklyCalendarProps {
   focusDate?: string | null;
   coaches?: Profile[];
   canEditClass?: boolean;
+  gymTimezone?: string;
 }
 
 export function WeeklyCalendar({
@@ -55,6 +56,7 @@ export function WeeklyCalendar({
   focusDate,
   coaches = [],
   canEditClass = false,
+  gymTimezone,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -62,8 +64,8 @@ export function WeeklyCalendar({
   const supabase = createClient();
   const today = toDateString(new Date());
   const displayClases = useMemo(
-    () => (isAdmin ? clases : filterClassesForSocio(clases)),
-    [clases, isAdmin]
+    () => (isAdmin ? clases : filterClassesForSocio(clases, gymTimezone)),
+    [clases, isAdmin, gymTimezone]
   );
   const daysWithClasses = useMemo(() => getClassDates(displayClases), [displayClases]);
   const [selected, setSelected] = useState(today);
@@ -101,7 +103,7 @@ export function WeeklyCalendar({
 
   const handleBook = async (claseId: string) => {
     const clase = clases.find((c) => c.id === claseId);
-    if (!clase || !canBookClass(clase.fecha, clase.hora_inicio)) return;
+    if (!clase || !canBookClass(clase.fecha, clase.hora_inicio, gymTimezone)) return;
 
     setLoading(claseId);
     setCancelError(null);
@@ -158,7 +160,7 @@ export function WeeklyCalendar({
     claseFecha: string,
     horaInicio: string
   ) => {
-    if (!canCancelReservation(claseFecha, horaInicio)) {
+    if (!canCancelReservation(claseFecha, horaInicio, gymTimezone)) {
       setCancelError(
         t("cancelTooLate", { hours: APP_CONFIG.CANCELACION_HORAS })
       );
@@ -271,9 +273,13 @@ export function WeeklyCalendar({
             const reservation = myReservation(clase.id);
             const booked = !!reservation;
             const canCancel = booked
-              ? canCancelReservation(clase.fecha, clase.hora_inicio)
+              ? canCancelReservation(clase.fecha, clase.hora_inicio, gymTimezone)
               : false;
-            const bookingClosed = !canBookClass(clase.fecha, clase.hora_inicio);
+            const bookingClosed = !canBookClass(
+              clase.fecha,
+              clase.hora_inicio,
+              gymTimezone
+            );
 
             return (
               <Card

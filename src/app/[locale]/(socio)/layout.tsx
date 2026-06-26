@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/get-profile";
+import { getBoxConfig } from "@/lib/box/config";
 import {
   SocioDesktopSidebar,
   SocioMobileNav,
@@ -15,16 +16,17 @@ export default async function SocioLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireRole(locale, ["socio"]);
+  const profile = await requireRole(locale, ["socio"]);
+  const boxConfig = await getBoxConfig(profile.box_id);
 
   const supabase = await createClient();
   await supabase.auth.getUser();
 
   return (
     <div className="flex min-h-screen mobile-page w-full overflow-x-hidden">
-      <SocioDesktopSidebar />
+      <SocioDesktopSidebar brandLabel={boxConfig.name} />
       <div className="flex flex-1 flex-col min-w-0 w-full">
-        <SocioMobileNav />
+        <SocioMobileNav brandLabel={boxConfig.name} />
         <header className="hidden md:flex items-center justify-end border-b border-white/5 px-6 py-3 shrink-0">
           <LanguageSwitcher />
         </header>

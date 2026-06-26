@@ -49,6 +49,7 @@ export function AdminClasesClient({
   profileId,
   locale,
   isCoach = false,
+  gymTimezone,
 }: {
   clases: Clase[];
   reservas: ReservaRow[];
@@ -56,6 +57,7 @@ export function AdminClasesClient({
   profileId: string;
   locale: string;
   isCoach?: boolean;
+  gymTimezone?: string;
 }) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -692,6 +694,7 @@ export function AdminClasesClient({
         onClassDeleted={handleClassDeleted}
         onClassUpdated={handleClassUpdated}
         focusDate={focusDate}
+        gymTimezone={gymTimezone}
       />
 
       {/* Mobile: slide-up attendance when class selected */}

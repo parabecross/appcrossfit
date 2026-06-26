@@ -2,10 +2,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { routing } from "@/i18n/routing";
+import { canAccessAdminArea, isAdminLikeRole } from "@/lib/auth/roles";
+import type { UserRole } from "@/types/database";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const publicPaths = ["/login", "/registro"];
+const publicPaths = ["/login", "/registro", "/box-inactivo"];
 
 const coachForbiddenAdminPaths = [
   "/admin/dashboard",
@@ -14,6 +16,12 @@ const coachForbiddenAdminPaths = [
   "/admin/planes",
   "/admin/estadisticas",
 ];
+
+type SessionProfile = {
+  rol: UserRole;
+  box_id: string;
+  is_super_admin: boolean;
+};
 
 function getPathInfo(pathname: string) {
   const locale =
@@ -27,6 +35,53 @@ function getPathInfo(pathname: string) {
     pathname.replace(new RegExp(`^/${locale}`), "") || "/";
 
   return { locale, pathWithoutLocale };
+}
+
+function copyCookies(from: NextResponse, to: NextResponse) {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie);
+  });
+}
+
+async function getSessionProfile(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string
+): Promise<SessionProfile | null> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("rol, box_id, is_super_admin")
+    .eq("user_id", userId)
+    .single();
+
+  return profile;
+}
+
+async function enforceActiveBox(
+  supabase: ReturnType<typeof createServerClient>,
+  profile: SessionProfile,
+  pathWithoutLocale: string,
+  locale: string,
+  request: NextRequest,
+  response: NextResponse
+): Promise<NextResponse | null> {
+  if (profile.is_super_admin) return null;
+  if (pathWithoutLocale.startsWith("/box-inactivo")) return null;
+
+  const { data: box } = await supabase
+    .from("boxes")
+    .select("status")
+    .eq("id", profile.box_id)
+    .single();
+
+  if (box?.status !== "active") {
+    const redirect = NextResponse.redirect(
+      new URL(`/${locale}/box-inactivo`, request.url)
+    );
+    copyCookies(response, redirect);
+    return redirect;
+  }
+
+  return null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -66,34 +121,88 @@ export async function middleware(request: NextRequest) {
       const redirect = NextResponse.redirect(
         new URL(`/${locale}/login`, request.url)
       );
-      response.cookies.getAll().forEach((cookie) => {
-        redirect.cookies.set(cookie);
-      });
+      copyCookies(response, redirect);
       return redirect;
+    }
+
+    let profile: SessionProfile | null = null;
+
+    if (user) {
+      profile = await getSessionProfile(supabase, user.id);
+
+      if (profile && !isPublic && pathWithoutLocale !== "/") {
+        const isAthronAdmin = pathWithoutLocale.startsWith("/admin-athron");
+        const inactiveRedirect = isAthronAdmin
+          ? null
+          : await enforceActiveBox(
+              supabase,
+              profile,
+              pathWithoutLocale,
+              locale,
+              request,
+              response
+            );
+        if (inactiveRedirect) return inactiveRedirect;
+      }
+    }
+
+    if (pathWithoutLocale.startsWith("/admin-athron")) {
+      if (!user) {
+        const redirect = NextResponse.redirect(
+          new URL(`/${locale}/login`, request.url)
+        );
+        copyCookies(response, redirect);
+        return redirect;
+      }
+
+      if (!profile) {
+        profile = await getSessionProfile(supabase, user.id);
+      }
+
+      if (!profile?.is_super_admin) {
+        let dest = `/${locale}/mis-reservas`;
+        if (isAdminLikeRole(profile?.rol ?? "socio")) {
+          dest = `/${locale}/admin/dashboard`;
+        }
+        if (profile?.rol === "coach") dest = `/${locale}/admin/clases`;
+        const redirect = NextResponse.redirect(new URL(dest, request.url));
+        copyCookies(response, redirect);
+        return redirect;
+      }
+
+      return response;
     }
 
     if (
       user &&
+      profile &&
       (pathWithoutLocale === "/login" ||
         pathWithoutLocale === "/registro" ||
         pathWithoutLocale === "/")
     ) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("rol")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile) {
-        let dest = `/${locale}/mis-reservas`;
-        if (profile.rol === "admin") dest = `/${locale}/admin/dashboard`;
-        if (profile.rol === "coach") dest = `/${locale}/admin/clases`;
-        const redirect = NextResponse.redirect(new URL(dest, request.url));
-        response.cookies.getAll().forEach((cookie) => {
-          redirect.cookies.set(cookie);
-        });
-        return redirect;
+      let dest = `/${locale}/mis-reservas`;
+      if (profile.is_super_admin) {
+        dest = `/${locale}/admin-athron/dashboard`;
+      } else if (isAdminLikeRole(profile.rol)) {
+        dest = `/${locale}/admin/dashboard`;
+      } else if (profile.rol === "coach") {
+        dest = `/${locale}/admin/clases`;
       }
+
+      if (!profile.is_super_admin) {
+        const { data: box } = await supabase
+          .from("boxes")
+          .select("status")
+          .eq("id", profile.box_id)
+          .single();
+        if (box?.status !== "active") {
+          dest = `/${locale}/box-inactivo`;
+        }
+      }
+
+      const redirect = NextResponse.redirect(new URL(dest, request.url));
+      copyCookies(response, redirect);
+      return redirect;
     }
 
     if (pathWithoutLocale.startsWith("/admin")) {
@@ -101,25 +210,19 @@ export async function middleware(request: NextRequest) {
         const redirect = NextResponse.redirect(
           new URL(`/${locale}/login`, request.url)
         );
-        response.cookies.getAll().forEach((cookie) => {
-          redirect.cookies.set(cookie);
-        });
+        copyCookies(response, redirect);
         return redirect;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("rol")
-        .eq("user_id", user.id)
-        .single();
+      if (!profile) {
+        profile = await getSessionProfile(supabase, user.id);
+      }
 
-      if (!profile || !["admin", "coach"].includes(profile.rol)) {
+      if (!profile || !canAccessAdminArea(profile.rol)) {
         const redirect = NextResponse.redirect(
           new URL(`/${locale}/mis-reservas`, request.url)
         );
-        response.cookies.getAll().forEach((cookie) => {
-          redirect.cookies.set(cookie);
-        });
+        copyCookies(response, redirect);
         return redirect;
       }
 
@@ -130,9 +233,7 @@ export async function middleware(request: NextRequest) {
         const redirect = NextResponse.redirect(
           new URL(`/${locale}/admin/clases`, request.url)
         );
-        response.cookies.getAll().forEach((cookie) => {
-          redirect.cookies.set(cookie);
-        });
+        copyCookies(response, redirect);
         return redirect;
       }
     }

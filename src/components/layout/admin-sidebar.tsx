@@ -33,11 +33,21 @@ const links = [
   { href: "/admin/estadisticas", icon: BarChart3, key: "stats" },
 ] as const;
 
-export function AdminSidebar({ isCoach = false }: { isCoach?: boolean }) {
+export function AdminSidebar({
+  isCoach = false,
+  brandLabel,
+  showAthronLink = false,
+}: {
+  isCoach?: boolean;
+  brandLabel?: string;
+  showAthronLink?: boolean;
+}) {
   const t = useTranslations("nav");
   const ta = useTranslations("auth");
+  const tat = useTranslations("athronAdmin");
   const pathname = usePathname();
   const router = useRouter();
+  const brand = brandLabel ?? APP_CONFIG.BRAND_NAME;
 
   const visibleLinks = isCoach ? coachLinks : links;
 
@@ -56,7 +66,7 @@ export function AdminSidebar({ isCoach = false }: { isCoach?: boolean }) {
           </div>
           <div>
             <p className="font-black text-sm tracking-wider uppercase brand-text">
-              {APP_CONFIG.BRAND_NAME}
+              {brand}
             </p>
             <p className="text-xs text-muted-foreground">
               {isCoach ? "Coach" : "Admin"}
@@ -80,6 +90,15 @@ export function AdminSidebar({ isCoach = false }: { isCoach?: boolean }) {
             {t(key)}
           </Link>
         ))}
+        {showAthronLink && (
+          <Link
+            href="/admin-athron/dashboard"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary/90 hover:bg-primary/10 border border-primary/20 mt-2"
+          >
+            <Dumbbell className="h-4 w-4" />
+            {tat("platformPanel")}
+          </Link>
+        )}
       </nav>
       <div className="p-4 border-t border-white/5 space-y-2">
         <LanguageSwitcher />

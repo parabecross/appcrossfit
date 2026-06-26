@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminLikeRole } from "@/lib/auth/roles";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id)
     .single();
 
-  if (adminProfile?.rol !== "admin") {
+  if (!adminProfile || !isAdminLikeRole(adminProfile.rol)) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 

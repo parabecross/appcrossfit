@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth/get-profile";
+import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import { getWeekDates, toDateString } from "@/lib/clases/helpers";
@@ -19,6 +20,7 @@ export default async function MisReservasPage({
   const t = await getTranslations("socio");
   const tm = await getTranslations("membership.status");
   const profile = await requireRole(locale, ["socio"]);
+  const boxConfig = await getBoxConfig(profile.box_id);
 
   const week = getWeekDates();
   const from = toDateString(week[0]);
@@ -72,6 +74,7 @@ export default async function MisReservasPage({
         profileId={profile.id}
         canBook={reserveCheck.ok}
         locale={locale}
+        gymTimezone={boxConfig.timezone}
       />
     </div>
   );

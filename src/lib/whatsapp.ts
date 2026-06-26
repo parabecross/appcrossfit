@@ -40,18 +40,19 @@ export function buildRenewalReminderMessage(
   nombre: string,
   fechaFin: string,
   locale: string,
-  type: "por_vencer" | "vencida"
+  type: "por_vencer" | "vencida",
+  boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
 ): string {
   const firstName = nombre.split(" ")[0];
   const fecha = formatDate(fechaFin, locale);
 
   if (type === "vencida") {
     return locale === "es"
-      ? `Hola ${firstName}! 👋 Tu mensualidad en Parabellum Cross venció el ${fecha}. Renueva para seguir reservando clases. ¡Te extrañamos en el box! 💪`
-      : `Hi ${firstName}! 👋 Your Parabellum Cross membership expired on ${fecha}. Renew to keep booking classes. We miss you at the box! 💪`;
+      ? `Hola ${firstName}! 👋 Tu mensualidad en ${boxName} venció el ${fecha}. Renueva para seguir reservando clases. ¡Te extrañamos en el box! 💪`
+      : `Hi ${firstName}! 👋 Your ${boxName} membership expired on ${fecha}. Renew to keep booking classes. We miss you at the box! 💪`;
   }
 
   return locale === "es"
-    ? `Hola ${firstName}! 👋 Te recordamos que tu mensualidad en Parabellum Cross vence el ${fecha}. No te quedes sin entrenar — renueva a tiempo. ¡Nos vemos en el box! 💪`
-    : `Hi ${firstName}! 👋 Your Parabellum Cross membership expires on ${fecha}. Don't miss your training — renew on time. See you at the box! 💪`;
+    ? `Hola ${firstName}! 👋 Te recordamos que tu mensualidad en ${boxName} vence el ${fecha}. No te quedes sin entrenar — renueva a tiempo. ¡Nos vemos en el box! 💪`
+    : `Hi ${firstName}! 👋 Your ${boxName} membership expires on ${fecha}. Don't miss your training — renew on time. See you at the box! 💪`;
 }
