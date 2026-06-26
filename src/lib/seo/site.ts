@@ -12,8 +12,8 @@ export function getSiteUrl(): string {
 }
 
 const descriptions: Record<"es" | "en", string> = {
-  es: "Plataforma para boxes de CrossFit. Reserva clases, gestiona membresías, coaches y el progreso de tus atletas. Entrena fuerte. Reserva fácil.",
-  en: "CrossFit box management platform. Book classes, manage memberships, coaches and athlete progress. Train hard. Book easy.",
+  es: "ATHRON — Train. Track. Progress. Plataforma para boxes de CrossFit: reservas, membresías, coaches y progreso de atletas.",
+  en: "ATHRON — Train. Track. Progress. CrossFit box platform: bookings, memberships, coaches and athlete progress.",
 };
 
 const titles: Record<"es" | "en", string> = {
@@ -25,7 +25,7 @@ export function buildSiteMetadata(locale: "es" | "en" = "es"): Metadata {
   const siteUrl = getSiteUrl();
   const title = titles[locale];
   const description = descriptions[locale];
-  const ogImage = `${siteUrl}/opengraph-image`;
+  const ogImage = `${siteUrl}/og-athron.jpg`;
 
   return {
     metadataBase: new URL(siteUrl),
@@ -55,10 +55,10 @@ export function buildSiteMetadata(locale: "es" | "en" = "es"): Metadata {
       images: [
         {
           url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: `${APP_CONFIG.BRAND_NAME} — CrossFit box platform`,
-          type: "image/png",
+          width: 1024,
+          height: 1024,
+          alt: "ATHRON — Train. Track. Progress.",
+          type: "image/jpeg",
         },
       ],
     },

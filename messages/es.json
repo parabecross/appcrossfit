@@ -38,7 +38,7 @@
     "configMissing": "La app no está conectada a Supabase. El administrador debe configurar las variables de entorno en Vercel y volver a desplegar.",
     "noAccount": "¿No tienes cuenta?",
     "hasAccount": "¿Ya tienes cuenta?",
-    "loginSubtitle": "Entrena fuerte. Reserva fácil.",
+    "loginSubtitle": "Train. Track. Progress.",
     "registerSubtitle": "Crea tu cuenta en ATHRON",
     "accountType": "Tipo de cuenta",
     "accountTypeAtleta": "Atleta",

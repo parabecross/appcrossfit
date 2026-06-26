@@ -9,9 +9,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { APP_CONFIG } from "@/lib/config/app-config";
+import { AthronLogo } from "@/components/brand/athron-logo";
 
 export function BoxInactivoClient({ boxName }: { boxName?: string }) {
   const t = useTranslations("boxInactive");
@@ -27,9 +26,9 @@ export function BoxInactivoClient({ boxName }: { boxName?: string }) {
   return (
     <Card className="w-full max-w-md glow-primary">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-black uppercase tracking-wide brand-text">
-          {APP_CONFIG.BRAND_NAME}
-        </CardTitle>
+        <div className="mx-auto mb-3">
+          <AthronLogo className="max-w-[180px]" />
+        </div>
         <CardDescription>{t("subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">

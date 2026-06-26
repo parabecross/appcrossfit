@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { AthronLogo } from "@/components/brand/athron-logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { cn } from "@/lib/utils";
 
@@ -170,12 +171,12 @@ export function RegisterForm() {
   return (
     <Card className="w-full max-w-md glow-primary">
       <CardHeader className="text-center">
+        <div className="mx-auto mb-3">
+          <AthronLogo className="max-w-[200px]" />
+        </div>
         <div className="mx-auto mb-2">
           <LanguageSwitcher />
         </div>
-        <CardTitle className="text-2xl font-black uppercase tracking-wide brand-text">
-          {APP_CONFIG.BRAND_NAME}
-        </CardTitle>
         <CardDescription>{t("registerSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
