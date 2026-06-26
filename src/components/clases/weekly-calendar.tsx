@@ -316,6 +316,7 @@ export function WeeklyCalendar({
                         <EditClaseDialog
                           clase={clase}
                           coaches={coaches}
+                          existingClases={clases}
                           locale={locale}
                           onUpdated={onClassUpdated}
                         />

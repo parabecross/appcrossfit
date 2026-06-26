@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
-import { getClassDates, dateStringToLocalDate, toDateString } from "@/lib/clases/helpers";
+import { getClassDates, dateStringToLocalDate, toDateString, findOverlappingClasses } from "@/lib/clases/helpers";
 import {
   cn,
   formatShortDay,
@@ -37,6 +37,7 @@ import {
 import type { Clase, Profile, Reserva } from "@/types/database";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
+import { ScheduleOverlapDialog } from "@/components/admin/schedule-overlap-dialog";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { getSampleWorkout } from "@/lib/clases/sample-workouts";
 
@@ -67,6 +68,10 @@ export function AdminClasesClient({
   const [localReservas, setLocalReservas] = useState(reservas);
   const [localClases, setLocalClases] = useState(clases);
   const [open, setOpen] = useState(false);
+  const [overlapOpen, setOverlapOpen] = useState(false);
+  const [overlapConflicts, setOverlapConflicts] = useState<
+    ReturnType<typeof findOverlappingClasses>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [focusDate, setFocusDate] = useState<string | null>(null);
@@ -141,21 +146,15 @@ export function AdminClasesClient({
     ["asistio", "no_asistio"].includes(r.estado)
   ).length;
 
-  const createClase = async () => {
+  const validateCreateForm = (): string | null => {
+    if (!form.nombre.trim()) return t("classNameRequired");
+    if (form.hora_fin <= form.hora_inicio) return t("invalidTimeRange");
+    return null;
+  };
+
+  const executeCreateClase = async () => {
     setLoading(true);
     setCreateError(null);
-
-    if (!form.nombre.trim()) {
-      setCreateError(t("classNameRequired"));
-      setLoading(false);
-      return;
-    }
-
-    if (form.hora_fin <= form.hora_inicio) {
-      setCreateError(t("invalidTimeRange"));
-      setLoading(false);
-      return;
-    }
 
     const supabase = createClient();
     const { data, error } = await supabase
@@ -195,6 +194,7 @@ export function AdminClasesClient({
       )
     );
     setFocusDate(form.fecha);
+    setOverlapOpen(false);
     setOpen(false);
     setForm({
       nombre: "",
@@ -206,6 +206,29 @@ export function AdminClasesClient({
       entrenamiento: "",
     });
     router.refresh();
+  };
+
+  const handleCreateSubmit = () => {
+    const validationError = validateCreateForm();
+    if (validationError) {
+      setCreateError(validationError);
+      return;
+    }
+
+    const conflicts = findOverlappingClasses(sortedClases, {
+      fecha: form.fecha,
+      hora_inicio: form.hora_inicio,
+      hora_fin: form.hora_fin,
+      estado: "programada",
+    });
+
+    if (conflicts.length > 0) {
+      setOverlapConflicts(conflicts);
+      setOverlapOpen(true);
+      return;
+    }
+
+    void executeCreateClase();
   };
 
   const markAttendance = async (
@@ -409,6 +432,7 @@ export function AdminClasesClient({
             <EditClaseDialog
               clase={c}
               coaches={coaches}
+              existingClases={localClases}
               locale={locale}
               isCoach
               variant="button"
@@ -458,6 +482,7 @@ export function AdminClasesClient({
                 <EditClaseDialog
                   clase={selectedClaseData}
                   coaches={coaches}
+                  existingClases={localClases}
                   locale={locale}
                   isCoach
                   variant="button"
@@ -537,6 +562,7 @@ export function AdminClasesClient({
                       <EditClaseDialog
                         clase={selectedClaseData}
                         coaches={coaches}
+                        existingClases={localClases}
                         locale={locale}
                         isCoach
                         variant="icon"
@@ -666,7 +692,7 @@ export function AdminClasesClient({
                 </p>
               </div>
               <Button
-                onClick={createClase}
+                onClick={handleCreateSubmit}
                 disabled={loading}
                 className="w-full"
               >
@@ -678,6 +704,14 @@ export function AdminClasesClient({
             </div>
           </DialogContent>
         </Dialog>
+        <ScheduleOverlapDialog
+          open={overlapOpen}
+          onOpenChange={setOverlapOpen}
+          conflicts={overlapConflicts}
+          locale={locale}
+          onConfirm={() => void executeCreateClase()}
+          loading={loading}
+        />
       </div>
 
       <WeeklyCalendar
@@ -721,6 +755,7 @@ export function AdminClasesClient({
                 <EditClaseDialog
                   clase={selectedClaseData}
                   coaches={coaches}
+                  existingClases={localClases}
                   locale={locale}
                   onUpdated={handleClassUpdated}
                 />
@@ -780,6 +815,7 @@ export function AdminClasesClient({
                   <EditClaseDialog
                     clase={selectedClaseData}
                     coaches={coaches}
+                    existingClases={localClases}
                     locale={locale}
                     variant="button"
                     onUpdated={handleClassUpdated}

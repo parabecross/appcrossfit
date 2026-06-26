@@ -54,6 +54,52 @@ export function hasClassEnded(
   return new Date() >= parseClassDateTime(fecha, horaFin);
 }
 
+export function normalizeClassTime(hora: string): string {
+  return hora.slice(0, 5);
+}
+
+/** Dos franjas horarias se solapan (mismo día). */
+export function classTimesOverlap(
+  startA: string,
+  endA: string,
+  startB: string,
+  endB: string
+): boolean {
+  const a0 = normalizeClassTime(startA);
+  const a1 = normalizeClassTime(endA);
+  const b0 = normalizeClassTime(startB);
+  const b1 = normalizeClassTime(endB);
+  return a0 < b1 && b0 < a1;
+}
+
+export interface ClaseScheduleSlot {
+  id?: string;
+  nombre?: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  estado?: string;
+}
+
+export function findOverlappingClasses(
+  clases: ClaseScheduleSlot[],
+  candidate: ClaseScheduleSlot,
+  excludeId?: string
+): ClaseScheduleSlot[] {
+  return clases.filter(
+    (c) =>
+      c.estado !== "cancelada" &&
+      c.fecha === candidate.fecha &&
+      c.id !== excludeId &&
+      classTimesOverlap(
+        candidate.hora_inicio,
+        candidate.hora_fin,
+        c.hora_inicio,
+        c.hora_fin
+      )
+  );
+}
+
 export function canBookClass(
   fecha: string,
   horaInicio: string,

@@ -23,11 +23,14 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { formatShortDay } from "@/lib/utils";
+import { findOverlappingClasses } from "@/lib/clases/helpers";
+import { ScheduleOverlapDialog } from "@/components/admin/schedule-overlap-dialog";
 import type { Clase, Profile } from "@/types/database";
 
 interface EditClaseDialogProps {
   clase: Clase;
   coaches: Profile[];
+  existingClases?: Clase[];
   locale: string;
   isCoach?: boolean;
   variant?: "icon" | "button";
@@ -37,6 +40,7 @@ interface EditClaseDialogProps {
 export function EditClaseDialog({
   clase,
   coaches,
+  existingClases = [],
   locale,
   isCoach = false,
   variant = "icon",
@@ -46,6 +50,10 @@ export function EditClaseDialog({
   const tc = useTranslations("common");
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [overlapOpen, setOverlapOpen] = useState(false);
+  const [overlapConflicts, setOverlapConflicts] = useState<
+    ReturnType<typeof findOverlappingClasses>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -72,21 +80,9 @@ export function EditClaseDialog({
     setOpen(true);
   };
 
-  const save = async () => {
+  const executeSave = async () => {
     setLoading(true);
     setError(null);
-
-    if (!isCoach && !form.nombre.trim()) {
-      setError(t("classNameRequired"));
-      setLoading(false);
-      return;
-    }
-
-    if (!isCoach && form.hora_fin <= form.hora_inicio) {
-      setError(t("invalidTimeRange"));
-      setLoading(false);
-      return;
-    }
 
     const supabase = createClient();
     const payload = isCoach
@@ -123,8 +119,41 @@ export function EditClaseDialog({
       coach_foto_url: coach?.foto_url ?? clase.coach_foto_url ?? null,
       coach_bio: coach?.bio ?? clase.coach_bio ?? null,
     });
+    setOverlapOpen(false);
     setOpen(false);
     router.refresh();
+  };
+
+  const handleSave = () => {
+    setError(null);
+
+    if (!isCoach && !form.nombre.trim()) {
+      setError(t("classNameRequired"));
+      return;
+    }
+
+    if (!isCoach && form.hora_fin <= form.hora_inicio) {
+      setError(t("invalidTimeRange"));
+      return;
+    }
+
+    if (!isCoach) {
+      const conflicts = findOverlappingClasses(existingClases, {
+        id: clase.id,
+        fecha: form.fecha,
+        hora_inicio: form.hora_inicio,
+        hora_fin: form.hora_fin,
+        estado: "programada",
+      }, clase.id);
+
+      if (conflicts.length > 0) {
+        setOverlapConflicts(conflicts);
+        setOverlapOpen(true);
+        return;
+      }
+    }
+
+    void executeSave();
   };
 
   return (
@@ -259,12 +288,21 @@ export function EditClaseDialog({
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button onClick={save} disabled={loading} className="w-full">
+          <Button onClick={handleSave} disabled={loading} className="w-full">
             {loading ? tc("loading") : tc("save")}
           </Button>
         </div>
       </DialogContent>
       </Dialog>
+      <ScheduleOverlapDialog
+        open={overlapOpen}
+        onOpenChange={setOverlapOpen}
+        conflicts={overlapConflicts}
+        locale={locale}
+        onConfirm={() => void executeSave()}
+        loading={loading}
+        confirmLabel={t("scheduleOverlapConfirmSave")}
+      />
     </>
   );
 }
