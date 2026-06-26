@@ -7,6 +7,7 @@ import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -26,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
-import { getWeekDates, toDateString } from "@/lib/clases/helpers";
+import { getClassDates, dateStringToLocalDate, toDateString } from "@/lib/clases/helpers";
 import {
   cn,
   formatShortDay,
@@ -34,6 +35,10 @@ import {
   formatWeekdayShort,
 } from "@/lib/utils";
 import type { Clase, Profile, Reserva } from "@/types/database";
+import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
+import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
+import { WorkoutBlock } from "@/components/clases/workout-block";
+import { getSampleWorkout } from "@/lib/clases/sample-workouts";
 
 type ReservaRow = Reserva & { profile: Profile | null };
 
@@ -55,12 +60,14 @@ export function AdminClasesClient({
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
-  const week = getWeekDates();
   const today = toDateString(new Date());
 
   const [localReservas, setLocalReservas] = useState(reservas);
+  const [localClases, setLocalClases] = useState(clases);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [focusDate, setFocusDate] = useState<string | null>(null);
   const [pendingReservaId, setPendingReservaId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(today);
   const [selectedClase, setSelectedClase] = useState<string | null>(null);
@@ -70,6 +77,10 @@ export function AdminClasesClient({
     setLocalReservas(reservas);
   }, [reservas]);
 
+  useEffect(() => {
+    setLocalClases(clases);
+  }, [clases]);
+
   const [form, setForm] = useState<{
     nombre: string;
     fecha: string;
@@ -77,6 +88,7 @@ export function AdminClasesClient({
     hora_fin: string;
     cupo_maximo: number;
     coach_id: string;
+    entrenamiento: string;
   }>({
     nombre: "",
     fecha: today,
@@ -84,15 +96,28 @@ export function AdminClasesClient({
     hora_fin: "08:00",
     cupo_maximo: APP_CONFIG.CUPO_DEFAULT,
     coach_id: coaches[0]?.id ?? "",
+    entrenamiento: "",
   });
 
   const sortedClases = useMemo(
     () =>
-      [...clases].sort((a, b) =>
+      [...localClases].sort((a, b) =>
         `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)
       ),
-    [clases]
+    [localClases]
   );
+
+  const daysWithClasses = useMemo(
+    () => getClassDates(sortedClases),
+    [sortedClases]
+  );
+
+  useEffect(() => {
+    if (daysWithClasses.length === 0) return;
+    if (!daysWithClasses.includes(selectedDay)) {
+      setSelectedDay(daysWithClasses[0]);
+    }
+  }, [daysWithClasses, selectedDay]);
 
   const dayClases = sortedClases.filter((c) => c.fecha === selectedDay);
 
@@ -103,7 +128,7 @@ export function AdminClasesClient({
         ["confirmada", "asistio", "no_asistio"].includes(r.estado)
     ).length;
 
-  const selectedClaseData = clases.find((c) => c.id === selectedClase);
+  const selectedClaseData = localClases.find((c) => c.id === selectedClase);
   const claseReservas = localReservas.filter(
     (r) =>
       r.clase_id === selectedClase &&
@@ -116,15 +141,69 @@ export function AdminClasesClient({
 
   const createClase = async () => {
     setLoading(true);
+    setCreateError(null);
+
+    if (!form.nombre.trim()) {
+      setCreateError(t("classNameRequired"));
+      setLoading(false);
+      return;
+    }
+
+    if (form.hora_fin <= form.hora_inicio) {
+      setCreateError(t("invalidTimeRange"));
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
-    await supabase.from("clases").insert({
-      ...form,
-      coach_id: form.coach_id || null,
-      estado: "programada",
-    });
-    setOpen(false);
-    router.refresh();
+    const { data, error } = await supabase
+      .from("clases")
+      .insert({
+        nombre: form.nombre.trim(),
+        fecha: form.fecha,
+        hora_inicio: form.hora_inicio,
+        hora_fin: form.hora_fin,
+        cupo_maximo: form.cupo_maximo,
+        coach_id: form.coach_id || null,
+        entrenamiento: form.entrenamiento.trim() || getSampleWorkout(form.nombre.trim()),
+        estado: "programada",
+      })
+      .select("*")
+      .single();
+
     setLoading(false);
+
+    if (error || !data) {
+      setCreateError(error?.message ?? tc("error"));
+      return;
+    }
+
+    const coach = coaches.find((c) => c.id === form.coach_id);
+    const newClase: Clase = {
+      ...data,
+      coach_nombre: coach?.nombre_completo ?? null,
+      coach_foto_url: coach?.foto_url ?? null,
+      coach_bio: coach?.bio ?? null,
+      cupo_ocupado: 0,
+    };
+
+    setLocalClases((prev) =>
+      [...prev, newClase].sort((a, b) =>
+        `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)
+      )
+    );
+    setFocusDate(form.fecha);
+    setOpen(false);
+    setForm({
+      nombre: "",
+      fecha: today,
+      hora_inicio: "07:00",
+      hora_fin: "08:00",
+      cupo_maximo: APP_CONFIG.CUPO_DEFAULT,
+      coach_id: coaches[0]?.id ?? "",
+      entrenamiento: "",
+    });
+    router.refresh();
   };
 
   const markAttendance = async (
@@ -162,40 +241,57 @@ export function AdminClasesClient({
     setMobilePanel("attendance");
   };
 
-  const DayPicker = () => (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-      {week.map((d) => {
-        const ds = toDateString(d);
-        const isSelected = ds === selectedDay;
-        const count = sortedClases.filter((c) => c.fecha === ds).length;
-        return (
-          <button
-            key={ds}
-            type="button"
-            onClick={() => setSelectedDay(ds)}
-            className={cn(
-              "flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
-              isSelected
-                ? "brand-gradient text-white glow-primary"
-                : "bg-secondary/60 text-muted-foreground"
-            )}
-          >
-            <span>{formatWeekdayShort(d, locale)}</span>
-            {count > 0 && (
-              <span
-                className={cn(
-                  "mt-0.5 text-[10px] font-normal",
-                  isSelected ? "text-white/80" : "text-muted-foreground"
-                )}
-              >
-                {count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
+  const handleClassDeleted = (claseId: string) => {
+    setLocalClases((prev) => prev.filter((c) => c.id !== claseId));
+    if (selectedClase === claseId) setSelectedClase(null);
+  };
+
+  const handleClassUpdated = (updated: Clase) => {
+    setLocalClases((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    if (updated.fecha !== selectedDay && !isCoach) {
+      setFocusDate(updated.fecha);
+    }
+  };
+
+  const DayPicker = () => {
+    if (daysWithClasses.length === 0) return null;
+
+    return (
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {daysWithClasses.map((ds) => {
+          const isSelected = ds === selectedDay;
+          const count = sortedClases.filter((c) => c.fecha === ds).length;
+          return (
+            <button
+              key={ds}
+              type="button"
+              onClick={() => setSelectedDay(ds)}
+              className={cn(
+                "flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
+                isSelected
+                  ? "brand-gradient text-white glow-primary"
+                  : "bg-secondary/60 text-muted-foreground"
+              )}
+            >
+              <span>{formatWeekdayShort(dateStringToLocalDate(ds), locale)}</span>
+              {count > 1 && (
+                <span
+                  className={cn(
+                    "mt-0.5 text-[10px] font-normal",
+                    isSelected ? "text-white/80" : "text-muted-foreground"
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   const AttendanceList = ({ compact = false }: { compact?: boolean }) => (
     <div className="space-y-2">
@@ -277,35 +373,48 @@ export function AdminClasesClient({
     ).length;
 
     return (
-      <button
-        type="button"
-        onClick={onSelect}
+      <div
         className={cn(
-          "w-full rounded-2xl border px-4 py-4 text-left transition-all active:scale-[0.98]",
+          "w-full rounded-2xl border px-4 py-4 text-left transition-all",
           selected
             ? "border-primary/60 bg-primary/10 ring-1 ring-primary/40"
             : "border-white/10 bg-card/50 hover:border-white/20"
         )}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold text-base">{c.nombre}</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {formatTime(c.hora_inicio)} – {formatTime(c.hora_fin)}
-            </p>
+        <button type="button" onClick={onSelect} className="w-full text-left">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-bold text-base">{c.nombre}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {formatTime(c.hora_inicio)} – {formatTime(c.hora_fin)}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <Badge variant="secondary" className="font-semibold">
+                {count} {t("enrolled").toLowerCase()}
+              </Badge>
+              {attended > 0 && (
+                <span className="text-[10px] text-green-400">
+                  {attended} ✓
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge variant="secondary" className="font-semibold">
-              {count} {t("enrolled").toLowerCase()}
-            </Badge>
-            {attended > 0 && (
-              <span className="text-[10px] text-green-400">
-                {attended} ✓
-              </span>
-            )}
+        </button>
+        <WorkoutBlock entrenamiento={c.entrenamiento} compact className="mt-3" />
+        {isCoach && (
+          <div className="mt-2 flex justify-end">
+            <EditClaseDialog
+              clase={c}
+              coaches={coaches}
+              locale={locale}
+              isCoach
+              variant="button"
+              onUpdated={handleClassUpdated}
+            />
           </div>
-        </div>
-      </button>
+        )}
+      </div>
     );
   };
 
@@ -340,6 +449,18 @@ export function AdminClasesClient({
                     {markedCount}/{claseReservas.length} {t("attendance").toLowerCase()}
                   </p>
                 )}
+              </div>
+
+              <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
+              <div className="flex justify-end">
+                <EditClaseDialog
+                  clase={selectedClaseData}
+                  coaches={coaches}
+                  locale={locale}
+                  isCoach
+                  variant="button"
+                  onUpdated={handleClassUpdated}
+                />
               </div>
 
               <AttendanceList />
@@ -406,10 +527,24 @@ export function AdminClasesClient({
               <CardContent>
                 {selectedClaseData ? (
                   <>
-                    <p className="text-sm font-medium mb-4">
-                      {selectedClaseData.nombre} —{" "}
-                      {formatShortDay(selectedClaseData.fecha, locale)}
-                    </p>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <p className="text-sm font-medium">
+                        {selectedClaseData.nombre} —{" "}
+                        {formatShortDay(selectedClaseData.fecha, locale)}
+                      </p>
+                      <EditClaseDialog
+                        clase={selectedClaseData}
+                        coaches={coaches}
+                        locale={locale}
+                        isCoach
+                        variant="icon"
+                        onUpdated={handleClassUpdated}
+                      />
+                    </div>
+                    <WorkoutBlock
+                      entrenamiento={selectedClaseData.entrenamiento}
+                      className="mb-4"
+                    />
                     <AttendanceList compact />
                   </>
                 ) : (
@@ -429,7 +564,10 @@ export function AdminClasesClient({
     <div className="space-y-5 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h1 className="text-2xl md:text-3xl font-black brand-text">{t("title")}</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setCreateError(null);
+        }}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">{t("create")}</Button>
           </DialogTrigger>
@@ -510,6 +648,21 @@ export function AdminClasesClient({
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>{t("workout")}</Label>
+                <Textarea
+                  value={form.entrenamiento}
+                  placeholder={t("workoutPlaceholder")}
+                  onChange={(e) =>
+                    setForm({ ...form, entrenamiento: e.target.value })
+                  }
+                  rows={5}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("workoutCreateHint")}
+                </p>
+              </div>
               <Button
                 onClick={createClase}
                 disabled={loading}
@@ -517,20 +670,28 @@ export function AdminClasesClient({
               >
                 {loading ? tc("loading") : t("create")}
               </Button>
+              {createError && (
+                <p className="text-sm text-red-400">{createError}</p>
+              )}
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
       <WeeklyCalendar
-        clases={clases}
+        clases={localClases}
         reservas={localReservas}
         profileId={profileId}
         canBook={false}
         locale={locale}
         isAdmin
+        canEditClass
+        coaches={coaches}
         onClassSelect={setSelectedClase}
         selectedClaseId={selectedClase}
+        onClassDeleted={handleClassDeleted}
+        onClassUpdated={handleClassUpdated}
+        focusDate={focusDate}
       />
 
       {/* Mobile: slide-up attendance when class selected */}
@@ -553,14 +714,32 @@ export function AdminClasesClient({
                   {formatShortDay(selectedClaseData.fecha, locale)}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedClase(null)}
-              >
-                {tc("close")}
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <EditClaseDialog
+                  clase={selectedClaseData}
+                  coaches={coaches}
+                  locale={locale}
+                  onUpdated={handleClassUpdated}
+                />
+                <DeleteClaseDialog
+                  claseId={selectedClaseData.id}
+                  nombre={selectedClaseData.nombre}
+                  fecha={selectedClaseData.fecha}
+                  locale={locale}
+                  enrolledCount={claseReservas.length}
+                  variant="icon"
+                  onDeleted={() => handleClassDeleted(selectedClaseData.id)}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedClase(null)}
+                >
+                  {tc("close")}
+                </Button>
+              </div>
             </div>
+            <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
             <AttendanceList />
           </div>
         )}
@@ -580,14 +759,43 @@ export function AdminClasesClient({
               <SelectValue placeholder={t("selectClassForAttendance")} />
             </SelectTrigger>
             <SelectContent>
-              {clases.map((c) => (
+              {localClases.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.nombre} — {formatShortDay(c.fecha, locale)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {selectedClase && <AttendanceList compact />}
+          {selectedClase && selectedClaseData && (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium">
+                  {selectedClaseData.nombre} —{" "}
+                  {formatShortDay(selectedClaseData.fecha, locale)}
+                </p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <EditClaseDialog
+                    clase={selectedClaseData}
+                    coaches={coaches}
+                    locale={locale}
+                    variant="button"
+                    onUpdated={handleClassUpdated}
+                  />
+                  <DeleteClaseDialog
+                    claseId={selectedClaseData.id}
+                    nombre={selectedClaseData.nombre}
+                    fecha={selectedClaseData.fecha}
+                    locale={locale}
+                    enrolledCount={claseReservas.length}
+                    variant="button"
+                    onDeleted={() => handleClassDeleted(selectedClaseData.id)}
+                  />
+                </div>
+              </div>
+              <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
+              <AttendanceList compact />
+            </>
+          )}
         </CardContent>
       </Card>
 

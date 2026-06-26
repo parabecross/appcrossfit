@@ -5,6 +5,8 @@ export type MembresiaEstado = "vigente" | "vencida" | "cancelada";
 export type MetodoAsignacion = "automatico" | "manual";
 export type ClaseEstado = "programada" | "cancelada";
 export type ReservaEstado = "confirmada" | "cancelada" | "asistio" | "no_asistio";
+export type PrUnidad = "kg" | "reps" | "segundos" | "metros";
+export type SkillEstado = "en_proceso" | "logrado" | "dominado";
 
 export interface Profile {
   id: string;
@@ -57,6 +59,7 @@ export interface Clase {
   hora_fin: string;
   cupo_maximo: number;
   coach_id: string | null;
+  entrenamiento: string | null;
   estado: ClaseEstado;
   created_at: string;
   updated_at: string;
@@ -87,6 +90,37 @@ export interface AlertaMembresia {
   tipo_alerta: "vencida" | "por_vencer" | "ok";
 }
 
+export interface AtletaPrMarca {
+  id: string;
+  usuario_id: string;
+  ejercicio: string;
+  valor: number;
+  unidad: PrUnidad;
+  fecha: string;
+  notas: string | null;
+  created_at: string;
+}
+
+export interface AtletaSkill {
+  id: string;
+  usuario_id: string;
+  skill: string;
+  estado: SkillEstado;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AtletaSkillHistorial {
+  id: string;
+  skill_id: string;
+  usuario_id: string;
+  estado_anterior: SkillEstado | null;
+  estado_nuevo: SkillEstado;
+  notas: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -95,6 +129,21 @@ export interface Database {
       membresias: { Row: Membresia; Insert: Partial<Membresia>; Update: Partial<Membresia> };
       clases: { Row: Clase; Insert: Partial<Clase>; Update: Partial<Clase> };
       reservas: { Row: Reserva; Insert: Partial<Reserva>; Update: Partial<Reserva> };
+      atleta_pr_marcas: {
+        Row: AtletaPrMarca;
+        Insert: Partial<AtletaPrMarca>;
+        Update: Partial<AtletaPrMarca>;
+      };
+      atleta_skills: {
+        Row: AtletaSkill;
+        Insert: Partial<AtletaSkill>;
+        Update: Partial<AtletaSkill>;
+      };
+      atleta_skill_historial: {
+        Row: AtletaSkillHistorial;
+        Insert: Partial<AtletaSkillHistorial>;
+        Update: Partial<AtletaSkillHistorial>;
+      };
     };
   };
 }

@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth/get-profile";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 
 export default async function AdminLayout({
   children,
@@ -22,6 +23,7 @@ export default async function AdminLayout({
           <LanguageSwitcher />
         </header>
         <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-6xl md:mx-auto overflow-x-hidden">
+          <DailyMotivationBanner audience="coach" locale={locale} className="mb-5" />
           {children}
         </main>
       </div>

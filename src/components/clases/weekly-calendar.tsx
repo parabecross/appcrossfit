@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CalendarX2, CheckCircle2 } from "lucide-react";
 import { cn, formatTime, formatWeekdayShort } from "@/lib/utils";
 import {
-  getWeekDates,
+  getClassDates,
+  dateStringToLocalDate,
   toDateString,
   canCancelReservation,
+  canBookClass,
+  filterClassesForSocio,
 } from "@/lib/clases/helpers";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +18,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
 import { CoachInfo } from "@/components/clases/coach-info";
+import { WorkoutBlock } from "@/components/clases/workout-block";
+import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
+import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
-import type { Clase, Reserva } from "@/types/database";
+import type { Clase, Profile, Reserva } from "@/types/database";
 
 interface WeeklyCalendarProps {
   clases: Clase[];
@@ -28,6 +34,11 @@ interface WeeklyCalendarProps {
   isAdmin?: boolean;
   onClassSelect?: (claseId: string) => void;
   selectedClaseId?: string | null;
+  onClassDeleted?: (claseId: string) => void;
+  onClassUpdated?: (clase: Clase) => void;
+  focusDate?: string | null;
+  coaches?: Profile[];
+  canEditClass?: boolean;
 }
 
 export function WeeklyCalendar({
@@ -39,13 +50,22 @@ export function WeeklyCalendar({
   isAdmin = false,
   onClassSelect,
   selectedClaseId,
+  onClassDeleted,
+  onClassUpdated,
+  focusDate,
+  coaches = [],
+  canEditClass = false,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
   const supabase = createClient();
-  const week = getWeekDates();
   const today = toDateString(new Date());
+  const displayClases = useMemo(
+    () => (isAdmin ? clases : filterClassesForSocio(clases)),
+    [clases, isAdmin]
+  );
+  const daysWithClasses = useMemo(() => getClassDates(displayClases), [displayClases]);
   const [selected, setSelected] = useState(today);
   const [localReservas, setLocalReservas] = useState(reservas);
   const [loading, setLoading] = useState<string | null>(null);
@@ -55,7 +75,18 @@ export function WeeklyCalendar({
     setLocalReservas(reservas);
   }, [reservas]);
 
-  const dayClases = clases.filter(
+  useEffect(() => {
+    if (daysWithClasses.length === 0) return;
+    if (!daysWithClasses.includes(selected)) {
+      setSelected(daysWithClasses[0]);
+    }
+  }, [daysWithClasses, selected]);
+
+  useEffect(() => {
+    if (focusDate) setSelected(focusDate);
+  }, [focusDate]);
+
+  const dayClases = displayClases.filter(
     (c) => c.fecha === selected && c.estado === "programada"
   );
 
@@ -68,6 +99,9 @@ export function WeeklyCalendar({
     );
 
   const handleBook = async (claseId: string) => {
+    const clase = clases.find((c) => c.id === claseId);
+    if (!clase || !canBookClass(clase.fecha, clase.hora_inicio)) return;
+
     setLoading(claseId);
     setCancelError(null);
 
@@ -137,51 +171,53 @@ export function WeeklyCalendar({
     router.refresh();
   };
 
-  const dayLabel = (d: Date) => formatWeekdayShort(d, locale);
+  const dayLabel = (dateStr: string) =>
+    formatWeekdayShort(dateStringToLocalDate(dateStr), locale);
   const isToday = (ds: string) => ds === today;
 
   const myBookingsToday = dayClases.filter((c) => myReservation(c.id)).length;
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-        {week.map((d) => {
-          const ds = toDateString(d);
-          const isSelected = ds === selected;
-          const count = clases.filter(
-            (c) => c.fecha === ds && c.estado === "programada"
-          ).length;
-          return (
-            <button
-              key={ds}
-              type="button"
-              onClick={() => {
-                setSelected(ds);
-                setCancelError(null);
-              }}
-              className={cn(
-                "relative flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
-                isSelected
-                  ? "brand-gradient text-white glow-primary"
-                  : "bg-secondary/60 text-muted-foreground",
-                isToday(ds) && !isSelected && "ring-1 ring-primary/40"
-              )}
-            >
-              {dayLabel(d)}
-              {count > 0 && (
-                <span
-                  className={cn(
-                    "mt-0.5 text-[10px] font-normal",
-                    isSelected ? "text-white/80" : "text-muted-foreground"
-                  )}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {daysWithClasses.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          {daysWithClasses.map((ds) => {
+            const isSelected = ds === selected;
+            const count = displayClases.filter(
+              (c) => c.fecha === ds && c.estado === "programada"
+            ).length;
+            return (
+              <button
+                key={ds}
+                type="button"
+                onClick={() => {
+                  setSelected(ds);
+                  setCancelError(null);
+                }}
+                className={cn(
+                  "relative flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
+                  isSelected
+                    ? "brand-gradient text-white glow-primary"
+                    : "bg-secondary/60 text-muted-foreground",
+                  isToday(ds) && !isSelected && "ring-1 ring-primary/40"
+                )}
+              >
+                {dayLabel(ds)}
+                {count > 1 && (
+                  <span
+                    className={cn(
+                      "mt-0.5 text-[10px] font-normal",
+                      isSelected ? "text-white/80" : "text-muted-foreground"
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {!isAdmin && myBookingsToday > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
@@ -196,13 +232,15 @@ export function WeeklyCalendar({
         </p>
       )}
 
-      {dayClases.length === 0 ? (
+      {daysWithClasses.length === 0 || dayClases.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center">
           <CalendarX2 className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground font-medium">{t("noClasses")}</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            {t("tryAnotherDay")}
-          </p>
+          {daysWithClasses.length > 0 && (
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {t("tryAnotherDay")}
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid gap-3 md:gap-4 md:grid-cols-2">
@@ -214,6 +252,7 @@ export function WeeklyCalendar({
             const canCancel = booked
               ? canCancelReservation(clase.fecha, clase.hora_inicio)
               : false;
+            const bookingClosed = !canBookClass(clase.fecha, clase.hora_inicio);
 
             return (
               <Card
@@ -242,15 +281,36 @@ export function WeeklyCalendar({
                 )}
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-lg leading-snug">
+                    <CardTitle className="text-lg leading-snug flex-1 min-w-0">
                       {clase.nombre}
                     </CardTitle>
-                    <Badge
-                      variant={full ? "destructive" : booked ? "success" : "secondary"}
-                      className="shrink-0"
-                    >
-                      {full ? t("full") : booked ? t("booked") : t("status.programada")}
-                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isAdmin && canEditClass && (
+                        <EditClaseDialog
+                          clase={clase}
+                          coaches={coaches}
+                          locale={locale}
+                          onUpdated={onClassUpdated}
+                        />
+                      )}
+                      {isAdmin && (
+                        <DeleteClaseDialog
+                          claseId={clase.id}
+                          nombre={clase.nombre}
+                          fecha={clase.fecha}
+                          locale={locale}
+                          enrolledCount={occupied}
+                          variant="icon"
+                          onDeleted={() => onClassDeleted?.(clase.id)}
+                        />
+                      )}
+                      <Badge
+                        variant={full ? "destructive" : booked ? "success" : "secondary"}
+                        className="shrink-0"
+                      >
+                        {full ? t("full") : booked ? t("booked") : t("status.programada")}
+                      </Badge>
+                    </div>
                   </div>
                   <p className="text-base font-medium text-foreground/90">
                     {formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}
@@ -262,6 +322,7 @@ export function WeeklyCalendar({
                       bio={clase.coach_bio}
                     />
                   )}
+                  <WorkoutBlock entrenamiento={clase.entrenamiento} />
                 </CardHeader>
                 <CardContent className="space-y-4 pb-5">
                   <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
@@ -296,17 +357,30 @@ export function WeeklyCalendar({
                           )}
                         </div>
                       ) : (
-                        <Button
-                          className="w-full h-12 rounded-xl text-base font-semibold"
-                          disabled={!canBook || full || loading === clase.id}
-                          onClick={() => handleBook(clase.id)}
-                        >
-                          {loading === clase.id
-                            ? tc("loading")
-                            : full
-                              ? t("full")
-                              : t("book")}
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            className="w-full h-12 rounded-xl text-base font-semibold"
+                            disabled={
+                              !canBook || full || bookingClosed || loading === clase.id
+                            }
+                            onClick={() => handleBook(clase.id)}
+                          >
+                            {loading === clase.id
+                              ? tc("loading")
+                              : full
+                                ? t("full")
+                                : bookingClosed
+                                  ? t("bookClosed")
+                                  : t("book")}
+                          </Button>
+                          {bookingClosed && !full && (
+                            <p className="text-xs text-orange-400 text-center leading-relaxed">
+                              {t("bookTooLate", {
+                                minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS,
+                              })}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </>
                   )}

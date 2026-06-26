@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { getSampleWorkout } from "../src/lib/clases/sample-workouts";
 import * as dotenv from "dotenv";
 import { resolve } from "path";
 
@@ -179,16 +180,18 @@ async function main() {
     const fecha = addDays(today, d);
     const dayTimes = d % 2 === 0 ? times.slice(0, 4) : times.slice(2, 6);
     for (let i = 0; i < dayTimes.length; i++) {
+      const className = classNames[i % classNames.length];
       const { data: clase } = await supabase
         .from("clases")
         .insert({
-          nombre: classNames[i % classNames.length],
+          nombre: className,
           fecha,
           hora_inicio: dayTimes[i].start,
           hora_fin: dayTimes[i].end,
           cupo_maximo: 12,
           coach_id: coachIds[i % coachIds.length],
           estado: "programada",
+          entrenamiento: getSampleWorkout(className),
         })
         .select("id")
         .single();

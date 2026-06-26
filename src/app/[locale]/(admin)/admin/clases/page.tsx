@@ -14,7 +14,9 @@ export default async function AdminClasesPage({
   const profile = await requireRole(locale, ["admin", "coach"]);
   const week = getWeekDates();
   const from = toDateString(week[0]);
-  const to = toDateString(week[6]);
+  const rangeEnd = new Date(week[6]);
+  rangeEnd.setDate(rangeEnd.getDate() + 21);
+  const to = toDateString(rangeEnd);
 
   let clases = await getClasesByDateRange(from, to);
   if (profile.rol === "coach") {

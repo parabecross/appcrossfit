@@ -75,6 +75,7 @@ CREATE TABLE clases (
   hora_fin     TIME NOT NULL,
   cupo_maximo  INT NOT NULL DEFAULT 12 CHECK (cupo_maximo > 0),
   coach_id     UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  entrenamiento TEXT,
   estado       clase_estado NOT NULL DEFAULT 'programada',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -102,6 +103,76 @@ CREATE INDEX idx_reservas_usuario ON reservas(usuario_id);
 CREATE UNIQUE INDEX idx_reservas_activa
   ON reservas(clase_id, usuario_id)
   WHERE estado IN ('confirmada', 'asistio');
+
+-- ─── PROGRESO ATLETA ─────────────────────────────────────────────────────────
+
+CREATE TYPE pr_unidad AS ENUM ('kg', 'reps', 'segundos', 'metros');
+CREATE TYPE skill_estado AS ENUM ('en_proceso', 'logrado', 'dominado');
+
+CREATE TABLE atleta_pr_marcas (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  ejercicio   TEXT NOT NULL,
+  valor       NUMERIC(10,2) NOT NULL CHECK (valor > 0),
+  unidad      pr_unidad NOT NULL,
+  fecha       DATE NOT NULL DEFAULT CURRENT_DATE,
+  notas       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_atleta_pr_usuario ON atleta_pr_marcas(usuario_id);
+CREATE INDEX idx_atleta_pr_ejercicio ON atleta_pr_marcas(usuario_id, ejercicio, created_at DESC);
+
+CREATE TABLE atleta_skills (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  skill       TEXT NOT NULL,
+  estado      skill_estado NOT NULL DEFAULT 'en_proceso',
+  notas       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(usuario_id, skill)
+);
+
+CREATE INDEX idx_atleta_skills_usuario ON atleta_skills(usuario_id);
+
+CREATE TABLE atleta_skill_historial (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  skill_id        UUID NOT NULL REFERENCES atleta_skills(id) ON DELETE CASCADE,
+  usuario_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  estado_anterior skill_estado,
+  estado_nuevo    skill_estado NOT NULL,
+  notas           TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_atleta_skill_hist ON atleta_skill_historial(usuario_id, created_at DESC);
+
+CREATE OR REPLACE FUNCTION log_atleta_skill_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO atleta_skill_historial (skill_id, usuario_id, estado_anterior, estado_nuevo, notas)
+    VALUES (NEW.id, NEW.usuario_id, NULL, NEW.estado, NEW.notas);
+    RETURN NEW;
+  END IF;
+
+  IF OLD.estado IS DISTINCT FROM NEW.estado OR OLD.notas IS DISTINCT FROM NEW.notas THEN
+    NEW.updated_at := now();
+    INSERT INTO atleta_skill_historial (skill_id, usuario_id, estado_anterior, estado_nuevo, notas)
+    VALUES (NEW.id, NEW.usuario_id, OLD.estado, NEW.estado, NEW.notas);
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_atleta_skill_historial
+  AFTER INSERT OR UPDATE ON atleta_skills
+  FOR EACH ROW
+  EXECUTE FUNCTION log_atleta_skill_change();
 
 -- ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
@@ -234,6 +305,46 @@ CREATE TRIGGER trg_check_reserva_cupo
   FOR EACH ROW
   EXECUTE FUNCTION check_reserva_cupo();
 
+CREATE OR REPLACE FUNCTION check_reserva_timing()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  clase_rec RECORD;
+  class_start TIMESTAMP;
+  class_end TIMESTAMP;
+  cutoff TIMESTAMP;
+BEGIN
+  SELECT fecha, hora_inicio, hora_fin, estado
+  INTO clase_rec
+  FROM clases
+  WHERE id = NEW.clase_id;
+
+  IF NOT FOUND OR clase_rec.estado != 'programada' THEN
+    RAISE EXCEPTION 'Clase no disponible para reservar';
+  END IF;
+
+  class_start := clase_rec.fecha::timestamp + clase_rec.hora_inicio;
+  class_end := clase_rec.fecha::timestamp + clase_rec.hora_fin;
+  cutoff := class_start - INTERVAL '20 minutes';
+
+  IF NOW() >= class_end THEN
+    RAISE EXCEPTION 'La clase ya finalizó';
+  END IF;
+
+  IF NOW() >= cutoff THEN
+    RAISE EXCEPTION 'Reservas cerradas: máximo 20 minutos antes del inicio';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_reserva_timing
+  BEFORE INSERT ON reservas
+  FOR EACH ROW
+  EXECUTE FUNCTION check_reserva_timing();
+
 CREATE OR REPLACE FUNCTION refresh_vencidas_membresias()
 RETURNS void
 LANGUAGE plpgsql
@@ -310,6 +421,9 @@ ALTER TABLE planes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE membresias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reservas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE atleta_pr_marcas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE atleta_skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE atleta_skill_historial ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles_select_own_or_staff"
@@ -365,6 +479,11 @@ CREATE POLICY "clases_admin_all"
   USING (is_admin())
   WITH CHECK (is_admin());
 
+CREATE POLICY "clases_update_coach_assigned"
+  ON clases FOR UPDATE
+  USING (coach_id = get_my_profile_id())
+  WITH CHECK (coach_id = get_my_profile_id());
+
 -- reservas
 CREATE POLICY "reservas_select_own_or_admin"
   ON reservas FOR SELECT
@@ -386,6 +505,45 @@ CREATE POLICY "reservas_update_coach_of_class"
   ON reservas FOR UPDATE
   USING (is_coach_of_clase(clase_id))
   WITH CHECK (is_coach_of_clase(clase_id));
+
+-- atleta progreso
+CREATE POLICY "atleta_pr_select"
+  ON atleta_pr_marcas FOR SELECT
+  USING (usuario_id = get_my_profile_id() OR is_coach_or_admin());
+
+CREATE POLICY "atleta_pr_insert_own"
+  ON atleta_pr_marcas FOR INSERT
+  WITH CHECK (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_pr_update_own"
+  ON atleta_pr_marcas FOR UPDATE
+  USING (usuario_id = get_my_profile_id())
+  WITH CHECK (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_pr_delete_own"
+  ON atleta_pr_marcas FOR DELETE
+  USING (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_skills_select"
+  ON atleta_skills FOR SELECT
+  USING (usuario_id = get_my_profile_id() OR is_coach_or_admin());
+
+CREATE POLICY "atleta_skills_insert_own"
+  ON atleta_skills FOR INSERT
+  WITH CHECK (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_skills_update_own"
+  ON atleta_skills FOR UPDATE
+  USING (usuario_id = get_my_profile_id())
+  WITH CHECK (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_skills_delete_own"
+  ON atleta_skills FOR DELETE
+  USING (usuario_id = get_my_profile_id());
+
+CREATE POLICY "atleta_skill_hist_select"
+  ON atleta_skill_historial FOR SELECT
+  USING (usuario_id = get_my_profile_id() OR is_coach_or_admin());
 
 -- ─── STORAGE ─────────────────────────────────────────────────────────────────
 

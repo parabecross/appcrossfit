@@ -26,6 +26,7 @@ import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/help
 import { useRouter } from "@/i18n/routing";
 import type { Profile, Membresia, Plan, Reserva } from "@/types/database";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
+import { MembershipExpiryAlert } from "@/components/admin/membership-expiry-alert";
 
 export function UserDetailClient({
   user,
@@ -169,6 +170,15 @@ export function UserDetailClient({
       )}
       {error && !activateOpen && !editOpen && (
         <p className="text-sm text-red-400">{error}</p>
+      )}
+
+      {current?.fecha_fin && user.rol === "socio" && (
+        <MembershipExpiryAlert
+          nombre={user.nombre_completo}
+          telefono={user.telefono}
+          fechaFin={current.fecha_fin}
+          locale={locale}
+        />
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">

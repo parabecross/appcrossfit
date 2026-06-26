@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
-import { Calendar, User, CreditCard, Dumbbell, LogOut } from "lucide-react";
+import { Calendar, User, CreditCard, Dumbbell, LogOut, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
@@ -11,12 +11,14 @@ import { LanguageSwitcher } from "./language-switcher";
 const links = [
   { href: "/mis-reservas", icon: Calendar, key: "myBookings" },
   { href: "/mi-membresia", icon: CreditCard, key: "membership" },
+  { href: "/mi-progreso", icon: TrendingUp, key: "myProgress" },
   { href: "/perfil", icon: User, key: "profile" },
 ] as const;
 
 function getPageTitle(pathname: string, t: (k: string) => string) {
   if (pathname.includes("/mis-reservas")) return t("myBookings");
   if (pathname.includes("/mi-membresia")) return t("membership");
+  if (pathname.includes("/mi-progreso")) return t("myProgress");
   if (pathname.includes("/perfil")) return t("profile");
   return APP_CONFIG.BRAND_NAME;
 }

@@ -50,7 +50,8 @@
     "stats": "Statistics",
     "myBookings": "My bookings",
     "profile": "Profile",
-    "membership": "My membership"
+    "membership": "My membership",
+    "myProgress": "My progress"
   },
   "membership": {
     "title": "My membership",
@@ -95,6 +96,8 @@
     "full": "Class full",
     "cancelBooking": "Cancel booking",
     "cancelTooLate": "Cannot cancel within {hours}h of class",
+    "bookClosed": "Booking closed",
+    "bookTooLate": "Bookings close {minutes} min before class starts",
     "spots": "{occupied}/{max} spots",
     "coach": "Coach",
     "selectCoach": "Select coach",
@@ -123,7 +126,18 @@
     "coachNoBio": "No description yet",
     "tapClassForAttendance": "Tap a class above to mark attendance",
     "bookedToday": "{count, plural, =1 {You have 1 booking today} other {You have # bookings today}}",
-    "tryAnotherDay": "Try another day of the week"
+    "tryAnotherDay": "Try another day of the week",
+    "deleteClass": "Delete class",
+    "deleteClassConfirm": "Delete {name} on {date}?",
+    "deleteClassWarning": "Members are enrolled. Their bookings will be removed.",
+    "classNameRequired": "Enter the class name",
+    "invalidTimeRange": "End time must be after start time",
+    "createClassSuccess": "Class created",
+    "workout": "Today's workout",
+    "workoutPlaceholder": "E.g. Warm-up 10 min\n\nWOD (15 min cap):\n5 rounds\n• 10 thrusters\n• 10 pull-ups",
+    "workoutHint": "Members will see this on the class card. You can use line breaks.",
+    "workoutCreateHint": "Optional. If left empty, a sample workout is used based on the class name.",
+    "noWorkout": "Workout to be announced"
   },
   "admin": {
     "dashboard": "Control panel",
@@ -156,7 +170,11 @@
     "deleteUserSuccess": "Member deleted successfully",
     "coachProfileDesc": "Your photo and bio are shown to members on the classes you teach.",
     "coachBioPlaceholder": "E.g. Olympic lifting and mobility specialist. 5 years of CrossFit experience.",
-    "coachBioHint": "Visible to members when they book your classes."
+    "coachBioHint": "Visible to members when they book your classes.",
+    "noPhoneForWhatsApp": "No phone number",
+    "membershipExpiringAlert": "Membership expiring soon",
+    "membershipExpiredAlert": "Membership expired",
+    "expiresInDays": "Expires in {days, plural, =0 {less than 1 day} =1 {1 day} other {# days}} — send WhatsApp reminder"
   },
   "plans": {
     "title": "Plans",
@@ -186,6 +204,76 @@
     "tooltipBookings": "Bookings",
     "tooltipAttendance": "Attendances",
     "tooltipOccupancy": "Occupancy"
+  },
+  "motivation": {
+    "dailyTitle": "Message of the day"
+  },
+  "progress": {
+    "title": "My progress",
+    "subtitle": "Track your PRs and skills to see your CrossFit evolution.",
+    "lastPr": "Latest PR",
+    "totalPrs": "PRs logged",
+    "skillsAchieved": "Skills achieved",
+    "lastSkillUpdate": "Latest skill",
+    "nextGoal": "Next goal",
+    "noData": "No data",
+    "newPrBadge": "New PR!",
+    "addPr": "Log PR",
+    "add": "Add",
+    "exercise": "Exercise",
+    "date": "Date",
+    "notes": "Notes",
+    "notesPlaceholder": "E.g. PR in strength class, improved technique...",
+    "valueTime": "Time (mm:ss)",
+    "invalidValue": "Enter a valid value",
+    "noPrYet": "No record yet",
+    "vsPrevious": "{delta} vs previous",
+    "noHistory": "No history yet. Log your first PR!",
+    "skillUpdate": "Skill update",
+    "tabs": {
+      "prs": "PRs / RM",
+      "skills": "Skills",
+      "history": "History"
+    },
+    "skillStatus": {
+      "en_proceso": "In progress",
+      "logrado": "Achieved",
+      "dominado": "Mastered"
+    },
+    "unit": {
+      "kg": "Weight (kg)",
+      "reps": "Reps",
+      "segundos": "Time",
+      "metros": "Distance (m)"
+    },
+    "exercises": {
+      "back_squat": "Back Squat",
+      "front_squat": "Front Squat",
+      "deadlift": "Deadlift",
+      "bench_press": "Bench Press",
+      "shoulder_press": "Shoulder Press",
+      "clean": "Clean",
+      "snatch": "Snatch",
+      "clean_jerk": "Clean & Jerk",
+      "pull_ups": "Pull-ups",
+      "toes_to_bar": "Toes to Bar",
+      "double_unders": "Double Unders",
+      "row_2k": "Row 2K",
+      "run_5k": "Run 5K"
+    },
+    "skills": {
+      "pull_ups": "Pull-ups",
+      "chest_to_bar": "Chest to Bar",
+      "bar_muscle_up": "Bar Muscle Up",
+      "ring_muscle_up": "Ring Muscle Up",
+      "handstand_push_up": "Handstand Push-up",
+      "handstand_walk": "Handstand Walk",
+      "double_unders": "Double Unders",
+      "rope_climb": "Rope Climb",
+      "pistols": "Pistols",
+      "kipping_pull_up": "Kipping Pull-up",
+      "butterfly_pull_up": "Butterfly Pull-up"
+    }
   },
   "roles": {
     "admin": "Admin",

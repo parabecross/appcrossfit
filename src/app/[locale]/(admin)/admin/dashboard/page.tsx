@@ -8,15 +8,16 @@ import {
   computeTrendStats,
 } from "@/lib/queries/stats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "@/i18n/routing";
 import {
   FrequencyChart,
   DemandChart,
   TrendChart,
 } from "@/components/stats/charts";
-import { formatDate } from "@/lib/utils";
 import { Users, AlertTriangle, Clock, UserCheck } from "lucide-react";
+import {
+  ExpiredMembersList,
+  ExpiringMembersList,
+} from "@/components/admin/dashboard-alerts";
 
 export default async function AdminDashboardPage({
   params,
@@ -100,25 +101,8 @@ export default async function AdminDashboardPage({
               {t("expired")} ({vencidas.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-            {vencidas.length === 0 ? (
-              <p className="text-muted-foreground text-sm">—</p>
-            ) : (
-              vencidas.map((a) => (
-                <Link
-                  key={a.profile_id}
-                  href={`/admin/usuarios/${a.profile_id}`}
-                  className="flex items-center justify-between rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 hover:bg-red-500/15 transition-colors"
-                >
-                  <span className="font-medium">{a.nombre_completo}</span>
-                  <span className="text-xs text-red-300">
-                    {a.fecha_fin
-                      ? formatDate(a.fecha_fin, locale)
-                      : "Sin membresía"}
-                  </span>
-                </Link>
-              ))
-            )}
+          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+            <ExpiredMembersList items={vencidas} locale={locale} />
           </CardContent>
         </Card>
 
@@ -129,19 +113,8 @@ export default async function AdminDashboardPage({
               {t("expiringSoon")} ({porVencer.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-            {porVencer.map((a) => (
-              <Link
-                key={a.profile_id}
-                href={`/admin/usuarios/${a.profile_id}`}
-                className="flex items-center justify-between rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2"
-              >
-                <span className="font-medium">{a.nombre_completo}</span>
-                <Badge variant="warning">
-                  {a.fecha_fin ? formatDate(a.fecha_fin, locale) : "—"}
-                </Badge>
-              </Link>
-            ))}
+          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+            <ExpiringMembersList items={porVencer} locale={locale} />
           </CardContent>
         </Card>
       </div>

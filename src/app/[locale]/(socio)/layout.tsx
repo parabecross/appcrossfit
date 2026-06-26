@@ -4,6 +4,7 @@ import {
   SocioMobileNav,
 } from "@/components/layout/socio-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SocioLayout({
@@ -28,6 +29,7 @@ export default async function SocioLayout({
           <LanguageSwitcher />
         </header>
         <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-2xl md:mx-auto overflow-x-hidden">
+          <DailyMotivationBanner audience="athlete" locale={locale} className="mb-5" />
           {children}
         </main>
       </div>
