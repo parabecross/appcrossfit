@@ -3,10 +3,12 @@ import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
+import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
+import { SocioClassHistory } from "@/components/clases/socio-class-history";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +27,13 @@ export default async function MisReservasPage({
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
   const supabase = await createClient();
-  const [clases, membership, { data: reservas }] = await Promise.all([
-    getClasesByDateRange(from, to),
-    getMembresiaActual(profile.id),
-    supabase.from("reservas").select("*").eq("usuario_id", profile.id),
-  ]);
+  const [clases, membership, { data: reservas }, classHistory] =
+    await Promise.all([
+      getClasesByDateRange(from, to),
+      getMembresiaActual(profile.id),
+      supabase.from("reservas").select("*").eq("usuario_id", profile.id),
+      getAthleteClassHistory(profile.id, profile.box_id!),
+    ]);
 
   const reserveCheck = canReserve(profile, membership);
   const showBanner =
@@ -37,6 +41,8 @@ export default async function MisReservasPage({
     reserveCheck.reason === "expired";
 
   const firstName = profile.nombre_completo.split(" ")[0];
+  const attended = classHistory.filter((r) => r.estado === "asistio").length;
+  const noShow = classHistory.filter((r) => r.estado === "no_asistio").length;
 
   return (
     <div className="space-y-5">
@@ -73,6 +79,16 @@ export default async function MisReservasPage({
         canBook={reserveCheck.ok}
         locale={locale}
         gymTimezone={boxConfig.timezone}
+      />
+
+      <SocioClassHistory
+        items={classHistory}
+        locale={locale}
+        gymTimezone={boxConfig.timezone}
+        title={t("classHistory")}
+        description={t("classHistoryDesc")}
+        emptyMessage={t("noClassHistory")}
+        summary={t("classHistorySummary", { attended, noShow })}
       />
     </div>
   );

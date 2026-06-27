@@ -136,6 +136,7 @@
     },
     "card": {
       "badge": "Legacy",
+      "byAthron": "by ATHRON",
       "level": "Level",
       "age": "Age",
       "ageUnit": "yrs",
@@ -207,7 +208,11 @@
     "profileSubtitle": "Update your photo and contact details.",
     "profileEmailHint": "Your login email (cannot be changed here).",
     "profileLegacyHint": "Weight, height, discipline and your Athlete Card live in",
-    "profileLegacyHintDetail": "name and photo are edited here."
+    "profileLegacyHintDetail": "name and photo are edited here.",
+    "classHistory": "Your class history",
+    "classHistoryDesc": "Classes you attended and bookings you missed.",
+    "classHistorySummary": "{attended} attended · {noShow} no-shows",
+    "noClassHistory": "No classes in your history yet."
   },
   "classes": {
     "title": "Classes",
@@ -302,7 +307,15 @@
     "noPhoneForWhatsApp": "No phone number",
     "membershipExpiringAlert": "Membership expiring soon",
     "membershipExpiredAlert": "Membership expired",
-    "expiresInDays": "Expires in {days, plural, =0 {less than 1 day} =1 {1 day} other {# days}} — send WhatsApp reminder"
+    "expiresInDays": "Expires in {days, plural, =0 {less than 1 day} =1 {1 day} other {# days}} — send WhatsApp reminder",
+    "attendanceCount": "Attended",
+    "noShowCount": "No-shows",
+    "upcomingBookings": "Upcoming bookings",
+    "reserved": "Booked",
+    "classHistory": "Class history",
+    "classHistoryDesc": "Classes attended, booked, and missed.",
+    "noClassHistory": "No bookings or attendance recorded yet.",
+    "membershipHistory": "Membership history"
   },
   "adminDashboard": {
     "header": {

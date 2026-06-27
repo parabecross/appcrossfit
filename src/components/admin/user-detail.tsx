@@ -24,25 +24,28 @@ import {
 import { formatDate } from "@/lib/utils";
 import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { useRouter } from "@/i18n/routing";
-import type { Profile, Membresia, Plan, Reserva } from "@/types/database";
+import type { Profile, Membresia, Plan } from "@/types/database";
+import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 import { MembershipExpiryAlert } from "@/components/admin/membership-expiry-alert";
+import { ClassHistoryList } from "@/components/clases/class-history-list";
 
 export function UserDetailClient({
   user,
   membresias,
-  reservas,
+  classHistory,
   planes,
   locale,
 }: {
   user: Profile;
   membresias: (Membresia & { plan: Plan | null })[];
-  reservas: Reserva[];
+  classHistory: AthleteClassHistoryItem[];
   planes: Plan[];
   locale: string;
 }) {
   const t = useTranslations("membership");
   const tm = useTranslations("membership.status");
+  const ta = useTranslations("admin");
   const tc = useTranslations("common");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -171,7 +174,9 @@ export function UserDetailClient({
     }
   };
 
-  const attended = reservas.filter((r) => r.estado === "asistio").length;
+  const attended = classHistory.filter((r) => r.estado === "asistio").length;
+  const noShow = classHistory.filter((r) => r.estado === "no_asistio").length;
+  const upcoming = classHistory.filter((r) => r.estado === "confirmada").length;
 
   return (
     <div className="space-y-6">
@@ -207,11 +212,23 @@ export function UserDetailClient({
         />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Asistencias</p>
+            <p className="text-sm text-muted-foreground">{ta("attendanceCount")}</p>
             <p className="text-2xl font-black">{attended}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{ta("noShowCount")}</p>
+            <p className="text-2xl font-black">{noShow}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{ta("upcomingBookings")}</p>
+            <p className="text-2xl font-black">{upcoming}</p>
           </CardContent>
         </Card>
         <Card>
@@ -220,16 +237,11 @@ export function UserDetailClient({
             <p className="text-lg font-bold">
               {current?.plan?.nombre ?? t("noMembership")}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">{t("expires")}</p>
-            <p className="text-lg font-bold">
-              {current
-                ? formatDate(current.fecha_fin, locale)
-                : "—"}
-            </p>
+            {current && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("expires")}: {formatDate(current.fecha_fin, locale)}
+              </p>
+            )}
             {currentEstado && (
               <Badge
                 variant={currentEstado === "vigente" ? "success" : "destructive"}
@@ -401,7 +413,21 @@ export function UserDetailClient({
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("history")}</CardTitle>
+          <CardTitle>{ta("classHistory")}</CardTitle>
+          <CardDescription>{ta("classHistoryDesc")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {classHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{ta("noClassHistory")}</p>
+          ) : (
+            <ClassHistoryList items={classHistory} locale={locale} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{ta("membershipHistory")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {membresias.map((m) => (

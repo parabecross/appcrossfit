@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
+import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
 import { UserDetailClient } from "@/components/admin/user-detail";
 
 export default async function UserDetailPage({
@@ -21,27 +22,22 @@ export default async function UserDetailPage({
 
   if (!user) notFound();
 
-  const { data: membresias } = await supabase
-    .from("membresias")
-    .select("*, plan:planes(*)")
-    .eq("usuario_id", id)
-    .order("fecha_fin", { ascending: false });
-
-  const { data: reservas } = await supabase
-    .from("reservas")
-    .select("*")
-    .eq("usuario_id", id);
-
-  const { data: planes } = await supabase
-    .from("planes")
-    .select("*")
-    .eq("activo", true);
+  const [{ data: membresias }, { data: planes }, classHistory] =
+    await Promise.all([
+      supabase
+        .from("membresias")
+        .select("*, plan:planes(*)")
+        .eq("usuario_id", id)
+        .order("fecha_fin", { ascending: false }),
+      supabase.from("planes").select("*").eq("activo", true),
+      getAthleteClassHistory(id, adminProfile.box_id!),
+    ]);
 
   return (
     <UserDetailClient
       user={user}
       membresias={membresias ?? []}
-      reservas={reservas ?? []}
+      classHistory={classHistory}
       planes={planes ?? []}
       locale={locale}
     />

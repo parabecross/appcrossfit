@@ -11,12 +11,13 @@ export async function exportCardToPng(
   return toPng(element, {
     width,
     height,
-    pixelRatio: 1,
+    pixelRatio: 2,
     cacheBust: true,
     skipAutoScale: true,
     style: {
       width: `${width}px`,
       height: `${height}px`,
+      transform: "none",
     },
   });
 }

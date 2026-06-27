@@ -164,6 +164,7 @@ export function LegacyClient({
   const cardLabels = useMemo(
     () => ({
       legacy: t("card.badge"),
+      byAthron: t("card.byAthron"),
       levelLabel: t("card.level"),
       level: {
         beginner: t("levels.beginner"),
@@ -180,7 +181,6 @@ export function LegacyClient({
       weight: t("card.weight"),
       weightUnit: t("card.weightUnit"),
       goal: t("card.goal"),
-      poweredBy: t("card.poweredBy"),
     }),
     [t]
   );
@@ -295,7 +295,7 @@ export function LegacyClient({
       />
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
+        <section className="min-w-0 space-y-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
           <div>
             <h2 className="text-sm font-bold">{t("editor.title")}</h2>
             <p className="text-xs text-muted-foreground mt-1">
@@ -323,11 +323,12 @@ export function LegacyClient({
             </Link>
           </p>
 
-          <div className="space-y-4">
-            <div>
+          <div className="min-w-0 space-y-4">
+            <div className="min-w-0 w-full overflow-hidden">
               <Label>{t("fields.birthDate")}</Label>
               <Input
                 type="date"
+                className="w-full max-w-full min-w-0 box-border [color-scheme:dark]"
                 value={form.fecha_nacimiento}
                 onChange={(e) =>
                   setForm({ ...form, fecha_nacimiento: e.target.value })

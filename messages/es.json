@@ -136,6 +136,7 @@
     },
     "card": {
       "badge": "Legacy",
+      "byAthron": "by ATHRON",
       "level": "Nivel",
       "age": "Edad",
       "ageUnit": "años",
@@ -207,7 +208,11 @@
     "profileSubtitle": "Actualiza tu foto y datos de contacto.",
     "profileEmailHint": "Correo de acceso a tu cuenta (no editable).",
     "profileLegacyHint": "Peso, estatura, disciplina y tu Athlete Card están en",
-    "profileLegacyHintDetail": "nombre y foto se editan aquí."
+    "profileLegacyHintDetail": "nombre y foto se editan aquí.",
+    "classHistory": "Tu historial de clases",
+    "classHistoryDesc": "Clases a las que asististe y las que reservaste sin asistir.",
+    "classHistorySummary": "{attended} asistencias · {noShow} faltas",
+    "noClassHistory": "Aún no tienes clases en tu historial."
   },
   "classes": {
     "title": "Clases",
@@ -302,7 +307,15 @@
     "noPhoneForWhatsApp": "Sin teléfono",
     "membershipExpiringAlert": "Mensualidad por vencer",
     "membershipExpiredAlert": "Mensualidad vencida",
-    "expiresInDays": "Vence en {days, plural, =0 {menos de 1 día} =1 {1 día} other {# días}} — envía recordatorio por WhatsApp"
+    "expiresInDays": "Vence en {days, plural, =0 {menos de 1 día} =1 {1 día} other {# días}} — envía recordatorio por WhatsApp",
+    "attendanceCount": "Asistencias",
+    "noShowCount": "Faltas",
+    "upcomingBookings": "Próximas reservas",
+    "reserved": "Reservada",
+    "classHistory": "Historial de clases",
+    "classHistoryDesc": "Clases a las que asistió, reservó y no asistió.",
+    "noClassHistory": "Sin reservas ni asistencias registradas.",
+    "membershipHistory": "Historial de membresía"
   },
   "adminDashboard": {
     "header": {
