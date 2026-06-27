@@ -4,6 +4,15 @@ import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
+import {
+  getScoresByUsuario,
+  getScoresForClases,
+  scoresByClaseId,
+} from "@/lib/queries/class-scores";
+import {
+  enrichScoresForSocio,
+  getAthleteLevel,
+} from "@/lib/queries/daily-ranking";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +43,15 @@ export default async function MisReservasPage({
       supabase.from("reservas").select("*").eq("usuario_id", profile.id),
       getAthleteClassHistory(profile.id, profile.box_id!),
     ]);
+
+  const claseIds = clases.map((c) => c.id);
+  const [rawClassScores, myScores, athleteLevel] = await Promise.all([
+    getScoresForClases(claseIds),
+    getScoresByUsuario(profile.id),
+    getAthleteLevel(profile.id),
+  ]);
+  const classScores = await enrichScoresForSocio(rawClassScores);
+  const myScoresMap = scoresByClaseId(myScores);
 
   const reserveCheck = canReserve(profile, membership);
   const showBanner =
@@ -79,6 +97,8 @@ export default async function MisReservasPage({
         canBook={reserveCheck.ok}
         locale={locale}
         gymTimezone={boxConfig.timezone}
+        classScores={classScores}
+        athleteLevel={athleteLevel}
       />
 
       <SocioClassHistory
@@ -89,6 +109,8 @@ export default async function MisReservasPage({
         description={t("classHistoryDesc")}
         emptyMessage={t("noClassHistory")}
         summary={t("classHistorySummary", { attended, noShow })}
+        scoresByClaseId={myScoresMap}
+        profileId={profile.id}
       />
     </div>
   );

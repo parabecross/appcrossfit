@@ -12,6 +12,7 @@ import {
   BarChart3,
   Dumbbell,
   LogOut,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
@@ -29,6 +30,7 @@ const links = [
   { href: "/admin/usuarios", icon: Users, key: "users" },
   { href: "/admin/coaches", icon: UserCog, key: "coaches" },
   { href: "/admin/clases", icon: Calendar, key: "classes" },
+  { href: "/admin/ranking", icon: Trophy, key: "ranking" },
   { href: "/admin/planes", icon: CreditCard, key: "plans" },
   { href: "/admin/estadisticas", icon: BarChart3, key: "stats" },
 ] as const;

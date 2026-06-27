@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ClassHistoryList } from "@/components/clases/class-history-list";
 import { hasClassEnded } from "@/lib/clases/helpers";
 import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
+import type { ClaseScore } from "@/types/database";
 
 export function SocioClassHistory({
   items,
@@ -11,6 +12,8 @@ export function SocioClassHistory({
   description,
   emptyMessage,
   summary,
+  scoresByClaseId,
+  profileId,
 }: {
   items: AthleteClassHistoryItem[];
   locale: string;
@@ -19,6 +22,8 @@ export function SocioClassHistory({
   description: string;
   emptyMessage: string;
   summary?: string;
+  scoresByClaseId?: Map<string, ClaseScore>;
+  profileId: string;
 }) {
   const pastItems = items.filter((r) =>
     hasClassEnded(r.clase.fecha, r.clase.hora_fin, gymTimezone)
@@ -41,7 +46,13 @@ export function SocioClassHistory({
         {pastItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         ) : (
-          <ClassHistoryList items={pastItems} locale={locale} />
+          <ClassHistoryList
+            items={pastItems}
+            locale={locale}
+            profileId={profileId}
+            gymTimezone={gymTimezone}
+            scoresByClaseId={scoresByClaseId}
+          />
         )}
       </CardContent>
     </Card>

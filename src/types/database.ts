@@ -158,6 +158,30 @@ export interface AtletaObjetivo {
   updated_at: string;
 }
 
+export type ClaseScoreTipo =
+  | "tiempo"
+  | "peso"
+  | "reps"
+  | "rondas"
+  | "cals"
+  | "otro";
+
+export interface ClaseScore {
+  id: string;
+  clase_id: string;
+  usuario_id: string;
+  reserva_id: string | null;
+  score_display: string;
+  score_tipo: ClaseScoreTipo;
+  valor_numerico: number | null;
+  rx: boolean;
+  sin_score: boolean;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<Profile, "id" | "nombre_completo" | "foto_url">;
+}
+
 export type AthleticLevel = "beginner" | "intermediate" | "advanced" | "rx";
 
 export interface AtletaPerfilDeportivo {
@@ -207,6 +231,11 @@ export interface Database {
         Row: AtletaPerfilDeportivo;
         Insert: Partial<AtletaPerfilDeportivo>;
         Update: Partial<AtletaPerfilDeportivo>;
+      };
+      clase_scores: {
+        Row: ClaseScore;
+        Insert: Partial<ClaseScore>;
+        Update: Partial<ClaseScore>;
       };
     };
   };

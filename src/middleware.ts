@@ -7,7 +7,7 @@ import type { UserRole } from "@/types/database";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const publicPaths = ["/login", "/registro", "/box-inactivo"];
+const publicPaths = ["/login", "/registro", "/box-inactivo", "/ranking"];
 
 const coachForbiddenAdminPaths = [
   "/admin/dashboard",

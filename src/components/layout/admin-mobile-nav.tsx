@@ -14,6 +14,7 @@ import {
   Dumbbell,
   LogOut,
   MoreHorizontal,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -39,6 +40,7 @@ const adminTabs = [
 
 const adminMoreLinks = [
   { href: "/admin/coaches", icon: UserCog, key: "coaches" },
+  { href: "/admin/ranking", icon: Trophy, key: "ranking" },
   { href: "/admin/planes", icon: CreditCard, key: "plans" },
   { href: "/admin/estadisticas", icon: BarChart3, key: "stats" },
 ] as const;
@@ -50,6 +52,7 @@ function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boole
   if (pathname.includes("/usuarios")) return t("users");
   if (pathname.includes("/coaches")) return t("coaches");
   if (pathname.includes("/planes")) return t("plans");
+  if (pathname.includes("/ranking")) return t("ranking");
   if (pathname.includes("/estadisticas")) return t("stats");
   return isCoach ? "Coach" : "Admin";
 }

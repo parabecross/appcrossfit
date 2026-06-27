@@ -3,15 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CalendarX2, CheckCircle2 } from "lucide-react";
-import { cn, formatTime, formatWeekdayShort } from "@/lib/utils";
+import { cn, formatTime, formatWeekdayShort, formatShortDay } from "@/lib/utils";
 import {
   getClassDates,
   dateStringToLocalDate,
   toDateString,
+  todayInTimezone,
+  addDaysToDateString,
   canCancelReservation,
   canBookClass,
   filterClassesForSocio,
+  hasClassEnded,
 } from "@/lib/clases/helpers";
+import { ScoreEntryForm } from "@/components/clases/score-entry-form";
+import { ScoreResponseSummary } from "@/components/clases/score-response-summary";
+import { ClassRankingBoard } from "@/components/clases/class-ranking-board";
+import { hasScoreResponse } from "@/lib/scores/helpers";
+import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +32,8 @@ import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { countReservasForClase } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
-import type { Clase, Profile, Reserva } from "@/types/database";
+import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
+import { filterScoresByLevel, type RankingLevel } from "@/lib/scores/helpers";
 
 interface WeeklyCalendarProps {
   clases: Clase[];
@@ -42,6 +51,8 @@ interface WeeklyCalendarProps {
   coaches?: Profile[];
   canEditClass?: boolean;
   gymTimezone?: string;
+  classScores?: ClaseScoreWithProfile[];
+  athleteLevel?: AthleticLevel | null;
 }
 
 export function WeeklyCalendar({
@@ -60,12 +71,17 @@ export function WeeklyCalendar({
   coaches = [],
   canEditClass = false,
   gymTimezone,
+  classScores = [],
+  athleteLevel,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
   const supabase = createClient();
-  const today = toDateString(new Date());
+  const today = gymTimezone
+    ? todayInTimezone(gymTimezone)
+    : toDateString(new Date());
+  const tomorrow = addDaysToDateString(today, 1);
   const displayClases = useMemo(
     () => (isAdmin ? clases : filterClassesForSocio(clases, gymTimezone)),
     [clases, isAdmin, gymTimezone]
@@ -210,7 +226,33 @@ export function WeeklyCalendar({
     formatWeekdayShort(dateStringToLocalDate(dateStr), locale);
   const isToday = (ds: string) => ds === today;
 
-  const myBookingsToday = dayClases.filter((c) => myReservation(c.id)).length;
+  const myBookingsOnDay = dayClases.filter((c) => myReservation(c.id)).length;
+
+  const bookedDayLabel = (() => {
+    if (selected === today) return t("bookedDayToday");
+    if (selected === tomorrow) return t("bookedDayTomorrow");
+    return t("bookedDayOn", { date: formatShortDay(selected, locale) });
+  })();
+
+  const scoresForClase = (claseId: string) =>
+    classScores.filter((s) => s.clase_id === claseId);
+
+  const categoryScoresForClase = (claseId: string) =>
+    filterScoresByLevel(
+      scoresForClase(claseId),
+      athleteLevel as RankingLevel | null | undefined
+    );
+
+  const myScoreForClase = (claseId: string) =>
+    classScores.find(
+      (s) => s.clase_id === claseId && s.usuario_id === profileId
+    );
+
+  const endedClassesWithRanking = dayClases.filter(
+    (c) =>
+      hasClassEnded(c.fecha, c.hora_fin, gymTimezone) &&
+      categoryScoresForClase(c.id).length > 0
+  );
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -256,10 +298,13 @@ export function WeeklyCalendar({
         </div>
       )}
 
-      {!isAdmin && myBookingsToday > 0 && (
+      {!isAdmin && myBookingsOnDay > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-green-400" />
-          {t("bookedToday", { count: myBookingsToday })}
+          {t("bookedSelectedDay", {
+            count: myBookingsOnDay,
+            dayLabel: bookedDayLabel,
+          })}
         </div>
       )}
 
@@ -302,6 +347,19 @@ export function WeeklyCalendar({
               clase.hora_inicio,
               gymTimezone
             );
+            const classEnded = hasClassEnded(
+              clase.fecha,
+              clase.hora_fin,
+              gymTimezone
+            );
+            const myScore = myScoreForClase(clase.id);
+            const canLogScore =
+              !isAdmin &&
+              booked &&
+              classEnded &&
+              reservation &&
+              reservation.estado !== "no_asistio" &&
+              !hasScoreResponse(myScore);
 
             return (
               <Card
@@ -378,7 +436,21 @@ export function WeeklyCalendar({
                   <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
                   {!isAdmin && (
                     <>
-                      {booked ? (
+                      {canLogScore && reservation && (
+                        <ScoreEntryForm
+                          claseId={clase.id}
+                          reservaId={reservation.id}
+                          usuarioId={profileId}
+                        />
+                      )}
+                      {!isAdmin &&
+                        booked &&
+                        classEnded &&
+                        myScore &&
+                        hasScoreResponse(myScore) && (
+                          <ScoreResponseSummary score={myScore} />
+                        )}
+                      {booked && !classEnded ? (
                         <div className="space-y-2">
                           <Button
                             variant="outline"
@@ -406,7 +478,7 @@ export function WeeklyCalendar({
                             </p>
                           )}
                         </div>
-                      ) : (
+                      ) : !booked ? (
                         <div className="space-y-2">
                           <Button
                             className="w-full h-12 rounded-xl text-base font-semibold"
@@ -423,7 +495,7 @@ export function WeeklyCalendar({
                                   ? t("bookClosed")
                                   : t("book")}
                           </Button>
-                          {bookingClosed && !full && (
+                          {bookingClosed && !full && !classEnded && (
                             <p className="text-xs text-orange-400 text-center leading-relaxed">
                               {t("bookTooLate", {
                                 minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS,
@@ -431,13 +503,27 @@ export function WeeklyCalendar({
                             </p>
                           )}
                         </div>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </CardContent>
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {!isAdmin && endedClassesWithRanking.length > 0 && (
+        <div className="space-y-4">
+          {endedClassesWithRanking.map((clase) => (
+            <ClassRankingBoard
+              key={clase.id}
+              clase={clase}
+              scores={scoresForClase(clase.id)}
+              myProfileId={profileId}
+              athleteLevel={athleteLevel}
+            />
+          ))}
         </div>
       )}
     </div>
