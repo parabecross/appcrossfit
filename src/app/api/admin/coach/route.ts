@@ -15,7 +15,7 @@ async function requireAdminApi() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("rol")
+    .select("rol, box_id")
     .eq("user_id", user.id)
     .single();
 
@@ -32,7 +32,7 @@ async function requireAdminApi() {
     };
   }
 
-  return { admin: createAdminClient() };
+  return { admin: createAdminClient(), boxId: profile.box_id };
 }
 
 export async function PATCH(request: NextRequest) {
@@ -49,12 +49,19 @@ export async function PATCH(request: NextRequest) {
 
   const { data: target } = await admin
     .from("profiles")
-    .select("rol")
+    .select("rol, box_id")
     .eq("user_id", user_id)
     .single();
 
   if (!target || target.rol !== "coach") {
     return NextResponse.json({ error: "Coach no encontrado" }, { status: 404 });
+  }
+
+  if (target.box_id !== auth.boxId) {
+    return NextResponse.json(
+      { error: "Coach no pertenece a tu box" },
+      { status: 403 }
+    );
   }
 
   if (email) {
