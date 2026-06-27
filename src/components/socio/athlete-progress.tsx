@@ -221,6 +221,14 @@ export function AthleteProgress({
       setCelebration(
         `${getPrMotivationMessage(locale)}${delta ? ` (${delta})` : ""}`
       );
+      void fetch("/api/ranking/award-achievement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuarioId: profileId,
+          badgeKey: marcas.length === 0 ? "primer_pr" : "benchmark",
+        }),
+      });
     }
 
     router.refresh();
@@ -277,6 +285,18 @@ export function AthleteProgress({
       .limit(30);
 
     if (hist) setSkillHistorial(hist as AtletaSkillHistorial[]);
+
+    if (estado === "logrado" || estado === "dominado") {
+      void fetch("/api/ranking/award-achievement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuarioId: profileId,
+          badgeKey: `skill_${skillKey}`,
+        }),
+      });
+    }
+
     router.refresh();
   };
 

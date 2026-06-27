@@ -1,17 +1,29 @@
 /**
- * Reset demo Parabellum Cross:
- * - Elimina socios y coaches actuales (conserva admin)
- * - 2 coaches (2 clases cada uno)
- * - 10 atletas con PRs, skills y objetivos
- * - 5 clases pasadas (mañana/tarde) + 5 futuras
- * - Reservas pasadas (asistió/no asistió) y futuras (confirmada)
+ * Demo mensual Parabellum Cross — 1 mes · 10 atletas · Ranking Athron
  *
- *   npm run reset-parabellum
+ * Pensado para presentar a clientes:
+ * - Mes calendario completo (lun–sáb) con clases y scores
+ * - Constancia, rachas, posición WOD, bonus RX, evolución
+ * - 4 categorías Legacy · membresías variadas · PRs/skills
+ * - Ledger Athron recalculado al final
+ *
+ *   npm run demo
  */
 
 import { createClient } from "@supabase/supabase-js";
 import { getSampleWorkout } from "../src/lib/clases/sample-workouts";
 import { PR_EXERCISES, SKILL_KEYS } from "../src/lib/progreso/constants";
+import { backfillRankingForBox } from "../src/lib/ranking/engine";
+import {
+  DEMO_ATHLETES,
+  WOD_ROTATION,
+  decideAttendance,
+  generateScore,
+  listWeekdayDates,
+  monthBounds,
+  wodScoreType,
+  type ScoreDef,
+} from "./demo-month-generators";
 import * as dotenv from "dotenv";
 import { resolve } from "path";
 
@@ -31,10 +43,29 @@ const supabase = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+let supportsSinScore = true;
+let supportsCalsTipo = true;
+
+async function detectSchema() {
+  const { error: sinErr } = await supabase
+    .from("clase_scores")
+    .select("sin_score")
+    .limit(0);
+  if (sinErr?.message.includes("sin_score")) supportsSinScore = false;
+
+  const { error: calsErr } = await supabase
+    .from("clase_scores")
+    .select("score_tipo")
+    .eq("score_tipo", "cals")
+    .limit(0);
+  if (calsErr?.message.includes("cals")) supportsCalsTipo = false;
+}
+
 const BOX_SLUG = "parabellum-cross";
 const TIMEZONE = "America/Mexico_City";
 const PASSWORD = "Parabellum2024!";
 const ADMIN_EMAIL = "admin@parabellum.cross";
+const FUTURE_DAYS = 3;
 
 function todayInTimezone(timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -71,12 +102,21 @@ async function listAllAuthUsers() {
   return users;
 }
 
+function demoAvatarUrl(seed: string): string {
+  return `https://i.pravatar.cc/256?u=${encodeURIComponent(seed)}`;
+}
+
 async function createUser(
   boxId: string,
   email: string,
   nombre: string,
   rol: "socio" | "coach",
-  extra?: { telefono?: string; bio?: string; estado_cuenta?: string }
+  extra?: {
+    telefono?: string;
+    bio?: string;
+    estado_cuenta?: string;
+    foto_url?: string;
+  }
 ) {
   const { data, error } = await supabase.auth.admin.createUser({
     email,
@@ -96,11 +136,9 @@ async function createUser(
   if (extra?.estado_cuenta) updates.estado_cuenta = extra.estado_cuenta;
   if (extra?.telefono) updates.telefono = extra.telefono;
   if (extra?.bio) updates.bio = extra.bio;
+  updates.foto_url = extra?.foto_url ?? demoAvatarUrl(email);
 
-  await supabase
-    .from("profiles")
-    .update(updates)
-    .eq("user_id", data.user!.id);
+  await supabase.from("profiles").update(updates).eq("user_id", data.user!.id);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -116,38 +154,71 @@ async function insertReserva(
   usuarioId: string,
   estado: "confirmada" | "asistio" | "no_asistio"
 ) {
-  const { error } = await supabase.from("reservas").insert({
+  const { data, error } = await supabase
+    .from("reservas")
+    .insert({ clase_id: claseId, usuario_id: usuarioId, estado })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Reserva: ${error.message}`);
+  return data.id as string;
+}
+
+async function insertScore(
+  claseId: string,
+  usuarioId: string,
+  reservaId: string,
+  score: ScoreDef
+) {
+  if ("sin_score" in score && score.sin_score) {
+    if (!supportsSinScore) return;
+    const { error } = await supabase.from("clase_scores").upsert(
+      {
+        clase_id: claseId,
+        usuario_id: usuarioId,
+        reserva_id: reservaId,
+        score_display: "—",
+        score_tipo: "otro" as const,
+        valor_numerico: null,
+        rx: true,
+        sin_score: true,
+        notas: score.notas ?? null,
+      },
+      { onConflict: "clase_id,usuario_id" }
+    );
+    if (error) throw new Error(`Score: ${error.message}`);
+    return;
+  }
+
+  const s = score as Exclude<ScoreDef, { sin_score: true }>;
+  let tipo = s.tipo;
+  if (tipo === "cals" && !supportsCalsTipo) tipo = "reps";
+
+  const payload: Record<string, unknown> = {
     clase_id: claseId,
     usuario_id: usuarioId,
-    estado,
+    reserva_id: reservaId,
+    score_display: s.display,
+    score_tipo: tipo,
+    valor_numerico: s.valor,
+    rx: s.rx,
+    notas: s.notas ?? null,
+  };
+  if (supportsSinScore) payload.sin_score = false;
+
+  const { error } = await supabase.from("clase_scores").upsert(payload, {
+    onConflict: "clase_id,usuario_id",
   });
-  if (error) throw new Error(`Reserva: ${error.message}`);
+  if (error) throw new Error(`Score: ${error.message}`);
 }
 
-async function markPastClassAttendance(claseId: string, usuarioIds: string[]) {
-  for (let j = 0; j < usuarioIds.length; j++) {
-    const estado = j === 0 ? "no_asistio" : "asistio";
-    const { data: row, error: findErr } = await supabase
-      .from("reservas")
-      .select("id")
-      .eq("clase_id", claseId)
-      .eq("usuario_id", usuarioIds[j])
-      .single();
-    if (findErr || !row) {
-      throw new Error(`Reserva no encontrada para marcar asistencia: ${findErr?.message}`);
-    }
-    const { error } = await supabase
-      .from("reservas")
-      .update({ estado })
-      .eq("id", row.id);
-    if (error) throw new Error(`Marcar asistencia: ${error.message}`);
-  }
-}
-
-async function deleteAllBoxClases(
+async function deleteAllBoxData(
+  boxId: string,
   staffIds: string[],
   boxProfileIds: string[]
 ) {
+  await supabase.from("ranking_point_events").delete().eq("box_id", boxId);
+  await supabase.from("ranking_monthly_awards").delete().eq("box_id", boxId);
+
   const claseIdSet = new Set<string>();
 
   if (staffIds.length > 0) {
@@ -166,26 +237,45 @@ async function deleteAllBoxClases(
     for (const r of reservas ?? []) claseIdSet.add(r.clase_id);
   }
 
-  const { data: orphans } = await supabase
-    .from("clases")
-    .select("id")
-    .is("coach_id", null);
-  for (const c of orphans ?? []) claseIdSet.add(c.id);
-
   const claseIds = Array.from(claseIdSet);
-  if (claseIds.length === 0) return 0;
-
-  await supabase.from("reservas").delete().in("clase_id", claseIds);
-  if (boxProfileIds.length > 0) {
-    await supabase.from("reservas").delete().in("usuario_id", boxProfileIds);
+  if (claseIds.length > 0) {
+    await supabase.from("clase_scores").delete().in("clase_id", claseIds);
+    await supabase.from("reservas").delete().in("clase_id", claseIds);
+    await supabase.from("clases").delete().in("id", claseIds);
   }
-  const { error } = await supabase.from("clases").delete().in("id", claseIds);
-  if (error) throw error;
+
+  if (boxProfileIds.length > 0) {
+    await supabase.from("clase_scores").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("reservas").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("membresias").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("atleta_pr_marcas").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("atleta_skills").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("atleta_objetivos").delete().in("usuario_id", boxProfileIds);
+    await supabase.from("atleta_perfil_deportivo").delete().in("usuario_id", boxProfileIds);
+  }
+
   return claseIds.length;
 }
 
 async function main() {
-  console.log("🥊 Reset demo Parabellum Cross...\n");
+  const hoy = todayInTimezone(TIMEZONE);
+  const { monthStart, monthEnd, monthKey } = monthBounds(TIMEZONE, hoy);
+  const pastDates = listWeekdayDates(monthStart, hoy > monthEnd ? monthEnd : hoy);
+  const futureDates = listWeekdayDates(addDays(hoy, 1), addDays(hoy, FUTURE_DAYS));
+  const classDates = [
+    ...pastDates,
+    ...futureDates.filter((d) => !pastDates.includes(d) && d <= monthEnd),
+  ];
+
+  console.log("🥊 Demo mensual Parabellum — Ranking Athron\n");
+  console.log(`   Mes demo: ${monthKey} · ${classDates.length} clases (${classDates[0]} → ${classDates[classDates.length - 1]})\n`);
+
+  await detectSchema();
+  if (!supportsSinScore || !supportsCalsTipo) {
+    console.log(
+      "⚠ Ejecuta en Supabase: patch-clase-scores-cals.sql y patch-clase-scores-sin-score.sql\n"
+    );
+  }
 
   const { data: box, error: boxErr } = await supabase
     .from("boxes")
@@ -213,11 +303,9 @@ async function main() {
     .filter((p) => ["admin", "coach", "box_admin"].includes(p.rol))
     .map((p) => p.id);
 
-  // ─── Limpiar reservas y clases ────────────────────────────────────────────
-  const deletedClases = await deleteAllBoxClases(staffIds, boxProfileIds);
-  console.log(`✓ ${deletedClases} clases y reservas anteriores eliminadas`);
+  const deletedClases = await deleteAllBoxData(box.id, staffIds, boxProfileIds);
+  console.log(`✓ Datos anteriores eliminados (${deletedClases} clases + ledger ranking)`);
 
-  // ─── Eliminar socios y coaches (conservar admin) ──────────────────────────
   const toDelete = (profiles ?? []).filter((p) => {
     if (p.is_super_admin) return false;
     const email = emailByUserId.get(p.user_id) ?? "";
@@ -228,14 +316,10 @@ async function main() {
   for (const p of toDelete) {
     const email = emailByUserId.get(p.user_id) ?? p.nombre_completo;
     const { error } = await supabase.auth.admin.deleteUser(p.user_id);
-    if (error) {
-      console.warn(`  ⚠ No se pudo borrar ${email}: ${error.message}`);
-    } else {
-      console.log(`  − Eliminado: ${email}`);
-    }
+    if (error) console.warn(`  ⚠ ${email}: ${error.message}`);
+    else console.log(`  − ${email}`);
   }
 
-  // ─── Plan ─────────────────────────────────────────────────────────────────
   let { data: plan } = await supabase
     .from("planes")
     .select("id")
@@ -258,333 +342,202 @@ async function main() {
     plan = created;
   }
 
-  const hoy = todayInTimezone(TIMEZONE);
+  const coachMaria = await createUser(box.id, "coach.maria@parabellum.cross", "María Vega", "coach", {
+    telefono: "+52 55 2345 6789",
+    bio: "CrossFit L2 · Halterofilia",
+    estado_cuenta: "activo",
+  });
+  const coachDiego = await createUser(box.id, "coach.diego@parabellum.cross", "Diego Ruiz", "coach", {
+    telefono: "+52 55 3456 7890",
+    bio: "Hyrox & conditioning",
+    estado_cuenta: "activo",
+  });
+  console.log("✓ 2 coaches");
 
-  // ─── 2 coaches (2 clases cada uno) ────────────────────────────────────────
-  const coachMaria = await createUser(
-    box.id,
-    "coach.maria@parabellum.cross",
-    "María Vega",
-    "coach",
-    {
-      telefono: "+52 55 2345 6789",
-      bio: "CrossFit L2 · Halterofilia",
-      estado_cuenta: "activo",
-    }
-  );
-  const coachDiego = await createUser(
-    box.id,
-    "coach.diego@parabellum.cross",
-    "Diego Ruiz",
-    "coach",
-    {
-      telefono: "+52 55 3456 7890",
-      bio: "Hyrox & conditioning",
-      estado_cuenta: "activo",
-    }
-  );
-  console.log("✓ 2 coaches creados");
-
-  // ─── 10 atletas ───────────────────────────────────────────────────────────
-  const athleteDefs = [
-    { email: "lucia.herrera@email.com", nombre: "Lucía Herrera", memDays: 22 },
-    { email: "jorge.martinez@email.com", nombre: "Jorge Martínez", memDays: 18 },
-    { email: "sofia.lopez@email.com", nombre: "Sofía López", memDays: 4 },
-    { email: "miguel.ramos@email.com", nombre: "Miguel Ramos", memDays: 28 },
-    { email: "elena.castro@email.com", nombre: "Elena Castro", memDays: 15 },
-    { email: "pablo.silva@email.com", nombre: "Pablo Silva", memDays: -3 },
-    { email: "carla.mendez@email.com", nombre: "Carla Méndez", memDays: 25 },
-    { email: "andres.vargas@email.com", nombre: "Andrés Vargas", memDays: 12 },
-    { email: "valeria.nunez@email.com", nombre: "Valeria Núñez", memDays: 20 },
-    { email: "ricardo.pena@email.com", nombre: "Ricardo Peña", memDays: 8 },
-  ];
-
+  const emailToId = new Map<string, string>();
   const socioIds: string[] = [];
-  for (const a of athleteDefs) {
+
+  for (let i = 0; i < DEMO_ATHLETES.length; i++) {
+    const a = DEMO_ATHLETES[i];
     const id = await createUser(box.id, a.email, a.nombre, "socio", {
-      telefono: "+52 55 6000 " + String(1000 + socioIds.length),
-      bio: "Atleta Parabellum Cross",
+      telefono: `+52 55 6100 ${String(1000 + i)}`,
+      bio: a.story,
       estado_cuenta: "activo",
     });
     socioIds.push(id);
+    emailToId.set(a.email, id);
 
     await supabase.from("membresias").insert({
       usuario_id: id,
       plan_id: plan!.id,
-      fecha_inicio: addDays(hoy, -30),
+      fecha_inicio: monthStart,
       fecha_fin: addDays(hoy, a.memDays),
       estado: a.memDays < 0 ? "vencida" : "vigente",
       metodo_asignacion: "automatico",
     });
+
+    await supabase.from("atleta_perfil_deportivo").upsert(
+      {
+        usuario_id: id,
+        nivel_deportivo: a.level,
+        disciplina: "CrossFit",
+        fecha_nacimiento: `${a.birthYear}-03-15`,
+        estatura_cm: 165 + (i % 4) * 3,
+        peso_corporal_kg: 62 + i * 2,
+        anos_entrenando: 1 + (i % 5),
+        frase_legacy:
+          i % 2 === 0 ? "La constancia construye campeones" : "Build your legacy",
+      },
+      { onConflict: "usuario_id" }
+    );
   }
-  console.log("✓ 10 atletas con membresías");
+  console.log("✓ 10 atletas · Legacy · membresías variadas");
 
-  // ─── Clases: 5 pasadas + 5 futuras (todas con coach asignado) ─────────────
-  // Nota: getClasesByDateRange solo muestra clases con coach_id del box.
-  const pastClasses = [
-    { offset: -5, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: coachMaria },
-    { offset: -4, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachDiego },
-    { offset: -3, nombre: "Hyrox", start: "07:00", end: "08:00", coach: coachMaria },
-    { offset: -2, nombre: "Gimnasia", start: "18:30", end: "19:30", coach: coachDiego },
-    { offset: -1, nombre: "WOD Tarde", start: "09:00", end: "10:00", coach: coachMaria },
-  ];
+  const coaches = [coachMaria, coachDiego];
+  const wodAttempts = new Map<string, number>();
+  let reservaCount = 0;
+  let scoreCount = 0;
+  let classCount = 0;
 
-  const futureClasses = [
-    { offset: 1, nombre: "WOD Matutino", start: "06:00", end: "07:00", coach: coachDiego },
-    { offset: 2, nombre: "Halterofilia", start: "17:00", end: "18:00", coach: coachMaria },
-    { offset: 3, nombre: "Gimnasia", start: "18:30", end: "19:30", coach: coachDiego },
-    { offset: 4, nombre: "Hyrox", start: "07:00", end: "08:00", coach: coachMaria },
-    { offset: 5, nombre: "WOD Tarde", start: "09:00", end: "10:00", coach: coachDiego },
-  ];
+  for (let dayIndex = 0; dayIndex < classDates.length; dayIndex++) {
+    const fecha = classDates[dayIndex];
+    const wodName = WOD_ROTATION[dayIndex % WOD_ROTATION.length];
+    const coach = coaches[dayIndex % 2];
+    const slot =
+      dayIndex % 3 === 0
+        ? { start: "06:00", end: "07:00" }
+        : dayIndex % 3 === 1
+          ? { start: "17:00", end: "18:00" }
+          : { start: "18:30", end: "19:30" };
 
-  const claseRecords: {
-    id: string;
-    past: boolean;
-    targetFecha: string;
-  }[] = [];
+    const isPast = fecha < hoy;
+    const seedFecha = isPast ? addDays(hoy, 45 + dayIndex) : fecha;
 
-  for (const c of [...pastClasses, ...futureClasses]) {
-    const targetFecha = addDays(hoy, c.offset);
-    const seedFecha = c.offset < 0 ? addDays(hoy, 30 + Math.abs(c.offset)) : targetFecha;
     const { data: clase, error } = await supabase
       .from("clases")
       .insert({
-        nombre: c.nombre,
+        nombre: wodName,
         fecha: seedFecha,
-        hora_inicio: c.start,
-        hora_fin: c.end,
-        cupo_maximo: 12,
-        coach_id: c.coach,
+        hora_inicio: slot.start,
+        hora_fin: slot.end,
+        cupo_maximo: 16,
+        coach_id: coach,
         estado: "programada",
-        entrenamiento: getSampleWorkout(c.nombre),
+        entrenamiento: getSampleWorkout(wodName),
       })
       .select("id")
       .single();
     if (error) throw error;
-    claseRecords.push({
-      id: clase.id,
-      past: c.offset < 0,
-      targetFecha,
-    });
-  }
-  console.log(`✓ ${claseRecords.length} clases (5 pasadas + 5 futuras)`);
+    classCount++;
 
-  // ─── Reservas (clases pasadas se crean en fecha futura, luego se mueven) ──
-  let reservaCount = 0;
-  const pastClases = claseRecords.filter((c) => c.past);
-  const futureClases = claseRecords.filter((c) => !c.past);
-  const pastAttendeesByClass = new Map<string, string[]>();
+    const scoreTipo = wodScoreType(wodName);
 
-  for (let i = 0; i < pastClases.length; i++) {
-    const { id: claseId } = pastClases[i];
-    const attendees = socioIds.slice(i % 3, (i % 3) + 6);
-    const padded =
-      attendees.length < 6
-        ? [...attendees, ...socioIds.slice(0, 6 - attendees.length)]
-        : attendees;
+    for (const athlete of DEMO_ATHLETES) {
+      const decision = decideAttendance(athlete, fecha, hoy);
+      if (decision === "skip") continue;
 
-    pastAttendeesByClass.set(claseId, padded);
-    for (const uid of padded) {
-      await insertReserva(claseId, uid, "confirmada");
+      const uid = emailToId.get(athlete.email)!;
+      const reservaId = await insertReserva(clase.id, uid, decision);
       reservaCount++;
+
+      if (decision !== "asistio") continue;
+
+      const attemptKey = `${athlete.email}:${wodName}`;
+      const attempt = (wodAttempts.get(attemptKey) ?? 0) + 1;
+      wodAttempts.set(attemptKey, attempt);
+
+      const score = generateScore(
+        athlete,
+        wodName,
+        scoreTipo,
+        attempt,
+        supportsCalsTipo
+      );
+      await insertScore(clase.id, uid, reservaId, score);
+      if (!("sin_score" in score && score.sin_score)) scoreCount++;
+    }
+
+    if (isPast) {
+      await supabase.from("clases").update({ fecha }).eq("id", clase.id);
     }
   }
 
-  for (let i = 0; i < futureClases.length; i++) {
-    const claseId = futureClases[i].id;
-    const bookers = socioIds.slice(i, i + 7);
-    for (const uid of bookers) {
-      await insertReserva(claseId, uid, "confirmada");
-      reservaCount++;
-    }
-  }
+  console.log(`✓ ${classCount} clases · ${reservaCount} reservas · ${scoreCount} scores`);
 
-  for (const c of pastClases) {
-    const { error } = await supabase
-      .from("clases")
-      .update({ fecha: c.targetFecha })
-      .eq("id", c.id);
-    if (error) throw error;
-  }
-
-  let asistioCount = 0;
-  let noAsistioCount = 0;
-  for (const c of pastClases) {
-    const attendees = pastAttendeesByClass.get(c.id) ?? [];
-    await markPastClassAttendance(c.id, attendees);
-    asistioCount += Math.max(0, attendees.length - 1);
-    noAsistioCount += attendees.length > 0 ? 1 : 0;
-  }
-
-  console.log(
-    `✓ ${reservaCount} reservas · pasadas: ${asistioCount} asistieron, ${noAsistioCount} no asistieron`
-  );
-
-  const futureIds = futureClases.map((c) => c.id);
-  if (futureIds.length > 0) {
-    const { error } = await supabase
-      .from("reservas")
-      .update({ estado: "confirmada" })
-      .in("clase_id", futureIds)
-      .in("estado", ["asistio", "no_asistio"]);
-    if (error) throw error;
-  }
-
-  // ─── Progreso: PRs, skills, objetivos ─────────────────────────────────────
-  const prPool = PR_EXERCISES.slice(0, 8);
-  const skillPool = SKILL_KEYS.slice(0, 6);
-
+  const prPool = PR_EXERCISES.slice(0, 6);
   for (let i = 0; i < socioIds.length; i++) {
     const uid = socioIds[i];
-
-    const prs = [
+    const prDay = addDays(monthStart, 3 + (i % 20));
+    await supabase.from("atleta_pr_marcas").insert([
       {
+        usuario_id: uid,
         ejercicio: prPool[i % prPool.length].key,
-        valor: 135 + i * 15,
+        record_tipo: "pr",
+        valor: 135 + i * 12 + (i % 3) * 5,
         unidad: prPool[i % prPool.length].unit,
-        fecha: addDays(hoy, -14 - i),
+        fecha: prDay,
       },
-      {
-        ejercicio: prPool[(i + 2) % prPool.length].key,
-        valor: 95 + i * 10,
-        unidad: prPool[(i + 2) % prPool.length].unit,
-        fecha: addDays(hoy, -7 - i),
-      },
-    ];
-
-    if (i < 6) {
-      prs.push({
-        ejercicio: prPool[(i + 4) % prPool.length].key,
-        valor: 185 + i * 5,
-        unidad: "lbs",
-        fecha: addDays(hoy, -2),
+    ]);
+    if (i % 2 === 0) {
+      await supabase.from("atleta_pr_marcas").insert({
+        usuario_id: uid,
+        ejercicio: prPool[(i + 1) % prPool.length].key,
+        record_tipo: "pr",
+        valor: 150 + i * 10,
+        unidad: prPool[(i + 1) % prPool.length].unit,
+        fecha: addDays(prDay, 12),
       });
     }
-
-    await supabase.from("atleta_pr_marcas").insert(
-      prs.map((p) => ({
-        usuario_id: uid,
-        ejercicio: p.ejercicio,
-        record_tipo: "pr",
-        valor: p.valor,
-        unidad: p.unidad,
-        fecha: p.fecha,
-      }))
-    );
-
-    const skillKey = skillPool[i % skillPool.length];
-    const skillEstado = i % 3 === 0 ? "dominado" : i % 2 === 0 ? "logrado" : "en_proceso";
     await supabase.from("atleta_skills").insert({
       usuario_id: uid,
-      skill: skillKey,
-      estado: skillEstado,
+      skill: SKILL_KEYS[i % SKILL_KEYS.length],
+      estado: i % 3 === 0 ? "dominado" : "en_proceso",
     });
-
-    if (i % 4 !== 3) {
-      await supabase.from("atleta_objetivos").insert({
-        usuario_id: uid,
-        nombre:
-          i % 2 === 0
-            ? "Primer muscle-up"
-            : `Back squat ${200 + i * 5} lb`,
-        estado: i % 5 === 0 ? "completado" : "en_proceso",
-        progreso_pct: i % 5 === 0 ? 100 : 40 + i * 5,
-        fecha_objetivo: addDays(hoy, 30 + i * 7),
-      });
-    }
   }
-  console.log("✓ PRs, skills y objetivos por atleta");
+  console.log("✓ PRs y skills repartidos en el mes");
+  console.log("⏳ Recalculando ledger Athron (~3–5 min)…");
 
-  // ─── Atleta demo: Lucía (avance y estadísticas completas) ─────────────────
-  const luciaId = socioIds[0];
-  await supabase.from("atleta_pr_marcas").insert([
-    {
-      usuario_id: luciaId,
-      ejercicio: "back_squat",
-      record_tipo: "pr",
-      valor: 225,
-      unidad: "lbs",
-      fecha: addDays(hoy, -3),
-    },
-    {
-      usuario_id: luciaId,
-      ejercicio: "deadlift",
-      record_tipo: "pr",
-      valor: 275,
-      unidad: "lbs",
-      fecha: addDays(hoy, -1),
-    },
-    {
-      usuario_id: luciaId,
-      ejercicio: "clean_jerk",
-      record_tipo: "pr",
-      valor: 155,
-      unidad: "lbs",
-      fecha: hoy,
-    },
-  ]);
-
-  for (const skill of ["pull_ups", "chest_to_bar", "double_unders"] as const) {
-    await supabase.from("atleta_skills").upsert(
-      {
-        usuario_id: luciaId,
-        skill,
-        estado: skill === "double_unders" ? "en_proceso" : "dominado",
-      },
-      { onConflict: "usuario_id,skill" }
+  try {
+    const ledger = await backfillRankingForBox(
+      box.id,
+      supabase as Parameters<typeof backfillRankingForBox>[1]
     );
+    console.log(
+      `✓ Ranking Athron ledger: ${ledger.attendance} asistencias · ${ledger.wod} WODs`
+    );
+  } catch (e) {
+    console.warn(
+      "⚠ Ranking ledger no generado — ejecuta patch-ranking-athron-v1.sql y patch-ranking-rx-bonus.sql"
+    );
+    console.warn(e);
   }
 
-  await supabase.from("atleta_objetivos").insert([
-    {
-      usuario_id: luciaId,
-      nombre: "Back squat 250 lb",
-      estado: "en_proceso",
-      progreso_pct: 72,
-      fecha_objetivo: addDays(hoy, 45),
-    },
-    {
-      usuario_id: luciaId,
-      nombre: "Primer muscle-up",
-      estado: "completado",
-      progreso_pct: 100,
-      fecha_objetivo: addDays(hoy, -5),
-    },
-  ]);
-
-  for (const c of claseRecords) {
-    const { data: existing } = await supabase
-      .from("reservas")
-      .select("id")
-      .eq("clase_id", c.id)
-      .eq("usuario_id", luciaId)
-      .maybeSingle();
-
-    if (existing) {
-      if (c.past) {
-        await supabase
-          .from("reservas")
-          .update({ estado: "asistio" })
-          .eq("id", existing.id);
-      }
-    } else if (!c.past) {
-      await insertReserva(c.id, luciaId, "confirmada");
-    }
-  }
-  console.log("✓ Atleta demo: Lucía Herrera");
+  const vigente = DEMO_ATHLETES.filter((a) => a.memDays >= 5).length;
+  const porVencer = DEMO_ATHLETES.filter((a) => a.memDays >= 0 && a.memDays < 5).length;
+  const vencida = DEMO_ATHLETES.filter((a) => a.memDays < 0).length;
 
   console.log("\n══════════════════════════════════════════");
-  console.log("  RESET DEMO COMPLETADO");
+  console.log("  DEMO MENSUAL COMPLETADA");
   console.log("══════════════════════════════════════════");
-  console.log(`\n  Box: ${box.name}`);
-  console.log(`  Admin:    ${ADMIN_EMAIL}`);
-  console.log(`  Coaches:  coach.maria@, coach.diego@`);
-  console.log(`  Clases:   5 pasadas + 5 futuras (todas visibles en admin)`);
+  console.log(`\n  Box:      ${box.name}`);
+  console.log(`  Mes:      ${monthKey}`);
+  console.log(`  Clases:   ${classDates.length} días (incl. ${FUTURE_DAYS} futuros para reservas)`);
+  console.log(`  Membresías: ${vigente} vigentes · ${porVencer} por vencer · ${vencida} vencidas`);
   console.log(`  Password: ${PASSWORD}`);
-  console.log("\n  ── Atleta demo (progreso y estadísticas) ──");
-  console.log("  Email:    lucia.herrera@email.com");
-  console.log(`  Password: ${PASSWORD}`);
-  console.log("  Rutas:    /mi-progreso · /mis-reservas · /perfil");
+  console.log("\n  ── Presentación a clientes ──");
+  console.log("  /es/ranking                    → ranking mensual + historial diario");
+  console.log("  /es/ranking?category=beginner  → Sofía lidera por constancia");
+  console.log("  /es/ranking?category=rx        → Miguel vs Carla (+ bonus RX)");
+  console.log("  /es/admin/ranking              → config · premios · compartir");
+  console.log("  /es/mis-reservas               → widget puntos (login socio)");
+  console.log("\n  ── Cuentas ──");
+  console.log(`  Admin:  ${ADMIN_EMAIL}`);
+  console.log(`  Coach:  coach.maria@ / coach.diego@parabellum.cross`);
+  console.log("  Socios: lucia.herrera@, sofia.lopez@, miguel.ramos@, … (@email.com)");
+  console.log("\n  ── Historias del mes (para la demo) ──");
+  for (const a of DEMO_ATHLETES) {
+    console.log(`  ${a.nombre.padEnd(18)} ${a.level.padEnd(14)} ${a.story}`);
+  }
   console.log("\n══════════════════════════════════════════\n");
 }
 

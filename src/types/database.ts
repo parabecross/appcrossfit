@@ -184,6 +184,66 @@ export interface ClaseScore {
 
 export type AthleticLevel = "beginner" | "intermediate" | "advanced" | "rx";
 
+export type RankingEventType =
+  | "attendance"
+  | "streak"
+  | "wod_position"
+  | "evolution"
+  | "achievement";
+
+export type RankingAwardType =
+  | "champion"
+  | "top3"
+  | "athlete_of_month"
+  | "most_evolution"
+  | "longest_streak"
+  | "most_consistent";
+
+export interface RankingConfig {
+  box_id: string;
+  enabled: boolean;
+  attendance_points: number;
+  streak_bonuses: Record<string, number>;
+  position_points_table: number[];
+  position_points_floor: number;
+  position_points_linear_drop: number;
+  evolution_bonuses: { small: number; medium: number; large: number };
+  achievement_points: Record<string, number>;
+  min_attendances_to_rank: number;
+  min_points_to_rank: number;
+  /** Puntos extra al registrar score en RX (Scaled = puntos de posición normales). */
+  rx_bonus_points: number;
+  tagline: string;
+  updated_at: string;
+}
+
+export interface RankingPointEvent {
+  id: string;
+  box_id: string;
+  usuario_id: string;
+  month_key: string;
+  fecha: string;
+  clase_id: string | null;
+  reserva_id: string | null;
+  event_type: RankingEventType;
+  points: number;
+  metadata: Record<string, unknown>;
+  idempotency_key: string;
+  created_at: string;
+}
+
+export interface RankingMonthlyAward {
+  id: string;
+  box_id: string;
+  month_key: string;
+  category: AthleticLevel | null;
+  award_type: RankingAwardType;
+  usuario_id: string;
+  points: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface AtletaPerfilDeportivo {
   usuario_id: string;
   peso_corporal_kg: number | null;
@@ -236,6 +296,21 @@ export interface Database {
         Row: ClaseScore;
         Insert: Partial<ClaseScore>;
         Update: Partial<ClaseScore>;
+      };
+      ranking_config: {
+        Row: RankingConfig;
+        Insert: Partial<RankingConfig>;
+        Update: Partial<RankingConfig>;
+      };
+      ranking_point_events: {
+        Row: RankingPointEvent;
+        Insert: Partial<RankingPointEvent>;
+        Update: Partial<RankingPointEvent>;
+      };
+      ranking_monthly_awards: {
+        Row: RankingMonthlyAward;
+        Insert: Partial<RankingMonthlyAward>;
+        Update: Partial<RankingMonthlyAward>;
       };
     };
   };

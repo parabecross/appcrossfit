@@ -38,13 +38,13 @@ supabase/schema.sql
 
 Esto crea tablas, enums, triggers, vistas, RLS y bucket `avatars`.
 
-### 4. Seed de datos demo
+### 4. Demo completa (10 días · ranking)
 
 ```bash
-npm run seed
+npm run demo
 ```
 
-Crea admin, coaches, socios, planes, clases y reservas.
+Crea 2 coaches, 10 atletas con categoría Legacy, 10 días de clases, scores y membresías variadas.
 
 ### 5. Correr en local
 
@@ -54,7 +54,7 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000) → redirige a `/es/login`.
 
-## Credenciales de prueba (post-seed)
+## Credenciales de prueba (post-demo)
 
 | Rol   | Email                         | Password          |
 |-------|-------------------------------|-------------------|

@@ -159,6 +159,13 @@ export function ScoreEntryForm({
     if (data) {
       onSaved?.(data as ClaseScore);
     }
+    if (!isNoScoreMode) {
+      void fetch("/api/ranking/award-wod", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claseId, usuarioId }),
+      });
+    }
     setSaved(true);
     router.refresh();
   };

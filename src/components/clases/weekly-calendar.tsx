@@ -17,9 +17,10 @@ import {
 } from "@/lib/clases/helpers";
 import { ScoreEntryForm } from "@/components/clases/score-entry-form";
 import { ScoreResponseSummary } from "@/components/clases/score-response-summary";
-import { ClassRankingBoard } from "@/components/clases/class-ranking-board";
+import { AthronPointsWidget } from "@/components/ranking/athron/athron-points-widget";
 import { hasScoreResponse } from "@/lib/scores/helpers";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
+import type { UserAthronSummary } from "@/lib/ranking/aggregate";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,6 @@ import { createClient } from "@/lib/supabase/client";
 import { countReservasForClase } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
-import { filterScoresByLevel, type RankingLevel } from "@/lib/scores/helpers";
 
 interface WeeklyCalendarProps {
   clases: Clase[];
@@ -53,6 +53,7 @@ interface WeeklyCalendarProps {
   gymTimezone?: string;
   classScores?: ClaseScoreWithProfile[];
   athleteLevel?: AthleticLevel | null;
+  athronSummary?: UserAthronSummary | null;
 }
 
 export function WeeklyCalendar({
@@ -72,7 +73,7 @@ export function WeeklyCalendar({
   canEditClass = false,
   gymTimezone,
   classScores = [],
-  athleteLevel,
+  athronSummary,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -234,25 +235,10 @@ export function WeeklyCalendar({
     return t("bookedDayOn", { date: formatShortDay(selected, locale) });
   })();
 
-  const scoresForClase = (claseId: string) =>
-    classScores.filter((s) => s.clase_id === claseId);
-
-  const categoryScoresForClase = (claseId: string) =>
-    filterScoresByLevel(
-      scoresForClase(claseId),
-      athleteLevel as RankingLevel | null | undefined
-    );
-
   const myScoreForClase = (claseId: string) =>
     classScores.find(
       (s) => s.clase_id === claseId && s.usuario_id === profileId
     );
-
-  const endedClassesWithRanking = dayClases.filter(
-    (c) =>
-      hasClassEnded(c.fecha, c.hora_fin, gymTimezone) &&
-      categoryScoresForClase(c.id).length > 0
-  );
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -513,18 +499,15 @@ export function WeeklyCalendar({
         </div>
       )}
 
-      {!isAdmin && endedClassesWithRanking.length > 0 && (
-        <div className="space-y-4">
-          {endedClassesWithRanking.map((clase) => (
-            <ClassRankingBoard
-              key={clase.id}
-              clase={clase}
-              scores={scoresForClase(clase.id)}
-              myProfileId={profileId}
-              athleteLevel={athleteLevel}
-            />
-          ))}
-        </div>
+      {!isAdmin && athronSummary && (
+        <AthronPointsWidget
+          monthPoints={athronSummary.month_points}
+          todayPoints={athronSummary.today_points}
+          monthRank={athronSummary.month_rank}
+          streak={athronSummary.streak}
+          category={athronSummary.category}
+          locale={locale}
+        />
       )}
     </div>
   );
