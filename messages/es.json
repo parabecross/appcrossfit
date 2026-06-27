@@ -707,7 +707,7 @@
     "howStreakTitle": "Racha de días",
     "howStreakDesc": "Bonus extra por días consecutivos con al menos una asistencia.",
     "howWodTitle": "Posición en el WOD",
-    "howWodDesc": "Hasta {first} pts por puesto en tu categoría Legacy (10.º: {tenth} pts). Scaled = puntos normales; RX suma +{rxBonus} pts extra por pesos prescritos.",
+    "howWodDesc": "Cada puesto en tu categoría Legacy suma: 1.º {first} pts, 2.º {second} pts … 10.º {tenth} pts (11.º+ baja de 2 en 2, mín. 5). Scaled = esos puntos; RX suma +{rxBonus} extra.",
     "howEvolutionTitle": "Evolución personal",
     "howEvolutionDesc": "Mejora tu marca o posición: +{small} a +{large} pts según el avance.",
     "howAchievementsTitle": "Logros especiales",

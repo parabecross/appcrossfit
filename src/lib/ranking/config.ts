@@ -10,7 +10,9 @@ export const DEFAULT_STREAK_BONUSES: Record<string, number> = {
   "7": 15,
 };
 
-export const DEFAULT_POSITION_TABLE = [30, 28, 26, 24, 22, 20, 19, 18, 17, 16];
+export const DEFAULT_POSITION_TABLE = [
+  30, 28, 26, 24, 22, 20, 18, 16, 14, 12,
+];
 
 export const DEFAULT_EVOLUTION_BONUSES = {
   small: 5,
@@ -54,7 +56,7 @@ export function getDefaultRankingConfig(boxId: string): RankingConfig {
     streak_bonuses: { ...DEFAULT_STREAK_BONUSES },
     position_points_table: [...DEFAULT_POSITION_TABLE],
     position_points_floor: 5,
-    position_points_linear_drop: 1,
+    position_points_linear_drop: 2,
     evolution_bonuses: { ...DEFAULT_EVOLUTION_BONUSES },
     achievement_points,
     min_attendances_to_rank: 1,

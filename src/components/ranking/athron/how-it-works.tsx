@@ -30,7 +30,8 @@ export function HowItWorks({ config }: { config: RankingConfig }) {
       title: t("howWodTitle"),
       desc: t("howWodDesc", {
         first: config.position_points_table[0] ?? 30,
-        tenth: config.position_points_table[9] ?? 16,
+        second: config.position_points_table[1] ?? 28,
+        tenth: config.position_points_table[9] ?? 12,
         rxBonus: config.rx_bonus_points,
       }),
     },

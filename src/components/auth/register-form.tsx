@@ -28,7 +28,7 @@ import { AthronLogo } from "@/components/brand/athron-logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { cn } from "@/lib/utils";
 
-type AccountType = "atleta" | "coach" | "gym";
+type AccountType = "atleta" | "gym";
 
 interface BoxOption {
   id: string;
@@ -48,7 +48,6 @@ const GYM_TIMEZONES = [
 
 function postRegisterPath(accountType: AccountType): string {
   if (accountType === "gym") return "/admin/dashboard";
-  if (accountType === "coach") return "/admin/clases";
   return "/mis-reservas";
 }
 
@@ -120,9 +119,6 @@ export function RegisterForm() {
 
     if (accountType === "atleta") {
       metadata.box_id = form.boxId;
-    } else if (accountType === "coach") {
-      metadata.box_id = form.boxId;
-      metadata.rol = "coach";
     } else {
       metadata.rol = "box_admin";
       metadata.box_name = form.boxName.trim();
@@ -164,7 +160,6 @@ export function RegisterForm() {
 
   const accountTypes: { id: AccountType; label: string }[] = [
     { id: "atleta", label: t("accountTypeAtleta") },
-    { id: "coach", label: t("accountTypeCoach") },
     { id: "gym", label: t("accountTypeGym") },
   ];
 

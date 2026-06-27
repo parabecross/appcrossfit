@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("rol")
+      .select("rol, box_id")
       .eq("user_id", user.id)
       .single();
 
@@ -25,6 +25,29 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { reservaId?: string };
     if (!body.reservaId) {
       return NextResponse.json({ error: "reservaId required" }, { status: 400 });
+    }
+
+    const { data: reservaCtx } = await supabase
+      .from("reservas")
+      .select(
+        "id, clase:clases!inner(coach:profiles!clases_coach_id_fkey(box_id))"
+      )
+      .eq("id", body.reservaId)
+      .maybeSingle();
+
+    if (!reservaCtx) {
+      return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
+    }
+
+    const coachBoxId = (
+      reservaCtx.clase as { coach: { box_id: string } | null }
+    ).coach?.box_id;
+
+    if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
+      return NextResponse.json(
+        { error: "La reserva no pertenece a tu box" },
+        { status: 403 }
+      );
     }
 
     const result = await awardAttendance({ reservaId: body.reservaId });

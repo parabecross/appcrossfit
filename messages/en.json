@@ -707,7 +707,7 @@
     "howStreakTitle": "Day streak",
     "howStreakDesc": "Extra bonus for consecutive days with at least one attendance.",
     "howWodTitle": "WOD position",
-    "howWodDesc": "Up to {first} pts for rank in your Legacy category (10th: {tenth} pts). Scaled = normal points; RX adds +{rxBonus} extra pts for prescribed weights.",
+    "howWodDesc": "Every rank in your Legacy category scores: 1st {first} pts, 2nd {second} pts … 10th {tenth} pts (11th+ drops by 2, min. 5). Scaled = those points; RX adds +{rxBonus} extra.",
     "howEvolutionTitle": "Personal evolution",
     "howEvolutionDesc": "Improve your score or rank: +{small} to +{large} pts depending on progress.",
     "howAchievementsTitle": "Special achievements",

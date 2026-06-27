@@ -22,7 +22,7 @@ export function AthleteAvatar({
   return (
     <Avatar className={cn(className)}>
       <AvatarImage
-        src={avatarUrlForAthlete(fotoUrl, seed)}
+        src={avatarUrlForAthlete(fotoUrl, seed, name)}
         alt={name}
       />
       <AvatarFallback>{initials || "?"}</AvatarFallback>

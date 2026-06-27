@@ -4,7 +4,10 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { avatarUrlForAthlete } from "@/lib/avatars/placeholder";
+import {
+  avatarUrlForAthlete,
+  isLocalAvatarUrl,
+} from "@/lib/avatars/placeholder";
 import {
   CardExportShell,
   CardBrandingFooter,
@@ -39,6 +42,11 @@ export function AwardShareCard({
 
   const labelKey = AWARD_LABELS[award.award_type] ?? "awardChampion";
   const accent = "#f97316";
+  const avatarSrc = avatarUrlForAthlete(
+    award.foto_url,
+    award.usuario_id,
+    award.nombre
+  );
 
   const exportCard = async () => {
     if (!ref.current) return;
@@ -92,11 +100,13 @@ export function AwardShareCard({
             </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={avatarUrlForAthlete(award.foto_url, award.usuario_id)}
+              src={avatarSrc}
               alt=""
               className="mx-auto rounded-full object-cover ring-4 ring-orange-500/40"
               style={{ width: 160, height: 160 }}
-              crossOrigin="anonymous"
+              {...(!isLocalAvatarUrl(avatarSrc)
+                ? { crossOrigin: "anonymous" as const }
+                : {})}
             />
             <p className="font-black text-white" style={{ fontSize: CARD_TYPO.name }}>
               {award.nombre}

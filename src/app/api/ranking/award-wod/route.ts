@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, rol")
+      .select("id, rol, box_id")
       .eq("user_id", user.id)
       .single();
 
@@ -35,6 +35,37 @@ export async function POST(request: Request) {
 
     if (profile.rol === "socio" && profile.id !== body.usuarioId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { data: claseCtx } = await supabase
+      .from("clases")
+      .select("id, coach:profiles!clases_coach_id_fkey(box_id)")
+      .eq("id", body.claseId)
+      .maybeSingle();
+
+    if (!claseCtx) {
+      return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
+    }
+
+    const coachBoxId = (claseCtx.coach as { box_id: string } | null)?.box_id;
+    if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
+      return NextResponse.json(
+        { error: "La clase no pertenece a tu box" },
+        { status: 403 }
+      );
+    }
+
+    const { data: athlete } = await supabase
+      .from("profiles")
+      .select("box_id")
+      .eq("id", body.usuarioId)
+      .maybeSingle();
+
+    if (!athlete || athlete.box_id !== profile.box_id) {
+      return NextResponse.json(
+        { error: "El atleta no pertenece a tu box" },
+        { status: 403 }
+      );
     }
 
     const result = await awardWodResult({

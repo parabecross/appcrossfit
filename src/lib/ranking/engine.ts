@@ -188,7 +188,12 @@ export async function awardWodResult(params: {
     .eq("usuario_id", params.usuarioId)
     .maybeSingle();
 
-  if (!score || score.sin_score || !canRankScore(score)) {
+  if (!score) {
+    return { awarded: false, events: [] };
+  }
+
+  const hasSinScore = score.sin_score === true;
+  if (!hasSinScore && !canRankScore(score)) {
     return { awarded: false, events: [] };
   }
 
@@ -317,13 +322,15 @@ export async function awardWodResult(params: {
     previousRank = lastRow?.rank ?? null;
   }
 
-  const evolutionAwards = computeEvolutionAwards(
-    score,
-    previousScores,
-    previousRank,
-    myRow.rank,
-    config
-  );
+  const evolutionAwards = hasSinScore
+    ? []
+    : computeEvolutionAwards(
+        score,
+        previousScores,
+        previousRank,
+        myRow.rank,
+        config
+      );
 
   for (const award of evolutionAwards) {
     const evOk = await insertEvent(admin, {

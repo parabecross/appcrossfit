@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   const { data: adminProfile } = await supabase
     .from("profiles")
-    .select("rol")
+    .select("rol, box_id")
     .eq("user_id", user.id)
     .single();
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const { data: target, error: targetError } = await supabase
     .from("profiles")
-    .select("rol, nombre_completo")
+    .select("rol, nombre_completo, box_id")
     .eq("user_id", user_id)
     .single();
 
@@ -47,6 +47,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Usuario no encontrado" },
       { status: 404 }
+    );
+  }
+
+  if (adminProfile.box_id !== target.box_id) {
+    return NextResponse.json(
+      { error: "Usuario no pertenece a tu box" },
+      { status: 403 }
     );
   }
 

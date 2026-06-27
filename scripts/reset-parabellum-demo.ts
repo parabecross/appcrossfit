@@ -3,6 +3,7 @@
  *
  * Pensado para presentar a clientes:
  * - Mes calendario completo (lun–sáb) con clases y scores
+ * - Horario: mañana 6–9 h (3 clases) + tarde 17–21 h (4 clases), 1 h c/u
  * - Constancia, rachas, posición WOD, bonus RX, evolución
  * - 4 categorías Legacy · membresías variadas · PRs/skills
  * - Ledger Athron recalculado al final
@@ -16,11 +17,14 @@ import { PR_EXERCISES, SKILL_KEYS } from "../src/lib/progreso/constants";
 import { backfillRankingForBox } from "../src/lib/ranking/engine";
 import {
   DEMO_ATHLETES,
-  WOD_ROTATION,
+  CLASSES_PER_DAY,
+  MORNING_SLOTS,
+  EVENING_SLOTS,
   decideAttendance,
   generateScore,
   listWeekdayDates,
   monthBounds,
+  wodNameForSlot,
   wodScoreType,
   type ScoreDef,
 } from "./demo-month-generators";
@@ -102,10 +106,6 @@ async function listAllAuthUsers() {
   return users;
 }
 
-function demoAvatarUrl(seed: string): string {
-  return `https://i.pravatar.cc/256?u=${encodeURIComponent(seed)}`;
-}
-
 async function createUser(
   boxId: string,
   email: string,
@@ -136,7 +136,7 @@ async function createUser(
   if (extra?.estado_cuenta) updates.estado_cuenta = extra.estado_cuenta;
   if (extra?.telefono) updates.telefono = extra.telefono;
   if (extra?.bio) updates.bio = extra.bio;
-  updates.foto_url = extra?.foto_url ?? demoAvatarUrl(email);
+  if (extra?.foto_url) updates.foto_url = extra.foto_url;
 
   await supabase.from("profiles").update(updates).eq("user_id", data.user!.id);
 
@@ -154,12 +154,31 @@ async function insertReserva(
   usuarioId: string,
   estado: "confirmada" | "asistio" | "no_asistio"
 ) {
+  const { data: rpcId, error: rpcErr } = await supabase.rpc(
+    "admin_insert_reserva",
+    {
+      p_clase_id: claseId,
+      p_usuario_id: usuarioId,
+      p_estado: estado,
+    }
+  );
+
+  if (!rpcErr && rpcId) return rpcId as string;
+
   const { data, error } = await supabase
     .from("reservas")
     .insert({ clase_id: claseId, usuario_id: usuarioId, estado })
     .select("id")
     .single();
-  if (error) throw new Error(`Reserva: ${error.message}`);
+
+  if (error) {
+    const hint =
+      rpcErr?.message?.includes("admin_insert_reserva") ||
+      rpcErr?.code === "PGRST202"
+        ? " Ejecuta supabase/patch-admin-insert-reserva.sql en Supabase."
+        : "";
+    throw new Error(`Reserva: ${error.message}${hint}`);
+  }
   return data.id as string;
 }
 
@@ -171,20 +190,30 @@ async function insertScore(
 ) {
   if ("sin_score" in score && score.sin_score) {
     if (!supportsSinScore) return;
-    const { error } = await supabase.from("clase_scores").upsert(
-      {
-        clase_id: claseId,
-        usuario_id: usuarioId,
-        reserva_id: reservaId,
-        score_display: "—",
-        score_tipo: "otro" as const,
-        valor_numerico: null,
-        rx: true,
-        sin_score: true,
-        notas: score.notas ?? null,
-      },
-      { onConflict: "clase_id,usuario_id" }
-    );
+    const { error: rpcErr } = await supabase.rpc("admin_insert_clase_score", {
+      p_clase_id: claseId,
+      p_usuario_id: usuarioId,
+      p_reserva_id: reservaId,
+      p_score_display: "—",
+      p_score_tipo: "otro",
+      p_valor_numerico: null,
+      p_rx: true,
+      p_sin_score: true,
+      p_notas: score.notas ?? null,
+    });
+    if (!rpcErr) return;
+
+    const { error } = await supabase.from("clase_scores").insert({
+      clase_id: claseId,
+      usuario_id: usuarioId,
+      reserva_id: reservaId,
+      score_display: "—",
+      score_tipo: "otro" as const,
+      valor_numerico: null,
+      rx: true,
+      sin_score: true,
+      notas: score.notas ?? null,
+    });
     if (error) throw new Error(`Score: ${error.message}`);
     return;
   }
@@ -192,6 +221,19 @@ async function insertScore(
   const s = score as Exclude<ScoreDef, { sin_score: true }>;
   let tipo = s.tipo;
   if (tipo === "cals" && !supportsCalsTipo) tipo = "reps";
+
+  const { error: rpcErr } = await supabase.rpc("admin_insert_clase_score", {
+    p_clase_id: claseId,
+    p_usuario_id: usuarioId,
+    p_reserva_id: reservaId,
+    p_score_display: s.display,
+    p_score_tipo: tipo,
+    p_valor_numerico: s.valor,
+    p_rx: s.rx,
+    p_sin_score: false,
+    p_notas: s.notas ?? null,
+  });
+  if (!rpcErr) return;
 
   const payload: Record<string, unknown> = {
     clase_id: claseId,
@@ -205,10 +247,18 @@ async function insertScore(
   };
   if (supportsSinScore) payload.sin_score = false;
 
-  const { error } = await supabase.from("clase_scores").upsert(payload, {
-    onConflict: "clase_id,usuario_id",
-  });
-  if (error) throw new Error(`Score: ${error.message}`);
+  const { error } = await supabase.from("clase_scores").insert(payload);
+  if (error) {
+    const { data: claseRow } = await supabase
+      .from("clases")
+      .select("id")
+      .eq("id", claseId)
+      .maybeSingle();
+    const hint = !claseRow
+      ? ` (clase ${claseId} no existe — posible corrupción de seed)`
+      : "";
+    throw new Error(`Score: ${error.message}${hint}`);
+  }
 }
 
 async function deleteAllBoxData(
@@ -268,7 +318,8 @@ async function main() {
   ];
 
   console.log("🥊 Demo mensual Parabellum — Ranking Athron\n");
-  console.log(`   Mes demo: ${monthKey} · ${classDates.length} clases (${classDates[0]} → ${classDates[classDates.length - 1]})\n`);
+  console.log(`   Mes demo: ${monthKey} · ${classDates.length} días × ${CLASSES_PER_DAY} clases/día`);
+  console.log(`   Mañana 06:00–09:00 (3) · Tarde 17:00–21:00 (4)\n`);
 
   await detectSchema();
   if (!supportsSinScore || !supportsCalsTipo) {
@@ -276,6 +327,9 @@ async function main() {
       "⚠ Ejecuta en Supabase: patch-clase-scores-cals.sql y patch-clase-scores-sin-score.sql\n"
     );
   }
+  console.log(
+    "  Tip: ejecuta supabase/patch-admin-insert-reserva.sql (bypass triggers de seed).\n"
+  );
 
   const { data: box, error: boxErr } = await supabase
     .from("boxes")
@@ -393,73 +447,99 @@ async function main() {
   }
   console.log("✓ 10 atletas · Legacy · membresías variadas");
 
-  const coaches = [coachMaria, coachDiego];
   const wodAttempts = new Map<string, number>();
   let reservaCount = 0;
   let scoreCount = 0;
   let classCount = 0;
+  let globalClassIndex = 0;
+  const fechaMoves: { id: string; fecha: string }[] = [];
 
   for (let dayIndex = 0; dayIndex < classDates.length; dayIndex++) {
     const fecha = classDates[dayIndex];
-    const wodName = WOD_ROTATION[dayIndex % WOD_ROTATION.length];
-    const coach = coaches[dayIndex % 2];
-    const slot =
-      dayIndex % 3 === 0
-        ? { start: "06:00", end: "07:00" }
-        : dayIndex % 3 === 1
-          ? { start: "17:00", end: "18:00" }
-          : { start: "18:30", end: "19:30" };
 
-    const isPast = fecha < hoy;
-    const seedFecha = isPast ? addDays(hoy, 45 + dayIndex) : fecha;
+    const daySlots: {
+      start: string;
+      end: string;
+      session: "morning" | "evening";
+      slotIndex: number;
+      coachId: string;
+    }[] = [
+      ...MORNING_SLOTS.map((s, slotIndex) => ({
+        ...s,
+        session: "morning" as const,
+        slotIndex,
+        coachId: coachMaria,
+      })),
+      ...EVENING_SLOTS.map((s, slotIndex) => ({
+        ...s,
+        session: "evening" as const,
+        slotIndex,
+        coachId: coachDiego,
+      })),
+    ];
 
-    const { data: clase, error } = await supabase
-      .from("clases")
-      .insert({
-        nombre: wodName,
-        fecha: seedFecha,
-        hora_inicio: slot.start,
-        hora_fin: slot.end,
-        cupo_maximo: 16,
-        coach_id: coach,
-        estado: "programada",
-        entrenamiento: getSampleWorkout(wodName),
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    classCount++;
+    for (const slot of daySlots) {
+      const wodName = wodNameForSlot(dayIndex, slot.slotIndex, slot.session);
+      // Insertar en fecha futura, reservar, luego mover (evita triggers de timing)
+      const insertFecha = addDays(hoy, 45 + globalClassIndex);
 
-    const scoreTipo = wodScoreType(wodName);
+      const { data: clase, error } = await supabase
+        .from("clases")
+        .insert({
+          nombre: wodName,
+          fecha: insertFecha,
+          hora_inicio: slot.start,
+          hora_fin: slot.end,
+          cupo_maximo: 16,
+          coach_id: slot.coachId,
+          estado: "programada",
+          entrenamiento: getSampleWorkout(wodName),
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      classCount++;
 
-    for (const athlete of DEMO_ATHLETES) {
-      const decision = decideAttendance(athlete, fecha, hoy);
-      if (decision === "skip") continue;
+      const scoreTipo = wodScoreType(wodName);
 
-      const uid = emailToId.get(athlete.email)!;
-      const reservaId = await insertReserva(clase.id, uid, decision);
-      reservaCount++;
+      for (const athlete of DEMO_ATHLETES) {
+        const decision = decideAttendance(
+          athlete,
+          fecha,
+          hoy,
+          slot.session
+        );
+        if (decision === "skip") continue;
 
-      if (decision !== "asistio") continue;
+        const uid = emailToId.get(athlete.email)!;
+        const reservaId = await insertReserva(clase.id, uid, decision);
+        reservaCount++;
 
-      const attemptKey = `${athlete.email}:${wodName}`;
-      const attempt = (wodAttempts.get(attemptKey) ?? 0) + 1;
-      wodAttempts.set(attemptKey, attempt);
+        if (decision !== "asistio") continue;
 
-      const score = generateScore(
-        athlete,
-        wodName,
-        scoreTipo,
-        attempt,
-        supportsCalsTipo
-      );
-      await insertScore(clase.id, uid, reservaId, score);
-      if (!("sin_score" in score && score.sin_score)) scoreCount++;
+        const attemptKey = `${athlete.email}:${wodName}`;
+        const attempt = (wodAttempts.get(attemptKey) ?? 0) + 1;
+        wodAttempts.set(attemptKey, attempt);
+
+        const score = generateScore(
+          athlete,
+          wodName,
+          scoreTipo,
+          attempt,
+          supportsCalsTipo
+        );
+        await insertScore(clase.id, uid, reservaId, score);
+        if (!("sin_score" in score && score.sin_score)) scoreCount++;
+      }
+
+      fechaMoves.push({ id: clase.id, fecha });
+      globalClassIndex++;
     }
+  }
 
-    if (isPast) {
-      await supabase.from("clases").update({ fecha }).eq("id", clase.id);
-    }
+  for (const { id, fecha } of fechaMoves) {
+    const { error } = await supabase.from("clases").update({ fecha }).eq("id", id);
+    if (error) throw new Error(`Clase fecha: ${error.message}`);
   }
 
   console.log(`✓ ${classCount} clases · ${reservaCount} reservas · ${scoreCount} scores`);
@@ -495,7 +575,7 @@ async function main() {
     });
   }
   console.log("✓ PRs y skills repartidos en el mes");
-  console.log("⏳ Recalculando ledger Athron (~3–5 min)…");
+  console.log("⏳ Recalculando ledger Athron (varios minutos con 7 clases/día)…");
 
   try {
     const ledger = await backfillRankingForBox(
@@ -521,9 +601,12 @@ async function main() {
   console.log("══════════════════════════════════════════");
   console.log(`\n  Box:      ${box.name}`);
   console.log(`  Mes:      ${monthKey}`);
-  console.log(`  Clases:   ${classDates.length} días (incl. ${FUTURE_DAYS} futuros para reservas)`);
+  console.log(`  Clases:   ~${classDates.length * CLASSES_PER_DAY} (${CLASSES_PER_DAY}/día: 3 mañana + 4 tarde)`);
   console.log(`  Membresías: ${vigente} vigentes · ${porVencer} por vencer · ${vencida} vencidas`);
   console.log(`  Password: ${PASSWORD}`);
+  console.log("\n  ── Horario ──");
+  console.log("    Mañana 06:00 · 07:00 · 08:00 (1 h, coach María)");
+  console.log("    Tarde  17:00 · 18:00 · 19:00 · 20:00 (1 h, coach Diego)");
   console.log("\n  ── Presentación a clientes ──");
   console.log("  /es/ranking                    → ranking mensual + historial diario");
   console.log("  /es/ranking?category=beginner  → Sofía lidera por constancia");
