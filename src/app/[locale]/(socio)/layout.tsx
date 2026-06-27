@@ -30,7 +30,7 @@ export default async function SocioLayout({
         <header className="hidden md:flex items-center justify-end border-b border-white/5 px-6 py-3 shrink-0">
           <LanguageSwitcher />
         </header>
-        <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-2xl md:mx-auto overflow-x-hidden">
+        <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden">
           <DailyMotivationBanner audience="athlete" locale={locale} className="mb-5" />
           {children}
         </main>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { User } from "lucide-react";
+import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,44 +14,48 @@ import { uploadAvatarForUser } from "@/lib/avatars/upload";
 import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { useRouter } from "@/i18n/routing";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
-import type { AtletaPerfilDeportivo, Profile } from "@/types/database";
+import type { Profile } from "@/types/database";
 
 export function ProfileForm({
   profile,
+  email,
   variant = "default",
   subtitle,
-  perfilDeportivo = null,
 }: {
   profile: Profile;
+  email?: string | null;
   variant?: "default" | "coach";
   subtitle?: string;
-  perfilDeportivo?: AtletaPerfilDeportivo | null;
 }) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const tn = useTranslations("nav");
   const ts = useTranslations("socio");
   const ta = useTranslations("admin");
-  const tsp = useTranslations("progress.sportsProfile");
   const router = useRouter();
   const supabase = createClient();
+  const [emailDisplay, setEmailDisplay] = useState(email ?? "");
   const [form, setForm] = useState({
     nombre_completo: profile.nombre_completo,
     telefono: profile.telefono ?? "",
     bio: profile.bio ?? "",
-  });
-  const [sportsForm, setSportsForm] = useState({
-    peso_corporal_kg: perfilDeportivo?.peso_corporal_kg?.toString() ?? "",
-    estatura_cm: perfilDeportivo?.estatura_cm?.toString() ?? "",
-    anos_entrenando: perfilDeportivo?.anos_entrenando?.toString() ?? "",
-    modalidad_favorita: perfilDeportivo?.modalidad_favorita ?? "",
-    notas: perfilDeportivo?.notas ?? "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState(profile.foto_url);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (email) {
+      setEmailDisplay(email);
+      return;
+    }
+    const client = createClient();
+    client.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setEmailDisplay(user.email);
+    });
+  }, [email]);
 
   const handlePhotoChange = (file: File | null) => {
     setPhoto(file);
@@ -90,35 +95,6 @@ export function ProfileForm({
       return;
     }
 
-    if (variant === "default") {
-      const { error: sportsError } = await supabase
-        .from("atleta_perfil_deportivo")
-        .upsert(
-          {
-            usuario_id: profile.id,
-            peso_corporal_kg: sportsForm.peso_corporal_kg
-              ? parseFloat(sportsForm.peso_corporal_kg)
-              : null,
-            estatura_cm: sportsForm.estatura_cm
-              ? parseInt(sportsForm.estatura_cm, 10)
-              : null,
-            anos_entrenando: sportsForm.anos_entrenando
-              ? parseInt(sportsForm.anos_entrenando, 10)
-              : null,
-            modalidad_favorita:
-              sportsForm.modalidad_favorita.trim() || null,
-            notas: sportsForm.notas.trim() || null,
-          },
-          { onConflict: "usuario_id" }
-        );
-
-      if (sportsError) {
-        setError(sportsError.message);
-        setLoading(false);
-        return;
-      }
-    }
-
     setSaved(true);
     router.refresh();
     setLoading(false);
@@ -130,7 +106,7 @@ export function ProfileForm({
   return (
     <div className="space-y-5 pb-24 md:pb-0">
       <SocioPageHeader
-        title={variant === "coach" ? tn("profile") : tn("profile")}
+        title={tn("profile")}
         subtitle={pageSubtitle}
       />
 
@@ -173,6 +149,19 @@ export function ProfileForm({
           />
         </div>
         <div>
+          <Label>{t("email")}</Label>
+          <Input
+            className="h-12 rounded-xl bg-white/5 text-muted-foreground"
+            type="email"
+            value={emailDisplay}
+            readOnly
+            autoComplete="email"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {ts("profileEmailHint")}
+          </p>
+        </div>
+        <div>
           <Label>{t("phone")}</Label>
           <Input
             className="h-12 rounded-xl"
@@ -204,90 +193,17 @@ export function ProfileForm({
         </div>
 
         {variant === "default" && (
-          <>
-            <div className="border-t border-white/10 pt-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-400/90">
-                {tsp("label")}
-              </p>
-              <p className="text-sm font-semibold mt-1">{tsp("title")}</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>{tsp("weight")}</Label>
-                <Input
-                  className="h-12 rounded-xl"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="75"
-                  value={sportsForm.peso_corporal_kg}
-                  onChange={(e) =>
-                    setSportsForm({
-                      ...sportsForm,
-                      peso_corporal_kg: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label>{tsp("height")}</Label>
-                <Input
-                  className="h-12 rounded-xl"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="175"
-                  value={sportsForm.estatura_cm}
-                  onChange={(e) =>
-                    setSportsForm({
-                      ...sportsForm,
-                      estatura_cm: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label>{tsp("yearsTraining")}</Label>
-                <Input
-                  className="h-12 rounded-xl"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="3"
-                  value={sportsForm.anos_entrenando}
-                  onChange={(e) =>
-                    setSportsForm({
-                      ...sportsForm,
-                      anos_entrenando: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label>{tsp("favoriteModality")}</Label>
-                <Input
-                  className="h-12 rounded-xl"
-                  placeholder={tsp("favoriteModalityPlaceholder")}
-                  value={sportsForm.modalidad_favorita}
-                  onChange={(e) =>
-                    setSportsForm({
-                      ...sportsForm,
-                      modalidad_favorita: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label>{tsp("notes")}</Label>
-              <Textarea
-                className="rounded-xl min-h-[80px]"
-                rows={2}
-                placeholder={tsp("notesPlaceholder")}
-                value={sportsForm.notas}
-                onChange={(e) =>
-                  setSportsForm({ ...sportsForm, notas: e.target.value })
-                }
-              />
-            </div>
-          </>
+          <p className="text-xs text-muted-foreground rounded-xl border border-white/10 bg-black/20 px-3 py-2.5">
+            {ts("profileLegacyHint")}{" "}
+            <Link
+              href="/legacy"
+              className="font-semibold text-orange-400 underline underline-offset-2"
+            >
+              Legacy
+            </Link>
+            {" · "}
+            {ts("profileLegacyHintDetail")}
+          </p>
         )}
 
         <div className="hidden md:block space-y-2">

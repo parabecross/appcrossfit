@@ -1,7 +1,6 @@
-import { requireRole } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/auth/get-profile";
 import { ProfileForm } from "@/components/socio/profile-form";
-import type { AtletaPerfilDeportivo } from "@/types/database";
 
 export default async function PerfilPage({
   params,
@@ -11,17 +10,9 @@ export default async function PerfilPage({
   const { locale } = await params;
   const profile = await requireRole(locale, ["socio"]);
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: perfilDeportivo } = await supabase
-    .from("atleta_perfil_deportivo")
-    .select("*")
-    .eq("usuario_id", profile.id)
-    .maybeSingle();
-
-  return (
-    <ProfileForm
-      profile={profile}
-      perfilDeportivo={(perfilDeportivo ?? null) as AtletaPerfilDeportivo | null}
-    />
-  );
+  return <ProfileForm profile={profile} email={user?.email} />;
 }

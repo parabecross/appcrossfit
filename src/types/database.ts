@@ -158,6 +158,8 @@ export interface AtletaObjetivo {
   updated_at: string;
 }
 
+export type AthleticLevel = "beginner" | "intermediate" | "advanced" | "rx";
+
 export interface AtletaPerfilDeportivo {
   usuario_id: string;
   peso_corporal_kg: number | null;
@@ -165,6 +167,10 @@ export interface AtletaPerfilDeportivo {
   anos_entrenando: number | null;
   modalidad_favorita: string | null;
   notas: string | null;
+  fecha_nacimiento: string | null;
+  disciplina: string | null;
+  nivel_deportivo: AthleticLevel | null;
+  frase_legacy: string | null;
   updated_at: string;
 }
 

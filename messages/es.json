@@ -96,7 +96,75 @@
     "myBookings": "Mis reservas",
     "profile": "Perfil",
     "membership": "Mi membresía",
-    "myProgress": "Mi progreso"
+    "myProgress": "Mi progreso",
+    "legacy": "Legacy"
+  },
+  "legacy": {
+    "title": "Tu Legacy",
+    "subtitle": "Crea tu Athlete Card — identidad deportiva premium para compartir en redes.",
+    "defaultTagline": "Build your legacy",
+    "saved": "Perfil Legacy guardado. Tu card se actualizó.",
+    "shareSuccess": "Card compartida.",
+    "downloadSuccess": "Descarga iniciada.",
+    "editor": {
+      "title": "Tu identidad deportiva",
+      "hint": "Datos que aparecen en tu Athlete Card. Foto y nombre se editan en Perfil.",
+      "save": "Guardar y actualizar card",
+      "photoHint": "Sube tu foto en",
+      "photoLink": "Perfil",
+      "nameHint": "Nombre en la card:",
+      "nameLink": "Editar en Perfil"
+    },
+    "preview": {
+      "title": "Vista previa"
+    },
+    "fields": {
+      "birthDate": "Fecha de nacimiento",
+      "discipline": "Disciplina",
+      "disciplinePlaceholder": "Selecciona disciplina",
+      "level": "Nivel deportivo",
+      "height": "Estatura (cm)",
+      "weight": "Peso (kg)",
+      "years": "Años entrenando",
+      "tagline": "Tu frase Legacy"
+    },
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced",
+      "rx": "RX"
+    },
+    "card": {
+      "badge": "Legacy",
+      "level": "Nivel",
+      "age": "Edad",
+      "ageUnit": "años",
+      "height": "Estatura",
+      "heightUnit": "cm",
+      "weight": "Peso",
+      "weightUnit": "kg",
+      "years": "Experiencia",
+      "yearsUnit": "años",
+      "goal": "Objetivo",
+      "poweredBy": "Powered by ATHRON"
+    },
+    "actions": {
+      "share": "Compartir mi Athlete Card",
+      "downloadTitle": "Descargar",
+      "format": {
+        "story": "Story",
+        "post": "Post",
+        "square": "Cuadrado 1:1"
+      },
+      "downloadStory": "Descargar Story 1080×1920",
+      "downloadPost": "Descargar Post 1080×1350",
+      "downloadSquare": "Descargar Square 1080×1080"
+    },
+    "errors": {
+      "yearsInvalid": "Los años entrenando deben ser 0 o más.",
+      "heightInvalid": "La estatura debe ser mayor a 0.",
+      "weightInvalid": "El peso debe ser mayor a 0."
+    }
   },
   "membership": {
     "title": "Mi membresía",
@@ -136,7 +204,10 @@
     "greeting": "Hola, {name}",
     "bookingsSubtitle": "Elige el día y reserva tu clase en segundos.",
     "membershipSubtitle": "Consulta tu plan y fechas de vencimiento.",
-    "profileSubtitle": "Actualiza tu foto y datos de contacto."
+    "profileSubtitle": "Actualiza tu foto y datos de contacto.",
+    "profileEmailHint": "Correo de acceso a tu cuenta (no editable).",
+    "profileLegacyHint": "Peso, estatura, disciplina y tu Athlete Card están en",
+    "profileLegacyHintDetail": "nombre y foto se editan aquí."
   },
   "classes": {
     "title": "Clases",
