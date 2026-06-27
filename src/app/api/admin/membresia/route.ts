@@ -120,12 +120,25 @@ export async function POST(request: NextRequest) {
 
     const { data: membresia, error: fetchError } = await supabase
       .from("membresias")
-      .select("fecha_inicio")
+      .select("fecha_inicio, usuario_id")
       .eq("id", membresia_id)
       .single();
 
     if (fetchError || !membresia) {
       return NextResponse.json({ error: "Membership not found" }, { status: 404 });
+    }
+
+    const { data: targetUser, error: userError } = await supabase
+      .from("profiles")
+      .select("box_id")
+      .eq("id", membresia.usuario_id)
+      .single();
+
+    if (userError || !targetUser || targetUser.box_id !== boxId) {
+      return NextResponse.json(
+        { error: "Membresía no pertenece a tu box" },
+        { status: 403 }
+      );
     }
 
     if (fecha_fin < membresia.fecha_inicio) {
