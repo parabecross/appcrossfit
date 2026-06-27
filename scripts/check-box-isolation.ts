@@ -7,6 +7,10 @@
  *   NEXT_PUBLIC_SUPABASE_URL
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY
  *   SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Si falla de forma inconsistente entre corridas, aplica en Supabase SQL Editor:
+ *   supabase/CONSOLIDADO-rls-multitenant.sql
+ * (checklist al final del script → missing_count debe ser 0)
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

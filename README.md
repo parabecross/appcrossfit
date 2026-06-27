@@ -38,6 +38,26 @@ supabase/schema.sql
 
 Esto crea tablas, enums, triggers, vistas, RLS y bucket `avatars`.
 
+Luego aplica las migraciones Athron y parches funcionales según tu instalación
+(`migration-athron-fase1.sql`, `patch-clase-scores.sql`, etc.).
+
+**RLS multi-tenant (recomendado):** en lugar de pegar uno a uno los parches
+`patch-rls-*.sql`, ejecuta una sola vez el script consolidado:
+
+```
+supabase/CONSOLIDADO-rls-multitenant.sql
+```
+
+Es idempotente (`DROP POLICY IF EXISTS` + `CREATE POLICY`) e incluye al final
+un checklist: todas las filas deben mostrar `status = OK` y `missing_count = 0`.
+Después verifica con:
+
+```bash
+npm run check-isolation
+```
+
+(debe dar **24/24**).
+
 ### 4. Demo completa (10 días · ranking)
 
 ```bash
