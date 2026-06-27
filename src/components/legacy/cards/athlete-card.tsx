@@ -28,40 +28,30 @@ interface AthleteCardProps {
   };
 }
 
-/** Foto un poco más oscura para que el texto destaque */
-const PHOTO_FILTER = "brightness(0.9) contrast(1.1) saturate(1.05)";
+const PHOTO_FILTER = "brightness(0.88) contrast(1.05) saturate(0.95)";
 
-function StatPill({
-  label,
-  value,
-  accentColor,
-}: {
-  label: string;
-  value: string;
-  accentColor: string;
-}) {
+function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className="rounded-2xl border border-white/30 bg-black/45 backdrop-blur-md"
-      style={{ padding: "18px 20px" }}
-    >
+    <div style={{ minWidth: 0 }}>
       <p
-        className="font-bold uppercase text-white/75"
+        className="uppercase text-white/45"
         style={{
           fontSize: CARD_TYPO.statLabel,
-          letterSpacing: "0.14em",
-          lineHeight: 1.1,
+          letterSpacing: "0.18em",
+          lineHeight: 1.2,
+          fontWeight: 500,
         }}
       >
         {label}
       </p>
       <p
-        className="font-black tabular-nums"
+        className="text-white/95 tabular-nums"
         style={{
           fontSize: CARD_TYPO.statValue,
-          color: accentColor,
+          fontWeight: 600,
           marginTop: 6,
-          lineHeight: 1,
+          lineHeight: 1.1,
+          letterSpacing: "0.01em",
         }}
       >
         {value}
@@ -74,6 +64,7 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
   function AthleteCard({ data, format, previewScale, labels }, ref) {
     const isSquare = format === "square";
     const pad = CARD_TYPO.pad;
+    const accent = data.accentColor;
 
     const stats: { label: string; value: string }[] = [];
 
@@ -109,12 +100,13 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
     }
 
     const visibleStats = stats.slice(0, isSquare ? 4 : 6);
+    const statCols = isSquare ? 2 : 3;
 
     return (
       <CardExportShell
         ref={ref}
         format={format}
-        accentColor={data.accentColor}
+        accentColor={accent}
         previewScale={previewScale}
       >
         <div className="relative h-full overflow-hidden">
@@ -125,19 +117,19 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
                 src={data.photoUrl}
                 alt=""
                 crossOrigin="anonymous"
-                className="h-full w-full object-cover object-[center_22%]"
+                className="h-full w-full object-cover object-[center_24%]"
                 style={{ filter: PHOTO_FILTER }}
               />
             ) : (
               <div
                 className="flex h-full w-full items-center justify-center"
                 style={{
-                  background: `linear-gradient(160deg, ${data.accentColor}55 0%, #2a2a2a 55%, #1f1f1f 100%)`,
+                  background: `linear-gradient(165deg, ${accent}33 0%, #1a1a1c 100%)`,
                 }}
               >
                 <span
-                  className="font-black text-white/30"
-                  style={{ fontSize: 120 }}
+                  className="font-light text-white/20"
+                  style={{ fontSize: 96, letterSpacing: "0.1em" }}
                 >
                   {getInitials(data.name)}
                 </span>
@@ -148,145 +140,181 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
               className="absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(to top, rgba(18,18,20,0.98) 0%, rgba(18,18,20,0.88) 22%, rgba(12,12,14,0.55) 48%, rgba(0,0,0,0.35) 72%, rgba(0,0,0,0.15) 100%)",
+                  "linear-gradient(to top, rgba(14,14,16,0.96) 0%, rgba(14,14,16,0.75) 28%, rgba(8,8,10,0.35) 58%, rgba(0,0,0,0.12) 100%)",
               }}
             />
           </div>
 
-          {/* LEGACY + by ATHRON arriba */}
+          {/* Header */}
           <div
-            className="absolute z-10"
+            className="absolute z-10 flex items-center gap-4"
             style={{ top: pad, left: pad, right: pad }}
           >
-            <p
-              className="font-black uppercase"
+            <div
               style={{
-                fontSize: CARD_TYPO.legacy,
-                letterSpacing: "0.22em",
-                color: data.accentColor,
-                lineHeight: 1,
-                textShadow: "0 2px 16px rgba(0,0,0,0.6)",
+                width: 3,
+                height: 36,
+                backgroundColor: accent,
+                borderRadius: 2,
+                opacity: 0.9,
               }}
-            >
-              {labels.legacy}
-            </p>
-            <p
-              className="font-semibold uppercase text-white/80"
-              style={{
-                fontSize: CARD_TYPO.byAthron,
-                letterSpacing: "0.16em",
-                marginTop: 10,
-                textShadow: "0 2px 12px rgba(0,0,0,0.5)",
-              }}
-            >
-              {labels.byAthron}
-            </p>
+            />
+            <div>
+              <p
+                className="uppercase text-white/90"
+                style={{
+                  fontSize: CARD_TYPO.legacy,
+                  letterSpacing: "0.28em",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                {labels.legacy}
+              </p>
+              <p
+                className="uppercase text-white/50"
+                style={{
+                  fontSize: CARD_TYPO.byAthron,
+                  letterSpacing: "0.22em",
+                  fontWeight: 400,
+                  marginTop: 8,
+                }}
+              >
+                {labels.byAthron}
+              </p>
+            </div>
           </div>
 
+          {/* Content */}
           <div
             className="relative z-10 flex h-full flex-col justify-end"
             style={{
               paddingLeft: pad,
               paddingRight: pad,
               paddingBottom: pad,
-              paddingTop: pad * 2,
             }}
           >
             <div>
               <h2
-                className="font-black uppercase text-white"
+                className="uppercase text-white"
                 style={{
                   fontSize: CARD_TYPO.name,
-                  lineHeight: 0.92,
-                  letterSpacing: "-0.02em",
-                  textShadow: "0 4px 24px rgba(0,0,0,0.65)",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: "0.06em",
                 }}
               >
                 {data.name}
               </h2>
+
+              <div
+                style={{
+                  width: 48,
+                  height: 2,
+                  backgroundColor: accent,
+                  marginTop: 16,
+                  opacity: 0.85,
+                  borderRadius: 1,
+                }}
+              />
+
               {data.discipline && (
                 <p
-                  className="font-bold uppercase text-white/90"
+                  className="uppercase"
                   style={{
                     fontSize: CARD_TYPO.discipline,
-                    letterSpacing: "0.14em",
-                    marginTop: 12,
-                    textShadow: "0 2px 16px rgba(0,0,0,0.55)",
+                    letterSpacing: "0.2em",
+                    fontWeight: 500,
+                    color: accent,
+                    marginTop: 14,
+                    opacity: 0.95,
                   }}
                 >
                   {data.discipline}
                 </p>
               )}
+
               <p
-                className="font-medium italic text-white/95"
+                className="italic text-white/75"
                 style={{
                   fontSize: CARD_TYPO.tagline,
-                  lineHeight: 1.25,
-                  marginTop: 16,
-                  maxWidth: "90%",
-                  textShadow: "0 2px 14px rgba(0,0,0,0.55)",
+                  fontWeight: 400,
+                  lineHeight: 1.35,
+                  marginTop: 14,
+                  maxWidth: "88%",
                 }}
               >
                 &ldquo;{data.tagline}&rdquo;
               </p>
             </div>
 
-            {visibleStats.length > 0 && (
+            {(visibleStats.length > 0 || data.goal) && (
               <div
-                className={`grid ${isSquare ? "grid-cols-2" : "grid-cols-3"}`}
+                className="backdrop-blur-sm"
                 style={{
-                  gap: CARD_TYPO.gap,
-                  marginTop: CARD_TYPO.gap + 4,
+                  marginTop: CARD_TYPO.gap + 8,
+                  padding: "28px 32px",
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
-                {visibleStats.map((s) => (
-                  <StatPill
-                    key={s.label}
-                    label={s.label}
-                    value={s.value}
-                    accentColor={data.accentColor}
-                  />
-                ))}
+                {visibleStats.length > 0 && (
+                  <div
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${statCols}, minmax(0, 1fr))`,
+                      gap: "24px 20px",
+                    }}
+                  >
+                    {visibleStats.map((s) => (
+                      <StatCell key={s.label} label={s.label} value={s.value} />
+                    ))}
+                  </div>
+                )}
+
+                {data.goal && (
+                  <div
+                    style={{
+                      marginTop: visibleStats.length > 0 ? 24 : 0,
+                      paddingTop: visibleStats.length > 0 ? 24 : 0,
+                      borderTop:
+                        visibleStats.length > 0
+                          ? "1px solid rgba(255,255,255,0.08)"
+                          : undefined,
+                    }}
+                  >
+                    <p
+                      className="uppercase text-white/45"
+                      style={{
+                        fontSize: CARD_TYPO.goalLabel,
+                        letterSpacing: "0.18em",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {labels.goal}
+                    </p>
+                    <p
+                      className="text-white/90"
+                      style={{
+                        fontSize: CARD_TYPO.goalValue,
+                        fontWeight: 500,
+                        marginTop: 6,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {data.goal}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            {data.goal && (
-              <div
-                className="rounded-2xl border border-white/25 bg-black/40 backdrop-blur-md"
-                style={{
-                  marginTop: CARD_TYPO.gap,
-                  padding: "20px 24px",
-                }}
-              >
-                <p
-                  className="font-bold uppercase text-white/70"
-                  style={{
-                    fontSize: CARD_TYPO.goalLabel,
-                    letterSpacing: "0.14em",
-                  }}
-                >
-                  {labels.goal}
-                </p>
-                <p
-                  className="font-semibold text-white"
-                  style={{
-                    fontSize: CARD_TYPO.goalValue,
-                    marginTop: 8,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {data.goal}
-                </p>
-              </div>
-            )}
-
-            <div style={{ marginTop: CARD_TYPO.gap }}>
-              <CardBrandingFooter
-                boxName={data.boxName}
-                boxLogoUrl={data.boxLogoUrl}
-                accentColor={data.accentColor}
-              />
-            </div>
+            <CardBrandingFooter
+              boxName={data.boxName}
+              boxLogoUrl={data.boxLogoUrl}
+              accentColor={accent}
+            />
           </div>
         </div>
       </CardExportShell>
