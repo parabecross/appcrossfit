@@ -378,6 +378,7 @@ async function main() {
     .from("planes")
     .select("id")
     .eq("nombre", "Mensualidad Normal")
+    .eq("box_id", box.id)
     .maybeSingle();
 
   if (!plan) {
@@ -389,6 +390,7 @@ async function main() {
         duracion_dias: 30,
         precio: 1200,
         activo: true,
+        box_id: box.id,
       })
       .select("id")
       .single();

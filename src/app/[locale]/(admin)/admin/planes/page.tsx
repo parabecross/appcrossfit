@@ -8,12 +8,13 @@ export default async function AdminPlanesPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdmin(locale);
+  const profile = await requireAdmin(locale);
   const supabase = await createClient();
   const { data: planes } = await supabase
     .from("planes")
     .select("*")
+    .eq("box_id", profile.box_id!)
     .order("nombre");
 
-  return <PlanesAdmin planes={planes ?? []} />;
+  return <PlanesAdmin planes={planes ?? []} boxId={profile.box_id!} />;
 }

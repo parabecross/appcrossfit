@@ -29,7 +29,11 @@ export default async function UserDetailPage({
         .select("*, plan:planes(*)")
         .eq("usuario_id", id)
         .order("fecha_fin", { ascending: false }),
-      supabase.from("planes").select("*").eq("activo", true),
+      supabase
+        .from("planes")
+        .select("*")
+        .eq("activo", true)
+        .eq("box_id", adminProfile.box_id!),
       getAthleteClassHistory(id, adminProfile.box_id!),
     ]);
 

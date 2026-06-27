@@ -15,7 +15,7 @@ async function requireAdmin() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("rol")
+    .select("rol, box_id")
     .eq("user_id", user.id)
     .single();
 
@@ -23,7 +23,13 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
 
-  return { supabase };
+  if (!profile.box_id) {
+    return {
+      error: NextResponse.json({ error: "Perfil sin box asignado" }, { status: 400 }),
+    };
+  }
+
+  return { supabase, boxId: profile.box_id };
 }
 
 export async function POST(request: NextRequest) {
@@ -31,6 +37,7 @@ export async function POST(request: NextRequest) {
   if ("error" in auth && auth.error) return auth.error;
 
   const supabase = auth.supabase!;
+  const boxId = auth.boxId!;
   const body = await request.json();
   const { action } = body;
 
@@ -41,11 +48,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
+    const { data: targetUser, error: userError } = await supabase
+      .from("profiles")
+      .select("box_id")
+      .eq("id", usuario_id)
+      .single();
+
+    if (userError || !targetUser || targetUser.box_id !== boxId) {
+      return NextResponse.json(
+        { error: "Usuario no pertenece a tu box" },
+        { status: 403 }
+      );
+    }
+
     const { data: plan, error: planError } = await supabase
       .from("planes")
       .select("id, duracion_dias")
       .eq("id", plan_id)
       .eq("activo", true)
+      .eq("box_id", boxId)
       .single();
 
     if (planError || !plan) {
@@ -148,6 +169,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("id", plan_id)
       .eq("activo", true)
+      .eq("box_id", boxId)
       .single();
 
     if (planError || !plan) {

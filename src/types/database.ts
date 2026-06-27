@@ -51,6 +51,7 @@ export interface Plan {
   duracion_dias: number;
   precio: number | null;
   activo: boolean;
+  box_id: string;
   created_at: string;
 }
 

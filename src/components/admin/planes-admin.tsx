@@ -24,7 +24,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import type { Plan } from "@/types/database";
 
-export function PlanesAdmin({ planes }: { planes: Plan[] }) {
+export function PlanesAdmin({
+  planes,
+  boxId,
+}: {
+  planes: Plan[];
+  boxId: string;
+}) {
   const t = useTranslations("plans");
   const tt = useTranslations("plans.types");
   const router = useRouter();
@@ -44,6 +50,7 @@ export function PlanesAdmin({ planes }: { planes: Plan[] }) {
       duracion_dias: form.duracion_dias,
       precio: form.precio ? parseFloat(form.precio) : null,
       activo: true,
+      box_id: boxId,
     });
     setOpen(false);
     router.refresh();
@@ -53,7 +60,8 @@ export function PlanesAdmin({ planes }: { planes: Plan[] }) {
     await supabase
       .from("planes")
       .update({ activo: !plan.activo })
-      .eq("id", plan.id);
+      .eq("id", plan.id)
+      .eq("box_id", boxId);
     router.refresh();
   };
 
