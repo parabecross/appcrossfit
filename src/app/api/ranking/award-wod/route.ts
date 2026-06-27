@@ -47,7 +47,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
     }
 
-    const coachBoxId = (claseCtx.coach as { box_id: string } | null)?.box_id;
+    const coach = claseCtx.coach as unknown as { box_id: string } | null;
+    const coachBoxId = coach?.box_id;
     if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
       return NextResponse.json(
         { error: "La clase no pertenece a tu box" },

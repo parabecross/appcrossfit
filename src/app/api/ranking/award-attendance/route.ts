@@ -39,9 +39,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
     }
 
-    const coachBoxId = (
-      reservaCtx.clase as { coach: { box_id: string } | null }
-    ).coach?.box_id;
+    const clase = reservaCtx.clase as unknown as {
+      coach: { box_id: string } | null;
+    };
+    const coachBoxId = clase?.coach?.box_id;
 
     if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
       return NextResponse.json(
