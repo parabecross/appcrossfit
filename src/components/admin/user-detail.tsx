@@ -414,7 +414,18 @@ export function UserDetailClient({
       <Card>
         <CardHeader>
           <CardTitle>{ta("classHistory")}</CardTitle>
-          <CardDescription>{ta("classHistoryDesc")}</CardDescription>
+          <CardDescription>
+            {ta("classHistoryDesc")}
+            {classHistory.length > 0 && (
+              <span className="mt-1 block font-medium text-foreground/80">
+                {ta("classHistorySummary", {
+                  attended,
+                  noShow,
+                  upcoming,
+                })}
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {classHistory.length === 0 ? (

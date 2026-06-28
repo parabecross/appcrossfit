@@ -1,6 +1,7 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClassHistoryList } from "@/components/clases/class-history-list";
-import { hasClassEnded } from "@/lib/clases/helpers";
 import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import type { ClaseScore } from "@/types/database";
 
@@ -25,10 +26,6 @@ export function SocioClassHistory({
   scoresByClaseId?: Map<string, ClaseScore>;
   profileId: string;
 }) {
-  const pastItems = items.filter((r) =>
-    hasClassEnded(r.clase.fecha, r.clase.hora_fin, gymTimezone)
-  );
-
   return (
     <Card>
       <CardHeader>
@@ -43,11 +40,11 @@ export function SocioClassHistory({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {pastItems.length === 0 ? (
+        {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         ) : (
           <ClassHistoryList
-            items={pastItems}
+            items={items}
             locale={locale}
             profileId={profileId}
             gymTimezone={gymTimezone}
