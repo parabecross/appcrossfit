@@ -324,11 +324,11 @@ export function LegacyClient({
           </p>
 
           <div className="min-w-0 space-y-4">
-            <div className="min-w-0 w-full overflow-hidden">
+            <div>
               <Label>{t("fields.birthDate")}</Label>
-              <Input
+              <input
                 type="date"
-                className="w-full max-w-full min-w-0 box-border [color-scheme:dark]"
+                className="input-date-compact [color-scheme:dark] mt-1.5"
                 value={form.fecha_nacimiento}
                 onChange={(e) =>
                   setForm({ ...form, fecha_nacimiento: e.target.value })
