@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminLikeRole } from "@/lib/auth/roles";
@@ -32,7 +33,7 @@ async function requireAdminApi() {
     };
   }
 
-  return { admin: createAdminClient(), boxId: profile.box_id };
+  return { admin: createAdminClient(), boxId: profile.box_id, userId: user.id };
 }
 
 export async function PATCH(request: NextRequest) {
@@ -89,6 +90,14 @@ export async function PATCH(request: NextRequest) {
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 400 });
   }
+
+  await logAdminAction({
+    actorUserId: auth.userId!,
+    boxId: auth.boxId,
+    accion: "editar_coach",
+    targetUserId: user_id,
+    detalle: { nombre_completo, telefono, ...(email ? { email } : {}) },
+  });
 
   return NextResponse.json({ success: true, email });
 }

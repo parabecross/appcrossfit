@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminLikeRole } from "@/lib/auth/roles";
@@ -76,6 +77,14 @@ export async function POST(request: NextRequest) {
       })
       .eq("user_id", data.user.id);
   }
+
+  await logAdminAction({
+    actorUserId: user.id,
+    boxId: profile.box_id,
+    accion: "crear_usuario",
+    targetUserId: data.user?.id ?? null,
+    detalle: { email, nombre, rol },
+  });
 
   return NextResponse.json({
     success: true,

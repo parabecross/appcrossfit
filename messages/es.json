@@ -453,8 +453,12 @@
       "empty": "Todo en orden. No hay alertas pendientes."
     },
     "today": {
-      "title": "Lo que pasó hoy",
-      "empty": "Aún no hay actividad registrada hoy.",
+      "title": "Actividad reciente",
+      "subtitle": "Últimos 7 días · abre cada día para ver el detalle",
+      "todayLabel": "Hoy",
+      "yesterdayLabel": "Ayer",
+      "eventCount": "{count, plural, one {# evento} other {# eventos}}",
+      "empty": "Sin actividad registrada en los últimos días.",
       "types": {
         "reserva": "Nueva reserva",
         "asistencia": "Asistencia",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminLikeRole } from "@/lib/auth/roles";
@@ -67,6 +68,13 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  await logAdminAction({
+    actorUserId: user.id,
+    boxId: profile.box_id,
+    accion: "reset_password_coach",
+    targetUserId: user_id,
+  });
 
   return NextResponse.json({
     success: true,

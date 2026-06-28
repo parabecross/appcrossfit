@@ -151,18 +151,45 @@ export interface DashboardActivityEvent {
 
 export function mergeActivityEvents(
   events: DashboardActivityEvent[],
-  limit = 20
+  options: { limit?: number; today?: string; maxDays?: number } = {}
 ): DashboardActivityEvent[] {
+  const { limit = 80, today, maxDays = 7 } = options;
+  const minDate =
+    today && maxDays > 0
+      ? addDaysToDateString(today, -(maxDays - 1))
+      : null;
+
   return [...events]
+    .filter((e) => !minDate || e.at.slice(0, 10) >= minDate)
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, limit);
 }
 
-export function filterTodayEvents(
-  events: DashboardActivityEvent[],
-  today: string
-): DashboardActivityEvent[] {
-  return events.filter((e) => e.at.slice(0, 10) === today);
+export type ActivityDayGroup = {
+  dateKey: string;
+  events: DashboardActivityEvent[];
+};
+
+export function groupActivityByDay(
+  events: DashboardActivityEvent[]
+): ActivityDayGroup[] {
+  const byDay = new Map<string, DashboardActivityEvent[]>();
+
+  for (const event of events) {
+    const dateKey = event.at.slice(0, 10);
+    const bucket = byDay.get(dateKey);
+    if (bucket) bucket.push(event);
+    else byDay.set(dateKey, [event]);
+  }
+
+  return Array.from(byDay.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([dateKey, dayEvents]) => ({
+      dateKey,
+      events: dayEvents.sort(
+        (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
+      ),
+    }));
 }
 
 export interface InactiveAthleteAlert {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminLikeRole } from "@/lib/auth/roles";
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  await logAdminAction({
+    actorUserId: user.id,
+    boxId: adminProfile.box_id,
+    accion: "eliminar_usuario",
+    targetUserId: user_id,
+    detalle: { nombre_completo: target.nombre_completo },
+  });
 
   return NextResponse.json({ success: true });
 }

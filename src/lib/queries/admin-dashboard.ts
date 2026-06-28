@@ -3,7 +3,6 @@ import { getBoxConfig } from "@/lib/box/config";
 import {
   computeAverageOccupancy,
   computeWeeklySummary,
-  filterTodayEvents,
   findAthletesWithoutWeekBooking,
   findInactiveAthletes,
   getPreviousWeekRange,
@@ -63,7 +62,7 @@ export interface AdminDashboardData {
   inactiveAthletesHigh: InactiveAthleteAlert[];
   athletesWithoutWeekBooking: { id: string; nombre: string }[];
   lowOccupancyClasses: AdminDashboardTodayClass[];
-  todayActivity: DashboardActivityEvent[];
+  recentActivity: DashboardActivityEvent[];
   weeklySummary: WeeklySummaryData;
   recentPrs: Array<{
     id: string;
@@ -387,8 +386,11 @@ export async function getAdminDashboardData(
   const demand = computeDemandStats(statsRaw.reservas, locale);
   const trend = computeTrendStats(statsRaw.reservas);
 
-  const allActivity = mergeActivityEvents(activityEvents);
-  const todayActivity = filterTodayEvents(allActivity, today);
+  const recentActivity = mergeActivityEvents(activityEvents, {
+    today,
+    maxDays: 7,
+    limit: 80,
+  });
 
   return {
     today,
@@ -421,7 +423,7 @@ export async function getAdminDashboardData(
     inactiveAthletesHigh: inactiveAthletesHigh.slice(0, 8),
     athletesWithoutWeekBooking,
     lowOccupancyClasses,
-    todayActivity,
+    recentActivity,
     weeklySummary,
     recentPrs: recentPrs.slice(0, 5),
     recentSkills: recentSkills.slice(0, 5),

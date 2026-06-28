@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit/log";
 import { createClient } from "@/lib/supabase/server";
 import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { isAdminLikeRole } from "@/lib/auth/roles";
@@ -29,7 +30,7 @@ async function requireAdmin() {
     };
   }
 
-  return { supabase, boxId: profile.box_id };
+  return { supabase, boxId: profile.box_id, userId: user.id };
 }
 
 export async function POST(request: NextRequest) {
@@ -108,6 +109,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: profileError.message }, { status: 400 });
     }
 
+    await logAdminAction({
+      actorUserId: auth.userId!,
+      boxId,
+      accion: "assign_membresia",
+      targetProfileId: usuario_id,
+      detalle: { plan_id, fecha_fin: fin, manual: !!manual },
+    });
+
     return NextResponse.json({ success: true, fecha_fin: fin });
   }
 
@@ -159,6 +168,14 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
+
+    await logAdminAction({
+      actorUserId: auth.userId!,
+      boxId,
+      accion: "update_end_membresia",
+      targetProfileId: membresia.usuario_id,
+      detalle: { membresia_id, fecha_fin },
+    });
 
     return NextResponse.json({ success: true, fecha_fin });
   }
@@ -228,6 +245,14 @@ export async function POST(request: NextRequest) {
         .update({ estado_cuenta: "activo" })
         .eq("id", membresia.usuario_id);
     }
+
+    await logAdminAction({
+      actorUserId: auth.userId!,
+      boxId,
+      accion: "update_membresia",
+      targetProfileId: membresia.usuario_id,
+      detalle: { membresia_id, plan_id, fecha_inicio, fecha_fin, estado },
+    });
 
     return NextResponse.json({ success: true, fecha_fin, estado });
   }

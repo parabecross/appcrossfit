@@ -453,8 +453,12 @@
       "empty": "All good. No pending alerts."
     },
     "today": {
-      "title": "What happened today",
-      "empty": "No activity recorded today yet.",
+      "title": "Recent activity",
+      "subtitle": "Last 7 days · expand each day for details",
+      "todayLabel": "Today",
+      "yesterdayLabel": "Yesterday",
+      "eventCount": "{count, plural, one {# event} other {# events}}",
+      "empty": "No activity recorded in recent days.",
       "types": {
         "reserva": "New booking",
         "asistencia": "Attendance",

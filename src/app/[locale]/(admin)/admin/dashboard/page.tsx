@@ -126,10 +126,15 @@ export default async function AdminDashboardPage({
       />
 
       <DashboardTodayTimeline
-        events={data.todayActivity}
+        events={data.recentActivity}
+        today={data.today}
+        locale={locale}
         labels={{
           title: td("today.title"),
+          subtitle: td("today.subtitle"),
           empty: td("today.empty"),
+          today: td("today.todayLabel"),
+          yesterday: td("today.yesterdayLabel"),
           types: {
             reserva: td("today.types.reserva"),
             asistencia: td("today.types.asistencia"),
