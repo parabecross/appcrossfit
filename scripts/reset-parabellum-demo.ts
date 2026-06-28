@@ -326,7 +326,7 @@ async function main() {
   await detectSchema();
   if (!supportsSinScore || !supportsCalsTipo) {
     console.log(
-      "⚠ Ejecuta en Supabase: patch-clase-scores-cals.sql y patch-clase-scores-sin-score.sql\n"
+      "⚠ Tu BD parece tener patch-clase-scores.sql antiguo — vuelve a ejecutar patch-clase-scores.sql\n"
     );
   }
   console.log(
@@ -608,7 +608,7 @@ async function main() {
     );
   } catch (e) {
     console.warn(
-      "⚠ Ranking ledger no generado — ejecuta patch-ranking-athron-v1.sql y patch-ranking-rx-bonus.sql"
+      "⚠ Ranking ledger no generado — ejecuta patch-ranking-athron-v1.sql"
     );
     console.warn(e);
   }

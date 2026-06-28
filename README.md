@@ -28,35 +28,56 @@ npm install
 2. Copia **Project URL**, **anon key** y **service_role key**
 3. Copia `.env.example` → `.env.local` y pega tus valores
 
-### 3. Ejecutar schema SQL
+### 3. Ejecutar SQL en Supabase (en orden)
 
-En el **SQL Editor** de Supabase, pega y ejecuta el contenido completo de:
+Pega cada archivo **completo** en el SQL Editor, uno tras otro:
 
-```
-supabase/schema.sql
-```
+| # | Archivo |
+|---|---------|
+| 1 | `supabase/schema.sql` |
+| 2 | `supabase/migration-athron-fase1.sql` |
+| 3 | `supabase/migration-athron-fase2-enum.sql` *(solo enum `box_admin` — corrida aparte)* |
+| 4 | `supabase/migration-athron-fase2-box-admin.sql` |
+| 5 | `supabase/patch-handle-new-user-rol-seguro.sql` |
+| 6 | `supabase/patch-atleta-expediente-fase1.sql` |
+| 7 | `supabase/patch-atleta-legacy.sql` |
+| 8 | `supabase/patch-clase-scores.sql` |
+| 9 | `supabase/patch-ranking-athron-v1.sql` |
+| 10 | `supabase/patch-clase-cupo-socio.sql` |
+| 11 | `supabase/patch-admin-insert-reserva.sql` *(requerido para `npm run demo`)* |
+| 12 | `supabase/patch-reservas-realtime.sql` |
+| 13 | `supabase/CONSOLIDADO-rls-multitenant.sql` *(RLS final — idempotente)* |
 
-Esto crea tablas, enums, triggers, vistas, RLS y bucket `avatars`.
-
-Luego aplica las migraciones Athron y parches funcionales según tu instalación
-(`migration-athron-fase1.sql`, `patch-clase-scores.sql`, etc.).
-
-**RLS multi-tenant (recomendado):** en lugar de pegar uno a uno los parches
-`patch-rls-*.sql`, ejecuta una sola vez el script consolidado:
-
-```
-supabase/CONSOLIDADO-rls-multitenant.sql
-```
-
-Es idempotente (`DROP POLICY IF EXISTS` + `CREATE POLICY`) e incluye al final
-un checklist: todas las filas deben mostrar `status = OK` y `missing_count = 0`.
-Después verifica con:
+El paso 13 incluye aislamiento multi-tenant, planes por box, ranking público y bypass super admin. Al final del script, el checklist debe mostrar `missing_count = 0`. Verifica con:
 
 ```bash
 npm run check-isolation
 ```
 
 (debe dar **24/24**).
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) corre en cada push y pull request:
+
+| Job | Cuándo | Qué hace |
+|-----|--------|----------|
+| **lint-and-build** | Siempre | `npm ci` → `npm run lint` → `npm run build` (sin secrets) |
+| **check-box-isolation** | Push y PRs **del mismo repo** (no forks) | `npm run check-isolation` contra Supabase real |
+
+El segundo job usa la **service_role key** y crea/borra usuarios de test en la base de datos configurada. Por eso **no corre en PRs desde forks externos**, donde GitHub no expone los secrets del repo de forma segura.
+
+Para que `check-box-isolation` funcione, configura estos **3 secrets** en el repositorio:
+
+**GitHub → Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Valor |
+|--------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL de Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
+
+Si falta alguno, el job falla con un mensaje claro antes de ejecutar el script.
 
 ### 4. Demo completa (10 días · ranking)
 
@@ -125,7 +146,12 @@ src/
 ├── i18n/             # Config next-intl
 └── types/            # Tipos TypeScript
 supabase/
-├── schema.sql        # DDL + RLS
+├── schema.sql                      # DDL base
+├── migration-athron-fase1.sql        # Multi-tenant (boxes, box_id)
+├── migration-athron-fase2-enum.sql # Enum box_admin
+├── migration-athron-fase2-box-admin.sql
+├── patch-*.sql                     # Features (scores, ranking, demo helpers)
+└── CONSOLIDADO-rls-multitenant.sql # RLS final (ejecutar al final)
 scripts/
 └── seed.ts           # Datos demo
 ```

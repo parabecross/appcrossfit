@@ -326,7 +326,7 @@ export type AttendanceDecision = "asistio" | "no_asistio" | "confirmada" | "skip
 export type AthleteDaySession = {
   session: "morning" | "evening";
   slotIndex: number;
-  decision: AttendanceDecision;
+  decision: Exclude<AttendanceDecision, "skip">;
 };
 
 function daySeed(athlete: AthleteProfile, fecha: string, tag: string): string {
@@ -359,7 +359,7 @@ function sessionDecision(
   fecha: string,
   today: string,
   session: "morning" | "evening"
-): AttendanceDecision {
+): Exclude<AttendanceDecision, "skip"> {
   if (fecha > today) return "confirmada";
   const r = seededRandom(daySeed(athlete, fecha, `dec:${session}`));
   if (r < 0.07) return "no_asistio";

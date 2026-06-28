@@ -6,22 +6,16 @@
 -- Ejecutar COMPLETO en Supabase SQL Editor cuando no sepas qué parches RLS
 -- ya están aplicados, o tras reset parcial de policies.
 --
--- Reemplaza (estado final, no hace falta correr los parches sueltos):
---   patch-rls-box-isolation.sql
---   patch-rls-super-admin-bypass.sql
---   patch-rls-box-isolation-atletas.sql
---   patch-rls-clases-select-box.sql
---   patch-planes-box-id.sql          (DDL box_id + RLS)
---   patch-coach-reservas-rls.sql     (función is_coach_of_clase + policies)
---   patch-ranking-public.sql         (policies públicas → TO anon)
---   patch-ranking-athron-v1.sql      (solo bloque RLS; tablas deben existir)
+-- Reemplaza todos los antiguos patch-rls-*, patch-planes-box-id,
+-- patch-coach-reservas-rls, patch-ranking-public (ya no existen en el repo).
 --
 -- Prerrequisitos (ejecutar antes si el proyecto es nuevo):
 --   1. supabase/schema.sql
---   2. supabase/migration-athron-fase1.sql   → get_my_box_id(), is_super_admin()
---   3. Tablas atleta + clase_scores (patch-atleta-progreso, patch-atleta-expediente-fase1,
---      patch-clase-scores.sql según tu instalación)
---   4. Tablas ranking Athron (patch-ranking-athron-v1.sql) — sección 7 se omite si no existen
+--   2. supabase/migration-athron-fase1.sql
+--   3. migration-athron-fase2-enum.sql + fase2-box-admin + patch-handle-new-user-rol-seguro.sql
+--   4. patch-atleta-expediente-fase1.sql, patch-atleta-legacy.sql, patch-clase-scores.sql
+--   5. patch-ranking-athron-v1.sql (tablas ranking — §7 se omite si no existen)
+--   6. patch-clase-cupo-socio.sql, patch-admin-insert-reserva.sql, patch-reservas-realtime.sql
 --
 -- No modifica: clases_update_coach_assigned, policies INSERT/DELETE propias del schema,
 -- avatars, handle_new_user, triggers de negocio.
