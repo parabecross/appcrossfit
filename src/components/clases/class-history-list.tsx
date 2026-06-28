@@ -36,12 +36,14 @@ const STATUS_FILTERS: HistoryStatusFilter[] = [
 
 const PERIOD_FILTERS: HistoryPeriodFilter[] = ["30d", "month", "90d", "all"];
 
+const EMPTY_SCORES = new Map<string, ClaseScore>();
+
 export function ClassHistoryList({
   items,
   locale,
   profileId,
   gymTimezone,
-  scoresByClaseId = new Map(),
+  scoresByClaseId,
 }: {
   items: AthleteClassHistoryItem[];
   locale: string;
@@ -50,6 +52,7 @@ export function ClassHistoryList({
   scoresByClaseId?: Map<string, ClaseScore>;
 }) {
   const tcl = useTranslations("classes");
+  const scoresMap = scoresByClaseId ?? EMPTY_SCORES;
 
   const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>("all");
   const [periodFilter, setPeriodFilter] =
@@ -59,10 +62,12 @@ export function ClassHistoryList({
     () => new Set()
   );
   const [expandedClaseId, setExpandedClaseId] = useState<string | null>(null);
-  const [scores, setScores] = useState(scoresByClaseId);
+  const [scores, setScores] = useState(scoresMap);
 
   useEffect(() => {
-    setScores(scoresByClaseId);
+    if (scoresByClaseId) {
+      setScores(scoresByClaseId);
+    }
   }, [scoresByClaseId]);
 
   const counts = useMemo(() => countByStatus(items), [items]);
@@ -83,12 +88,13 @@ export function ClassHistoryList({
   }, [monthGroups, periodFilter, visibleMonths]);
 
   useEffect(() => {
-    if (monthGroups.length === 0) return;
+    const firstKey = monthGroups[0]?.monthKey;
+    if (!firstKey) return;
     setExpandedMonths((prev) => {
       if (prev.size > 0) return prev;
-      return new Set([monthGroups[0].monthKey]);
+      return new Set([firstKey]);
     });
-  }, [monthGroups]);
+  }, [monthGroups[0]?.monthKey]);
 
   const canEnterScores = !!profileId && !!gymTimezone;
 
