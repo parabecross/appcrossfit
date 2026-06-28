@@ -4,6 +4,7 @@
  * Pensado para presentar a clientes:
  * - Mes calendario completo (lun–sáb) con clases y scores
  * - Horario: mañana 6–9 h (3 clases) + tarde 17–21 h (4 clases), 1 h c/u
+ * - Reservas realistas: ~1 clase/día por atleta (mañana O tarde; ~8% doble sesión)
  * - Constancia, rachas, posición WOD, bonus RX, evolución
  * - 4 categorías Legacy · membresías variadas · PRs/skills
  * - Ledger Athron recalculado al final
@@ -20,7 +21,7 @@ import {
   CLASSES_PER_DAY,
   MORNING_SLOTS,
   EVENING_SLOTS,
-  decideAttendance,
+  planAthleteDay,
   generateScore,
   listWeekdayDates,
   monthBounds,
@@ -319,7 +320,8 @@ async function main() {
 
   console.log("🥊 Demo mensual Parabellum — Ranking Athron\n");
   console.log(`   Mes demo: ${monthKey} · ${classDates.length} días × ${CLASSES_PER_DAY} clases/día`);
-  console.log(`   Mañana 06:00–09:00 (3) · Tarde 17:00–21:00 (4)\n`);
+  console.log(`   Mañana 06:00–09:00 (3) · Tarde 17:00–21:00 (4)`);
+  console.log(`   Reservas: 1 clase/sesión/día por atleta (no llena todos los horarios)\n`);
 
   await detectSchema();
   if (!supportsSinScore || !supportsCalsTipo) {
@@ -456,6 +458,18 @@ async function main() {
   let globalClassIndex = 0;
   const fechaMoves: { id: string; fecha: string }[] = [];
 
+  const bookingsByDate = new Map(
+    classDates.map((fecha) => {
+      const byAthlete = new Map(
+        DEMO_ATHLETES.map((athlete) => [
+          athlete.email,
+          planAthleteDay(athlete, fecha, hoy),
+        ])
+      );
+      return [fecha, byAthlete] as const;
+    })
+  );
+
   for (let dayIndex = 0; dayIndex < classDates.length; dayIndex++) {
     const fecha = classDates[dayIndex];
 
@@ -503,21 +517,26 @@ async function main() {
       classCount++;
 
       const scoreTipo = wodScoreType(wodName);
+      const dayBookings = bookingsByDate.get(fecha)!;
 
       for (const athlete of DEMO_ATHLETES) {
-        const decision = decideAttendance(
-          athlete,
-          fecha,
-          hoy,
-          slot.session
-        );
-        if (decision === "skip") continue;
+        const booking = dayBookings
+          .get(athlete.email)!
+          .find(
+            (b) =>
+              b.session === slot.session && b.slotIndex === slot.slotIndex
+          );
+        if (!booking) continue;
 
         const uid = emailToId.get(athlete.email)!;
-        const reservaId = await insertReserva(clase.id, uid, decision);
+        const reservaId = await insertReserva(
+          clase.id,
+          uid,
+          booking.decision
+        );
         reservaCount++;
 
-        if (decision !== "asistio") continue;
+        if (booking.decision !== "asistio") continue;
 
         const attemptKey = `${athlete.email}:${wodName}`;
         const attempt = (wodAttempts.get(attemptKey) ?? 0) + 1;

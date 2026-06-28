@@ -322,6 +322,141 @@ export function wodNameForSlot(
 
 export type AttendanceDecision = "asistio" | "no_asistio" | "confirmada" | "skip";
 
+/** Una reserva concreta: sesión + slot horario + estado */
+export type AthleteDaySession = {
+  session: "morning" | "evening";
+  slotIndex: number;
+  decision: AttendanceDecision;
+};
+
+function daySeed(athlete: AthleteProfile, fecha: string, tag: string): string {
+  return `${fecha}|${athlete.email}|${tag}`;
+}
+
+function pickSlotIndex(
+  athlete: AthleteProfile,
+  fecha: string,
+  session: "morning" | "evening",
+  slotCount: number
+): number {
+  const r = seededRandom(daySeed(athlete, fecha, `slot:${session}`));
+  return Math.min(slotCount - 1, Math.floor(r * slotCount));
+}
+
+function pickPrimarySession(
+  athlete: AthleteProfile,
+  fecha: string
+): "morning" | "evening" {
+  const r = seededRandom(daySeed(athlete, fecha, "primary"));
+  const bias = athlete.sessionBias ?? "flex";
+  if (bias === "morning") return r < 0.82 ? "morning" : "evening";
+  if (bias === "evening") return r < 0.82 ? "evening" : "morning";
+  return r < 0.5 ? "morning" : "evening";
+}
+
+function sessionDecision(
+  athlete: AthleteProfile,
+  fecha: string,
+  today: string,
+  session: "morning" | "evening"
+): AttendanceDecision {
+  if (fecha > today) return "confirmada";
+  const r = seededRandom(daySeed(athlete, fecha, `dec:${session}`));
+  if (r < 0.07) return "no_asistio";
+  return "asistio";
+}
+
+/**
+ * Plan realista por día: como máximo 1 clase por sesión (mañana/tarde).
+ * La mayoría reserva solo mañana O tarde; ~8–10% entrena ambas el mismo día.
+ */
+export function planAthleteDay(
+  athlete: AthleteProfile,
+  fecha: string,
+  today: string
+): AthleteDaySession[] {
+  if (athlete.memDays < 0) {
+    const day = parseInt(fecha.slice(8, 10), 10);
+    if (day > 12) return [];
+  }
+
+  // Reservas futuras: no todos reservan todos los días ni todos los horarios
+  if (fecha > today) {
+    const bookRoll = seededRandom(daySeed(athlete, fecha, "future"));
+    if (bookRoll > 0.4) return [];
+
+    const session = pickPrimarySession(athlete, fecha);
+    return [
+      {
+        session,
+        slotIndex: pickSlotIndex(
+          athlete,
+          fecha,
+          session,
+          session === "morning" ? MORNING_SLOTS.length : EVENING_SLOTS.length
+        ),
+        decision: "confirmada",
+      },
+    ];
+  }
+
+  // ¿Entrena este día? (probabilidad por día, no por cada clase del box)
+  const dayRoll = seededRandom(daySeed(athlete, fecha, "train"));
+  if (dayRoll > athlete.attendanceRate) return [];
+
+  const bias = athlete.sessionBias ?? "flex";
+  const doubleRoll = seededRandom(daySeed(athlete, fecha, "double"));
+
+  let morning = false;
+  let evening = false;
+
+  if (bias === "morning") {
+    morning = true;
+    if (doubleRoll < 0.08) evening = true;
+  } else if (bias === "evening") {
+    evening = true;
+    if (doubleRoll < 0.08) morning = true;
+  } else if (doubleRoll < 0.1) {
+    morning = true;
+    evening = true;
+  } else {
+    const primary = pickPrimarySession(athlete, fecha);
+    if (primary === "morning") morning = true;
+    else evening = true;
+  }
+
+  const sessions: AthleteDaySession[] = [];
+
+  if (morning) {
+    sessions.push({
+      session: "morning",
+      slotIndex: pickSlotIndex(
+        athlete,
+        fecha,
+        "morning",
+        MORNING_SLOTS.length
+      ),
+      decision: sessionDecision(athlete, fecha, today, "morning"),
+    });
+  }
+
+  if (evening) {
+    sessions.push({
+      session: "evening",
+      slotIndex: pickSlotIndex(
+        athlete,
+        fecha,
+        "evening",
+        EVENING_SLOTS.length
+      ),
+      decision: sessionDecision(athlete, fecha, today, "evening"),
+    });
+  }
+
+  return sessions;
+}
+
+/** @deprecated Usar planAthleteDay — decideAttendance evaluaba cada slot por separado */
 export function decideAttendance(
   athlete: AthleteProfile,
   fecha: string,
