@@ -50,7 +50,11 @@ export function AthronRankingPage({
 
       <LeaderboardTable rows={data.leaderboard} />
 
-      <DailyHistory days={data.daily_history} locale={locale} />
+      <DailyHistory
+        key={`${data.month_key}-${category}`}
+        days={data.daily_history}
+        locale={locale}
+      />
 
       <HowItWorks config={data.config} />
 

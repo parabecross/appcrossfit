@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { Download, Share2, Sparkles } from "lucide-react";
+import { Calendar, Download, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/dates/format-display";
 import type {
   AtletaObjetivo,
   AtletaPerfilDeportivo,
@@ -100,6 +101,7 @@ export function LegacyClient({
 }) {
   const t = useTranslations("legacy");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const supabase = createClient();
   const storyExportRef = useRef<HTMLDivElement>(null);
@@ -326,14 +328,31 @@ export function LegacyClient({
           <div className="min-w-0 space-y-4">
             <div>
               <Label>{t("fields.birthDate")}</Label>
-              <input
-                type="date"
-                className="input-date-compact [color-scheme:dark] mt-1.5"
-                value={form.fecha_nacimiento}
-                onChange={(e) =>
-                  setForm({ ...form, fecha_nacimiento: e.target.value })
-                }
-              />
+              <div className="relative mt-1.5">
+                <div
+                  className={cn(
+                    "input-date-compact flex items-center justify-between gap-2 pointer-events-none",
+                    !form.fecha_nacimiento && "text-muted-foreground"
+                  )}
+                  aria-hidden
+                >
+                  <span className="truncate">
+                    {form.fecha_nacimiento
+                      ? formatDisplayDate(form.fecha_nacimiento, locale)
+                      : t("fields.birthDatePlaceholder")}
+                  </span>
+                  <Calendar className="h-4 w-4 shrink-0 opacity-50" />
+                </div>
+                <input
+                  type="date"
+                  lang={locale === "es" ? "es-MX" : "en-US"}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  value={form.fecha_nacimiento}
+                  onChange={(e) =>
+                    setForm({ ...form, fecha_nacimiento: e.target.value })
+                  }
+                />
+              </div>
             </div>
             <div>
               <Label>{t("fields.discipline")}</Label>
