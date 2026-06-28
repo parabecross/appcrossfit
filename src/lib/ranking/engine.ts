@@ -14,6 +14,45 @@ import type { AthleticLevel, RankingConfig } from "@/types/database";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+const BACKFILL_CONCURRENCY = 5;
+
+async function runWithConcurrencyLimit<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  if (items.length === 0) return;
+
+  let index = 0;
+  const workerCount = Math.min(limit, items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (index < items.length) {
+        const current = index++;
+        await fn(items[current]);
+      }
+    })
+  );
+}
+
+function groupByUsuarioChronological<T extends { usuario_id: string }>(
+  items: T[],
+  getDate: (item: T) => string
+): T[][] {
+  const byUser = new Map<string, T[]>();
+
+  for (const item of items) {
+    const bucket = byUser.get(item.usuario_id);
+    if (bucket) bucket.push(item);
+    else byUser.set(item.usuario_id, [item]);
+  }
+
+  return Array.from(byUser.values()).map((group) =>
+    [...group].sort((a, b) => getDate(a).localeCompare(getDate(b)))
+  );
+}
+
 export async function getRankingConfig(
   boxId: string,
   admin?: AdminClient
@@ -402,30 +441,54 @@ export async function backfillRankingForBox(
 
   const { data: asistioReservas } = await client
     .from("reservas")
-    .select("id, clase:clases!inner(coach_id)")
+    .select("id, usuario_id, clase:clases!inner(coach_id, fecha)")
     .eq("estado", "asistio")
     .in("clase.coach_id", staffIds);
 
   let attendance = 0;
-  for (const r of asistioReservas ?? []) {
-    const result = await awardAttendance({ reservaId: r.id, admin: client });
-    if (result.awarded) attendance++;
-  }
+  const reservaGroups = groupByUsuarioChronological(
+    asistioReservas ?? [],
+    (r) =>
+      (r.clase as unknown as { fecha: string }).fecha
+  );
+
+  await runWithConcurrencyLimit(
+    reservaGroups,
+    BACKFILL_CONCURRENCY,
+    async (group) => {
+      for (const r of group) {
+        const result = await awardAttendance({ reservaId: r.id, admin: client });
+        if (result.awarded) attendance++;
+      }
+    }
+  );
 
   const { data: scores } = await client
     .from("clase_scores")
-    .select("clase_id, usuario_id, clase:clases!inner(coach_id)")
+    .select("clase_id, usuario_id, clase:clases!inner(coach_id, fecha)")
     .in("clase.coach_id", staffIds);
 
   let wod = 0;
-  for (const s of scores ?? []) {
-    const result = await awardWodResult({
-      claseId: s.clase_id,
-      usuarioId: s.usuario_id,
-      admin: client,
-    });
-    if (result.awarded) wod++;
-  }
+  const scoreGroups = groupByUsuarioChronological(
+    scores ?? [],
+    (s) =>
+      (s.clase as unknown as { fecha: string }).fecha
+  );
+
+  await runWithConcurrencyLimit(
+    scoreGroups,
+    BACKFILL_CONCURRENCY,
+    async (group) => {
+      for (const s of group) {
+        const result = await awardWodResult({
+          claseId: s.clase_id,
+          usuarioId: s.usuario_id,
+          admin: client,
+        });
+        if (result.awarded) wod++;
+      }
+    }
+  );
 
   return { attendance, wod };
 }
