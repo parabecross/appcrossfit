@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { deleteBoxPermanently } from "@/lib/box/delete-box";
 import { updateBoxStatus } from "@/lib/queries/athron-admin";
 import type { BoxStatus } from "@/types/database";
 
@@ -58,4 +59,35 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true, status });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireSuperAdminApi();
+  if ("error" in auth && auth.error) return auth.error;
+
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const confirmSlug =
+    typeof body.confirmSlug === "string" ? body.confirmSlug : "";
+
+  if (!confirmSlug.trim()) {
+    return NextResponse.json(
+      { error: "Falta confirmSlug (slug del box)" },
+      { status: 400 }
+    );
+  }
+
+  const result = await deleteBoxPermanently(id, confirmSlug);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    deletedUsers: result.deletedUsers,
+    deletedProfiles: result.deletedProfiles,
+  });
 }

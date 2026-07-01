@@ -4,6 +4,7 @@ import type { Box, BoxStatus } from "@/types/database";
 export interface BoxWithStats extends Box {
   athleteCount: number;
   coachCount: number;
+  memberCount: number;
   classCount: number;
   reservationCount: number;
   lastAccess: string | null;
@@ -37,9 +38,11 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
 
   const athleteCounts = new Map<string, number>();
   const coachCounts = new Map<string, number>();
+  const memberCounts = new Map<string, number>();
 
   for (const p of profiles ?? []) {
     profileBoxMap.set(p.id, p.box_id);
+    memberCounts.set(p.box_id, (memberCounts.get(p.box_id) ?? 0) + 1);
     if (p.rol === "socio") {
       athleteCounts.set(p.box_id, (athleteCounts.get(p.box_id) ?? 0) + 1);
     }
@@ -86,6 +89,7 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
     ...box,
     athleteCount: athleteCounts.get(box.id) ?? 0,
     coachCount: coachCounts.get(box.id) ?? 0,
+    memberCount: memberCounts.get(box.id) ?? 0,
     classCount: classCounts.get(box.id) ?? 0,
     reservationCount: reservationCounts.get(box.id) ?? 0,
     lastAccess: lastAccessByBox.get(box.id) ?? null,
