@@ -12,7 +12,9 @@
     "test": "vitest run",
     "reset-parabellum": "tsx scripts/reset-parabellum-demo.ts",
     "create-super-admin": "tsx scripts/create-athron-super-admin.ts",
-    "process-logo": "node scripts/process-athron-logo.mjs"
+    "process-logo": "node scripts/process-athron-logo.mjs",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs",
+    "validate-pwa": "node scripts/validate-pwa-manifest.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.0",

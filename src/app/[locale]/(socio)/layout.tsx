@@ -6,6 +6,7 @@ import {
 } from "@/components/layout/socio-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
+import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SocioLayout({
@@ -34,6 +35,7 @@ export default async function SocioLayout({
           <DailyMotivationBanner audience="athlete" locale={locale} className="mb-5" />
           {children}
         </main>
+        <InstallAppPrompt />
       </div>
     </div>
   );

@@ -35,6 +35,30 @@ export function buildSiteMetadata(locale: "es" | "en" = "es"): Metadata {
     },
     description,
     applicationName: APP_CONFIG.BRAND_NAME,
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      title: APP_CONFIG.BRAND_NAME,
+      statusBarStyle: "black-translucent",
+    },
+    icons: {
+      icon: [
+        { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [
+        {
+          url: "/icons/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-title": APP_CONFIG.BRAND_NAME,
+    },
     keywords: [
       "ATHRON",
       "CrossFit",

@@ -17,6 +17,15 @@
     "language": "Idioma",
     "close": "Cerrar"
   },
+  "pwa": {
+    "title": "Instala ATHRON",
+    "androidHint": "Accede más rápido desde tu pantalla de inicio, como una app nativa.",
+    "iosHint": "Abre en Safari, toca Compartir y elige «Agregar a inicio».",
+    "iosSafariOnly": "Solo disponible en Safari.",
+    "install": "Instalar app",
+    "installing": "Instalando…",
+    "dismiss": "Cerrar aviso"
+  },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
