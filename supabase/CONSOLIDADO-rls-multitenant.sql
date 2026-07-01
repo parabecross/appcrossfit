@@ -13,6 +13,7 @@
 --   1. supabase/schema.sql
 --   2. supabase/migration-athron-fase1.sql
 --   3. migration-athron-fase2-enum.sql + fase2-box-admin + patch-handle-new-user-rol-seguro.sql
+--      (fase2-enum.sql DEBE ir en corrida aparte antes de CONSOLIDADO si user_role no tiene box_admin)
 --   4. patch-atleta-expediente-fase1.sql, patch-atleta-legacy.sql, patch-clase-scores.sql
 --   5. patch-ranking-athron-v1.sql (tablas ranking — §7 se omite si no existen)
 --   6. patch-clase-cupo-socio.sql, patch-admin-insert-reserva.sql, patch-reservas-realtime.sql
@@ -23,6 +24,24 @@
 -- Verificación: al final, revisa que todas las filas digan OK (sección 8).
 -- Luego: npm run check-isolation  →  debe dar 24/24
 -- ═══════════════════════════════════════════════════════════════════════════════
+
+
+-- ─── Prerrequisitos: abortar con mensaje claro si falta el schema base ───────
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'clases'
+  ) THEN
+    RAISE EXCEPTION E'CONSOLIDADO abortado: public.clases no existe.\n\n'
+      'Este script es el PASO 13. Ejecuta antes (en orden, README):\n'
+      '  1. supabase/schema.sql\n'
+      '  2–12. migraciones y patches listados en README\n'
+      '  13. este archivo\n\n'
+      '¿Solo necesitas el fix box_admin y ya tienes public.profiles?\n'
+      '  → Ejecuta únicamente la sección 0.1 (is_admin / is_coach_or_admin).';
+  END IF;
+END $$;
 
 
 -- ─── 0. Helper coach → reservas de su clase ───────────────────────────────────
@@ -39,6 +58,57 @@ AS $$
     SELECT 1 FROM clases c
     WHERE c.id = p_clase_id
       AND c.coach_id = get_my_profile_id()
+  );
+$$;
+
+
+-- ─── 0.1 Redefinir is_admin() / is_coach_or_admin() para incluir box_admin ───
+-- Fuente: schema.sql (redefinición). El rol box_admin es admin del gym en la app
+-- (register-form + isAdminLikeRole); sin esto, la UI admin funciona pero RLS rechaza writes.
+--
+-- PREREQUISITO: user_role debe incluir 'box_admin'. Si schema.sql es antiguo, ejecuta
+-- en una corrida APARTE (commit) ANTES de este archivo:
+--   supabase/migration-athron-fase2-enum.sql
+-- (Postgres no permite usar un valor nuevo de enum en la misma transacción del ALTER TYPE.)
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_enum e
+    JOIN pg_type t ON e.enumtypid = t.oid
+    WHERE t.typname = 'user_role' AND e.enumlabel = 'box_admin'
+  ) THEN
+    RAISE EXCEPTION E'Sección 0.1 abortada: user_role no tiene el valor box_admin.\n\n'
+      'Ejecuta SOLO esto en el SQL Editor (Run), espera éxito, y vuelve a correr CONSOLIDADO:\n'
+      '  supabase/migration-athron-fase2-enum.sql\n\n'
+      'Contenido: ALTER TYPE user_role ADD VALUE IF NOT EXISTS ''box_admin'';';
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles
+    WHERE user_id = auth.uid() AND rol IN ('admin', 'box_admin')
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION is_coach_or_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles
+    WHERE user_id = auth.uid() AND rol IN ('admin', 'coach', 'box_admin')
   );
 $$;
 
