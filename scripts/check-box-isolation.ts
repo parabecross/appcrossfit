@@ -13,9 +13,10 @@
  * (checklist al final del script → missing_count debe ser 0)
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 import { resolve } from "path";
+import { createScriptSupabaseClient } from "./lib/supabase-script-client";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -40,9 +41,7 @@ const EMAILS = {
 
 const BOX_SLUGS = { a: "test-box-a", b: "test-box-b" } as const;
 
-const service = createClient(url, serviceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+const service = createScriptSupabaseClient(url, serviceKey);
 
 type Check = { label: string; pass: boolean; detail: string };
 
@@ -306,9 +305,7 @@ async function ensurePr(socioProfileId: string): Promise<string> {
 }
 
 async function signInClient(email: string): Promise<SupabaseClient> {
-  const client = createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const client = createScriptSupabaseClient(url, anonKey);
   const { error } = await client.auth.signInWithPassword({
     email,
     password: TEST_PASSWORD,
