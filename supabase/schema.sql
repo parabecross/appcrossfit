@@ -1,4 +1,4 @@
--- Parabellum Cross — Schema completo
+-- ATHRON — Schema completo (plataforma multi-box)
 -- Ejecutar en Supabase SQL Editor (en orden)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

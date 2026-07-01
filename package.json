@@ -1,6 +1,7 @@
 {
-  "name": "parabellumapp",
+  "name": "athron",
   "version": "0.1.0",
+  "description": "ATHRON — SaaS multi-tenant para boxes de CrossFit",
   "private": true,
   "scripts": {
     "dev": "next dev",

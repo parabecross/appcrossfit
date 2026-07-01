@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
-/** URL canónica de producción — no usar VERCEL_URL (rompe WhatsApp). */
+/** URL de despliegue en Vercel (técnica). Override con NEXT_PUBLIC_SITE_URL. */
 export const CANONICAL_SITE_URL = "https://appcrossfit.vercel.app";
 
 export function getSiteUrl(): string {
@@ -12,13 +12,13 @@ export function getSiteUrl(): string {
 }
 
 const descriptions: Record<"es" | "en", string> = {
-  es: "ATHRON — Train. Track. Progress. Plataforma para boxes de CrossFit: reservas, membresías, coaches y progreso de atletas.",
-  en: "ATHRON — Train. Track. Progress. CrossFit box platform: bookings, memberships, coaches and athlete progress.",
+  es: "ATHRON — Plataforma SaaS multi-tenant para boxes de CrossFit. Reservas, membresías, ranking, coaches y progreso de atletas.",
+  en: "ATHRON — Multi-tenant SaaS platform for CrossFit boxes. Bookings, memberships, ranking, coaches and athlete progress.",
 };
 
 const titles: Record<"es" | "en", string> = {
-  es: `${APP_CONFIG.BRAND_NAME} — Gestión de boxes CrossFit`,
-  en: `${APP_CONFIG.BRAND_NAME} — CrossFit box management`,
+  es: `${APP_CONFIG.BRAND_NAME} — Plataforma para boxes CrossFit`,
+  en: `${APP_CONFIG.BRAND_NAME} — CrossFit box platform`,
 };
 
 export function buildSiteMetadata(locale: "es" | "en" = "es"): Metadata {

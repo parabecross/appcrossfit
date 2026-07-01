@@ -1,6 +1,6 @@
 /**
  * Crea (o actualiza) el Super Admin de plataforma ATHRON.
- * Separado del admin del box Parabellum Cross.
+ * Credenciales del box demo Parabellum Cross (no confundir con ATHRON).
  *
  * Uso:
  *   npm run create-super-admin
@@ -91,7 +91,7 @@ async function main() {
   console.log(`  Email:    ${SUPER_ADMIN_EMAIL}`);
   console.log(`  Password: ${SUPER_ADMIN_PASSWORD}`);
   console.log("  Login → redirige a /admin-athron/dashboard");
-  console.log("\n  Parabellum box admin (solo su gym):");
+  console.log("\n  Demo box admin (Parabellum Cross):");
   console.log("    admin@parabellum.cross / Parabellum2024!");
   console.log("══════════════════════════════════════════\n");
 }

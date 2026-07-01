@@ -1,7 +1,7 @@
 {
   "name": "ATHRON",
   "short_name": "ATHRON",
-  "description": "ATHRON — Train. Track. Progress. Reservas, membresías y progreso para boxes de CrossFit.",
+  "description": "ATHRON — Train. Track. Progress. Plataforma SaaS multi-tenant para boxes de CrossFit.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

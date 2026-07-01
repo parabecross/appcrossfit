@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
--- CONSOLIDADO RLS multi-tenant — ATHRON / Parabellum
+-- CONSOLIDADO RLS multi-tenant — ATHRON
 -- ═══════════════════════════════════════════════════════════════════════════════
 --
 -- Script único, idempotente (DROP POLICY IF EXISTS + CREATE POLICY).

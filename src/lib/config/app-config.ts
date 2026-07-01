@@ -13,9 +13,9 @@ export const APP_CONFIG = {
   TENDENCIA_SEMANAS: 8,
   /** Zona horaria del gym (fallback; Fase 3: por box) */
   GYM_TIMEZONE: "America/Mexico_City",
-  /** Marca de la plataforma */
+  /** Marca de la plataforma SaaS */
   BRAND_NAME: "ATHRON",
-  /** Primer box / fallback multi-tenant */
+  /** Box demo ficticio (seed) — no es el nombre del producto */
   DEFAULT_BOX_NAME: "Parabellum Cross",
   DEFAULT_BOX_SLUG: "parabellum-cross",
 } as const;

@@ -318,7 +318,7 @@ async function main() {
     ...futureDates.filter((d) => !pastDates.includes(d) && d <= monthEnd),
   ];
 
-  console.log("🥊 Demo mensual Parabellum — Ranking Athron\n");
+  console.log("🥊 Demo ATHRON — box Parabellum Cross\n");
   console.log(`   Mes demo: ${monthKey} · ${classDates.length} días × ${CLASSES_PER_DAY} clases/día`);
   console.log(`   Mañana 06:00–09:00 (3) · Tarde 17:00–21:00 (4)`);
   console.log(`   Reservas: 1 clase/sesión/día por atleta (no llena todos los horarios)\n`);
