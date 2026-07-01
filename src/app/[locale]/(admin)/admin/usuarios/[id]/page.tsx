@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { UserDetailClient } from "@/components/admin/user-detail";
 
 export default async function UserDetailPage({
@@ -21,6 +22,8 @@ export default async function UserDetailPage({
     .single();
 
   if (!user) notFound();
+
+  const entitlements = await getBoxEntitlements(adminProfile.box_id!);
 
   const [{ data: membresias }, { data: planes }, classHistory] =
     await Promise.all([
@@ -44,6 +47,7 @@ export default async function UserDetailPage({
       classHistory={classHistory}
       planes={planes ?? []}
       locale={locale}
+      entitlements={entitlements}
     />
   );
 }

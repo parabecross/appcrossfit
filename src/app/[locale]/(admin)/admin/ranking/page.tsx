@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { FeatureGate } from "@/components/plans/feature-gate";
 import { getRankingConfig } from "@/lib/ranking/engine";
 import { getAthronRankingForBox } from "@/lib/ranking/aggregate";
 import { computeMonthlyAwards } from "@/lib/ranking/awards";
@@ -24,6 +26,7 @@ export default async function AdminRankingPage({
   const sp = await searchParams;
   const profile = await requireAdmin(locale);
   const boxConfig = await getBoxConfig(profile.box_id);
+  const entitlements = await getBoxEntitlements(profile.box_id!);
   const t = await getTranslations("rankingAthron");
   const tn = await getTranslations("nav");
 
@@ -62,6 +65,12 @@ export default async function AdminRankingPage({
   const shareableAwards = awards.filter((a) => a.award_type !== "top3");
 
   return (
+    <FeatureGate
+      entitlements={entitlements}
+      featureKey="ranking"
+      title={tn("ranking")}
+      description={t("adminSubtitle")}
+    >
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-black brand-text">{tn("ranking")}</h1>
@@ -105,5 +114,6 @@ export default async function AdminRankingPage({
         }
       />
     </div>
+    </FeatureGate>
   );
 }

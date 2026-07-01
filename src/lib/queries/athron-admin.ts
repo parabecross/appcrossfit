@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { BoxSubscriptionSummary } from "@/lib/queries/subscriptions";
+import { getSubscriptionSummariesForBoxes } from "@/lib/queries/subscriptions";
 import type { Box, BoxStatus } from "@/types/database";
 
 export interface BoxWithStats extends Box {
@@ -8,6 +10,7 @@ export interface BoxWithStats extends Box {
   classCount: number;
   reservationCount: number;
   lastAccess: string | null;
+  subscription?: BoxSubscriptionSummary;
 }
 
 function countByBox(
@@ -85,7 +88,7 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
     if (latest) lastAccessByBox.set(box.id, latest);
   }
 
-  return boxes.map((box) => ({
+  const boxesWithStats = boxes.map((box) => ({
     ...box,
     athleteCount: athleteCounts.get(box.id) ?? 0,
     coachCount: coachCounts.get(box.id) ?? 0,
@@ -93,6 +96,15 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
     classCount: classCounts.get(box.id) ?? 0,
     reservationCount: reservationCounts.get(box.id) ?? 0,
     lastAccess: lastAccessByBox.get(box.id) ?? null,
+  }));
+
+  const summaries = await getSubscriptionSummariesForBoxes(
+    boxesWithStats.map((b) => b.id)
+  );
+
+  return boxesWithStats.map((box) => ({
+    ...box,
+    subscription: summaries.get(box.id),
   }));
 }
 

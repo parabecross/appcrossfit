@@ -55,7 +55,7 @@ export default async function AthronDashboardPage({
         <CardHeader>
           <CardTitle>{t("boxesTable")}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-visible">
           <AthronBoxesTable boxes={boxes} locale={locale} />
         </CardContent>
       </Card>

@@ -29,6 +29,8 @@ import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 import { MembershipExpiryAlert } from "@/components/admin/membership-expiry-alert";
 import { ClassHistoryList } from "@/components/clases/class-history-list";
+import { FeatureGate } from "@/components/plans/feature-gate";
+import type { BoxEntitlements } from "@/lib/entitlements/types";
 
 export function UserDetailClient({
   user,
@@ -36,12 +38,14 @@ export function UserDetailClient({
   classHistory,
   planes,
   locale,
+  entitlements,
 }: {
   user: Profile;
   membresias: (Membresia & { plan: Plan | null })[];
   classHistory: AthleteClassHistoryItem[];
   planes: Plan[];
   locale: string;
+  entitlements: BoxEntitlements;
 }) {
   const t = useTranslations("membership");
   const tm = useTranslations("membership.status");
@@ -411,6 +415,12 @@ export function UserDetailClient({
         </CardContent>
       </Card>
 
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="historial_completo"
+        title={ta("classHistory")}
+        description={ta("classHistoryDesc")}
+      >
       <Card>
         <CardHeader>
           <CardTitle>{ta("classHistory")}</CardTitle>
@@ -435,6 +445,7 @@ export function UserDetailClient({
           )}
         </CardContent>
       </Card>
+      </FeatureGate>
 
       <Card>
         <CardHeader>

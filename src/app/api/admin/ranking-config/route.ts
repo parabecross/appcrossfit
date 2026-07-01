@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAdminLikeRole } from "@/lib/auth/roles";
+import {
+  assertFeatureEnabled,
+  getBoxEntitlements,
+} from "@/lib/entitlements/engine";
+import { EntitlementError } from "@/lib/entitlements/types";
 import { mergeRankingConfig } from "@/lib/ranking/config";
 import { parseRankingConfigPatch } from "@/lib/ranking/parse-config-patch";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,6 +35,16 @@ export async function GET(request: Request) {
       !["admin", "coach", "box_admin"].includes(profile.rol)
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
+      const ent = await getBoxEntitlements(profile.box_id);
+      assertFeatureEnabled(ent, "ranking_config");
+    } catch (e) {
+      if (e instanceof EntitlementError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
     }
 
     // admin: bypasses RLS — box_id scoped from authenticated profile
@@ -70,6 +85,16 @@ export async function PATCH(request: Request) {
 
     if (!profile?.box_id || !isAdminLikeRole(profile.rol)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
+      const ent = await getBoxEntitlements(profile.box_id);
+      assertFeatureEnabled(ent, "ranking_config");
+    } catch (e) {
+      if (e instanceof EntitlementError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
     }
 
     const body = await request.json();

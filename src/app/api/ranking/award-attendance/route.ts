@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  assertFeatureEnabled,
+  getBoxEntitlements,
+} from "@/lib/entitlements/engine";
+import { EntitlementError } from "@/lib/entitlements/types";
 import { awardAttendance } from "@/lib/ranking/engine";
 
 export async function POST(request: Request) {
@@ -20,6 +25,20 @@ export async function POST(request: Request) {
 
     if (!profile || !["admin", "coach", "box_admin"].includes(profile.rol)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (!profile.box_id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
+      const ent = await getBoxEntitlements(profile.box_id);
+      assertFeatureEnabled(ent, "ranking");
+    } catch (e) {
+      if (e instanceof EntitlementError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
     }
 
     const body = (await request.json()) as { reservaId?: string };

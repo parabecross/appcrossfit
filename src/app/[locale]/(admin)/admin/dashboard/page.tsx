@@ -1,6 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { toSubscriptionSummary } from "@/lib/queries/subscriptions";
+import { CurrentPlanCard } from "@/components/plans/current-plan-card";
+import { FeatureGate } from "@/components/plans/feature-gate";
 import { DemandChart, TrendChart } from "@/components/stats/charts";
 import { DashboardExecutiveSummary } from "@/components/admin/dashboard/dashboard-executive-summary";
 import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
@@ -18,13 +22,17 @@ export default async function AdminDashboardPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdmin(locale);
+  const profile = await requireAdmin(locale);
   const t = await getTranslations("admin");
   const td = await getTranslations("adminDashboard");
   const ts = await getTranslations("stats");
   const tp = await getTranslations("progress");
 
-  const data = await getAdminDashboardData(undefined, locale);
+  const [data, entitlements] = await Promise.all([
+    getAdminDashboardData(undefined, locale),
+    getBoxEntitlements(profile.box_id!),
+  ]);
+  const subscription = toSubscriptionSummary(entitlements);
 
   return (
     <div className="space-y-6 pb-8">
@@ -51,6 +59,30 @@ export default async function AdminDashboardPage({
         />
       </section>
 
+      <CurrentPlanCard
+        subscription={subscription}
+        labels={{
+          currentPlan: td("planCard.currentPlan"),
+          promotionalActive: td("planCard.promotionalActive"),
+          daysRemaining: td("planCard.daysRemaining"),
+          daysRemainingUrgent: td("planCard.daysRemainingUrgent"),
+          promotionalEnded: td("planCard.promotionalEnded"),
+          fullAccess: td("planCard.fullAccess"),
+          perMonth: td("planCard.perMonth"),
+          activeAthletes: td("planCard.activeAthletes"),
+          limitsStart: td("planCard.limitsStart"),
+          limitsPro: td("planCard.limitsPro"),
+          limitsElite: td("planCard.limitsElite"),
+          daysLabel: td("planCard.daysLabel"),
+        }}
+      />
+
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="dashboard_ejecutivo"
+        title={td("executive.title")}
+        description={td("executive.title")}
+      >
       <DashboardExecutiveSummary
         data={data.executive}
         labels={{
@@ -65,32 +97,40 @@ export default async function AdminDashboardPage({
           inactiveAthletes: td("executive.inactiveAthletes"),
         }}
       />
+      </FeatureGate>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <DashboardPriorityAlerts
-            membershipAlerts={data.membershipAlerts}
-            inactiveAthletesHigh={data.inactiveAthletesHigh}
-            athletesWithoutWeekBooking={data.athletesWithoutWeekBooking}
-            lowOccupancyClasses={data.lowOccupancyClasses}
-            locale={locale}
-            boxName={data.boxName}
-            labels={{
-              title: td("alerts.title"),
-              priorityHigh: td("alerts.priorityHigh"),
-              priorityMedium: td("alerts.priorityMedium"),
-              priorityLow: td("alerts.priorityLow"),
-              expired: t("expired"),
-              expiring: t("expiringSoon"),
-              inactive: td("alerts.inactive"),
-              noWeekBooking: td("alerts.noWeekBooking"),
-              lowOccupancy: td("alerts.lowOccupancy"),
-              empty: td("alerts.empty"),
-            }}
-            formatInactiveDays={(days) =>
-              td("alerts.inactiveDays", { days })
-            }
-          />
+          <FeatureGate
+            entitlements={entitlements}
+            featureKey="alertas_avanzadas"
+            title={td("alerts.title")}
+            description={td("alerts.title")}
+          >
+            <DashboardPriorityAlerts
+              membershipAlerts={data.membershipAlerts}
+              inactiveAthletesHigh={data.inactiveAthletesHigh}
+              athletesWithoutWeekBooking={data.athletesWithoutWeekBooking}
+              lowOccupancyClasses={data.lowOccupancyClasses}
+              locale={locale}
+              boxName={data.boxName}
+              labels={{
+                title: td("alerts.title"),
+                priorityHigh: td("alerts.priorityHigh"),
+                priorityMedium: td("alerts.priorityMedium"),
+                priorityLow: td("alerts.priorityLow"),
+                expired: t("expired"),
+                expiring: t("expiringSoon"),
+                inactive: td("alerts.inactive"),
+                noWeekBooking: td("alerts.noWeekBooking"),
+                lowOccupancy: td("alerts.lowOccupancy"),
+                empty: td("alerts.empty"),
+              }}
+              formatInactiveDays={(days) =>
+                td("alerts.inactiveDays", { days })
+              }
+            />
+          </FeatureGate>
         </div>
         <div className="lg:col-span-2">
           <DashboardBoxStatus
@@ -163,6 +203,12 @@ export default async function AdminDashboardPage({
         />
       )}
 
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="resumen_semanal"
+        title={td("weekly.title")}
+        description={td("weekly.subtitle")}
+      >
       <DashboardWeeklySummary
         data={data.weeklySummary}
         labels={{
@@ -181,7 +227,14 @@ export default async function AdminDashboardPage({
           deltaSame: td("weekly.deltaSame"),
         }}
       />
+      </FeatureGate>
 
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="estadisticas_avanzadas"
+        title={td("charts.sectionTitle")}
+        description={td("charts.sectionTitle")}
+      >
       <section className="space-y-4">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {td("charts.sectionTitle")}
@@ -197,6 +250,7 @@ export default async function AdminDashboardPage({
           </div>
         </div>
       </section>
+      </FeatureGate>
     </div>
   );
 }

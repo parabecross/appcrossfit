@@ -590,6 +590,12 @@ async function cleanup() {
 
   if (boxIds.length > 0) {
     await service.from("planes").delete().in("box_id", boxIds);
+    await service.from("box_feature_overrides").delete().in("box_id", boxIds);
+    await service.from("box_subscriptions").delete().in("box_id", boxIds);
+    const { error: delA } = await service.from("boxes").delete().eq("slug", BOX_SLUGS.a);
+    const { error: delB } = await service.from("boxes").delete().eq("slug", BOX_SLUGS.b);
+    if (delA) console.warn(`  ⚠ delete box A: ${delA.message}`);
+    if (delB) console.warn(`  ⚠ delete box B: ${delB.message}`);
   }
 
   for (const authId of authIds) {
@@ -597,7 +603,7 @@ async function cleanup() {
     if (error) console.warn(`  ⚠ delete ${authId}: ${error.message}`);
   }
 
-  console.log("✓ Cleanup done (test boxes kept for reuse)\n");
+  console.log("✓ Cleanup done (test boxes removed)\n");
 }
 
 async function main() {

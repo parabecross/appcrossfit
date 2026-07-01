@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
 import { isAdminLikeRole } from "@/lib/auth/roles";
+import {
+  assertCanCreateResources,
+  assertWithinPlanLimit,
+  getBoxEntitlements,
+} from "@/lib/entitlements/engine";
+import { EntitlementError } from "@/lib/entitlements/types";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -51,6 +57,19 @@ export async function POST(request: NextRequest) {
 
   if (!["socio", "coach", "admin"].includes(rol)) {
     return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
+  }
+
+  try {
+    const ent = await getBoxEntitlements(profile.box_id);
+    assertCanCreateResources(ent);
+    if (rol === "socio") assertWithinPlanLimit(ent, "atletas");
+    if (rol === "coach") assertWithinPlanLimit(ent, "coaches");
+    if (rol === "admin") assertWithinPlanLimit(ent, "admins");
+  } catch (e) {
+    if (e instanceof EntitlementError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
+    throw e;
   }
 
   // admin: bypasses RLS — new user forced to auth.box_id in insert below

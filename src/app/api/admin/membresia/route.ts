@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
 import { isAdminLikeRole } from "@/lib/auth/roles";
+import {
+  assertCanCreateResources,
+  assertFeatureEnabled,
+  assertWithinPlanLimit,
+  getBoxEntitlements,
+} from "@/lib/entitlements/engine";
+import { EntitlementError } from "@/lib/entitlements/types";
 import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
@@ -43,6 +50,17 @@ export async function POST(request: NextRequest) {
 
   const supabase = auth.supabase!;
   const boxId = auth.boxId!;
+
+  try {
+    const ent = await getBoxEntitlements(boxId);
+    assertFeatureEnabled(ent, "membresias");
+  } catch (e) {
+    if (e instanceof EntitlementError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
+    throw e;
+  }
+
   const body = await request.json();
   const { action } = body;
 
@@ -55,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     const { data: targetUser, error: userError } = await supabase
       .from("profiles")
-      .select("box_id")
+      .select("box_id, estado_cuenta, rol")
       .eq("id", usuario_id)
       .single();
 
@@ -64,6 +82,19 @@ export async function POST(request: NextRequest) {
         { error: "Usuario no pertenece a tu box" },
         { status: 403 }
       );
+    }
+
+    if (targetUser.rol === "socio" && targetUser.estado_cuenta !== "activo") {
+      try {
+        const ent = await getBoxEntitlements(boxId);
+        assertCanCreateResources(ent);
+        assertWithinPlanLimit(ent, "atletas");
+      } catch (e) {
+        if (e instanceof EntitlementError) {
+          return NextResponse.json({ error: e.message }, { status: e.status });
+        }
+        throw e;
+      }
     }
 
     const { data: plan, error: planError } = await supabase

@@ -241,10 +241,10 @@ export function AdminClasesClient({
     setLoading(true);
     setCreateError(null);
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("clases")
-      .insert({
+    const res = await fetch("/api/admin/clases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         nombre: form.nombre.trim(),
         fecha: form.fecha,
         hora_inicio: form.hora_inicio,
@@ -252,17 +252,17 @@ export function AdminClasesClient({
         cupo_maximo: form.cupo_maximo,
         coach_id: form.coach_id || null,
         entrenamiento: form.entrenamiento.trim() || getSampleWorkout(form.nombre.trim()),
-        estado: "programada",
-      })
-      .select("*")
-      .single();
-
+      }),
+    });
+    const payload = await res.json();
     setLoading(false);
 
-    if (error || !data) {
-      setCreateError(error?.message ?? tc("error"));
+    if (!res.ok || !payload.clase) {
+      setCreateError(payload.error ?? tc("error"));
       return;
     }
+
+    const data = payload.clase;
 
     const coach = coaches.find((c) => c.id === form.coach_id);
     const newClase: Clase = {

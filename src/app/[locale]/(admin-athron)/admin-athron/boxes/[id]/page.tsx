@@ -3,6 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { requireSuperAdmin } from "@/lib/auth/get-profile";
 import { getBoxWithStats } from "@/lib/queries/athron-admin";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { serializeEntitlementsForSuperAdmin } from "@/lib/queries/subscriptions";
+import { BoxSubscriptionPanel } from "@/components/athron/box-subscription-panel";
 import { getKpis, getAlertasMembresia } from "@/lib/queries/memberships";
 import {
   getStatsData,
@@ -12,7 +15,6 @@ import {
   computeOccupancyStats,
 } from "@/lib/queries/stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   FrequencyChart,
@@ -36,6 +38,9 @@ export default async function AthronBoxDetailPage({
 
   const box = await getBoxWithStats(id);
   if (!box) notFound();
+
+  const subscriptionEnt = await getBoxEntitlements(id);
+  const subscriptionData = serializeEntitlementsForSuperAdmin(subscriptionEnt);
 
   const [kpis, alertas, statsRaw] = await Promise.all([
     getKpis(id),
@@ -66,29 +71,46 @@ export default async function AthronBoxDetailPage({
             </Link>
           </Button>
           <h1 className="text-3xl font-black brand-text">{box.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            <Badge
-              variant={
-                box.status === "active"
-                  ? "success"
-                  : box.status === "trial"
-                    ? "warning"
-                    : "destructive"
-              }
-            >
-              {t(`status_${box.status}`)}
-            </Badge>
-            <span className="text-sm text-muted-foreground capitalize">
-              {t("plan")}: {box.plan}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {box.timezone}
-            </span>
-          </div>
+          <p className="text-sm text-muted-foreground mt-1">{box.slug} · {box.timezone}</p>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <BoxSubscriptionPanel
+        boxId={id}
+        boxStatus={box.status}
+        initial={subscriptionData}
+        labels={{
+          statusOverview: t("statusOverview"),
+          statusOverviewDesc: t("statusOverviewDesc"),
+          boxOperationalStatus: t("boxOperationalStatus"),
+          boxOperationalStatusLabel: t(`status_${box.status}`),
+          boxOperationalHint: t("boxOperationalHint"),
+          subscriptionStatusDetail: t("subscriptionStatusDetail"),
+          saasPlan: t("saasPlan"),
+          planSection: t("planSection"),
+          planSectionDesc: t("planSectionDesc"),
+          startedAt: t("startedAt"),
+          periodEnd: t("periodEnd"),
+          promoDays: t("promoDays"),
+          athletes: t("athletes"),
+          coaches: t("coaches"),
+          admins: t("admins"),
+          changeStart: t("changeStart"),
+          changePro: t("changePro"),
+          changeElite: t("changeElite"),
+          activatePromo: t("activatePromo"),
+          extendPromo: t("extendPromo"),
+          suspend: t("suspendBox"),
+          reactivate: t("reactivateBox"),
+          cancel: t("cancelSubscription"),
+          notes: t("subscriptionNotes"),
+          saveNotes: t("saveNotes"),
+          featuresSection: t("featuresSection"),
+          featuresSectionDesc: t("featuresSectionDesc"),
+        }}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("registered")}</p>
@@ -107,6 +129,18 @@ export default async function AthronBoxDetailPage({
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("coaches")}</p>
             <p className="text-2xl font-black mt-1">{box.coachCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{t("classes")}</p>
+            <p className="text-2xl font-black mt-1">{box.classCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{t("bookings")}</p>
+            <p className="text-2xl font-black mt-1">{box.reservationCount}</p>
           </CardContent>
         </Card>
         <Card>

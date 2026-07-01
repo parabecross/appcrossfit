@@ -14,8 +14,10 @@ import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranki
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { SocioClassHistory } from "@/components/clases/socio-class-history";
+import { FeatureGate } from "@/components/plans/feature-gate";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +32,7 @@ export default async function MisReservasPage({
   const tm = await getTranslations("membership.status");
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
+  const entitlements = await getBoxEntitlements(profile.box_id!);
 
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
@@ -107,17 +110,24 @@ export default async function MisReservasPage({
         athronSummary={athronSummary}
       />
 
-      <SocioClassHistory
-        items={classHistory}
-        locale={locale}
-        gymTimezone={boxConfig.timezone}
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="historial_completo"
         title={t("classHistory")}
         description={t("classHistoryDesc")}
-        emptyMessage={t("noClassHistory")}
-        summary={t("classHistorySummary", { attended, noShow })}
-        scoresByClaseId={myScoresMap}
-        profileId={profile.id}
-      />
+      >
+        <SocioClassHistory
+          items={classHistory}
+          locale={locale}
+          gymTimezone={boxConfig.timezone}
+          title={t("classHistory")}
+          description={t("classHistoryDesc")}
+          emptyMessage={t("noClassHistory")}
+          summary={t("classHistorySummary", { attended, noShow })}
+          scoresByClaseId={myScoresMap}
+          profileId={profile.id}
+        />
+      </FeatureGate>
     </div>
   );
 }

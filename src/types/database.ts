@@ -13,6 +13,56 @@ export type RecordTipo = "pr" | "rm";
 export type BoxStatus = "active" | "inactive" | "trial";
 export type BoxPlan = "free" | "basic" | "pro" | "enterprise";
 
+export type SaasPlanCode = "start" | "pro" | "elite";
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "grace_period"
+  | "expired"
+  | "suspended"
+  | "canceled";
+
+export interface SaasPlanRow {
+  id: string;
+  code: SaasPlanCode;
+  name: string;
+  price_mxn: number;
+  max_atletas: number | null;
+  max_coaches: number | null;
+  max_admins: number | null;
+  features: Record<string, boolean>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoxSubscription {
+  id: string;
+  box_id: string;
+  plan_id: string;
+  status: SubscriptionStatus;
+  started_at: string;
+  current_period_start: string;
+  current_period_end: string | null;
+  trial_ends_at: string | null;
+  grace_ends_at: string | null;
+  canceled_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoxFeatureOverride {
+  id: string;
+  box_id: string;
+  feature_key: string;
+  enabled: boolean;
+  reason: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Box {
   id: string;
   name: string;
@@ -312,6 +362,21 @@ export interface Database {
         Row: RankingMonthlyAward;
         Insert: Partial<RankingMonthlyAward>;
         Update: Partial<RankingMonthlyAward>;
+      };
+      plans: {
+        Row: SaasPlanRow;
+        Insert: Partial<SaasPlanRow>;
+        Update: Partial<SaasPlanRow>;
+      };
+      box_subscriptions: {
+        Row: BoxSubscription;
+        Insert: Partial<BoxSubscription>;
+        Update: Partial<BoxSubscription>;
+      };
+      box_feature_overrides: {
+        Row: BoxFeatureOverride;
+        Insert: Partial<BoxFeatureOverride>;
+        Update: Partial<BoxFeatureOverride>;
       };
     };
   };

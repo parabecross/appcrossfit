@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { FeatureGate } from "@/components/plans/feature-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getStatsData,
@@ -21,7 +23,8 @@ export default async function EstadisticasPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdmin(locale);
+  const profile = await requireAdmin(locale);
+  const entitlements = await getBoxEntitlements(profile.box_id!);
   const ts = await getTranslations("stats");
   const { reservas, clases } = await getStatsData();
 
@@ -31,6 +34,12 @@ export default async function EstadisticasPage({
   const occupancy = computeOccupancyStats(clases, reservas, locale);
 
   return (
+    <FeatureGate
+      entitlements={entitlements}
+      featureKey="estadisticas_avanzadas"
+      title={ts("title")}
+      description={ts("frequencyDesc")}
+    >
     <div className="space-y-8">
       <h1 className="text-3xl font-black brand-text">{ts("title")}</h1>
 
@@ -73,5 +82,6 @@ export default async function EstadisticasPage({
         </Card>
       </div>
     </div>
+    </FeatureGate>
   );
 }
