@@ -131,7 +131,11 @@
     "subscriptionNotes": "Notas internas",
     "saveNotes": "Guardar notas",
     "featuresSection": "Funciones del box",
-    "featuresSectionDesc": "Overrides manuales sobre el plan asignado"
+    "featuresSectionDesc": "Overrides manuales sobre el plan asignado",
+    "editBoxName": "Editar nombre",
+    "boxNameLabel": "Nombre del gym",
+    "saveBoxName": "Guardar nombre",
+    "boxNameSaved": "Nombre actualizado"
   },
   "nav": {
     "dashboard": "Dashboard",

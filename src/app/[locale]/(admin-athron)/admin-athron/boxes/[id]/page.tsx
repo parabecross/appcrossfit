@@ -6,6 +6,7 @@ import { getBoxWithStats } from "@/lib/queries/athron-admin";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { serializeEntitlementsForSuperAdmin } from "@/lib/queries/subscriptions";
 import { BoxSubscriptionPanel } from "@/components/athron/box-subscription-panel";
+import { BoxNameEditor } from "@/components/athron/box-name-editor";
 import { getKpis, getAlertasMembresia } from "@/lib/queries/memberships";
 import {
   getStatsData,
@@ -35,6 +36,7 @@ export default async function AthronBoxDetailPage({
   const t = await getTranslations("athronAdmin");
   const ts = await getTranslations("stats");
   const ta = await getTranslations("admin");
+  const tc = await getTranslations("common");
 
   const box = await getBoxWithStats(id);
   if (!box) notFound();
@@ -70,7 +72,17 @@ export default async function AthronBoxDetailPage({
               {t("backToDashboard")}
             </Link>
           </Button>
-          <h1 className="text-3xl font-black brand-text">{box.name}</h1>
+          <BoxNameEditor
+            boxId={id}
+            initialName={box.name}
+            labels={{
+              edit: t("editBoxName"),
+              save: t("saveBoxName"),
+              cancel: tc("cancel"),
+              nameLabel: t("boxNameLabel"),
+              saved: t("boxNameSaved"),
+            }}
+          />
           <p className="text-sm text-muted-foreground mt-1">{box.slug} · {box.timezone}</p>
         </div>
       </div>

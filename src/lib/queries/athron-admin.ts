@@ -126,3 +126,40 @@ export async function updateBoxStatus(
   if (error) return { error: error.message };
   return {};
 }
+
+const BOX_NAME_MIN = 2;
+const BOX_NAME_MAX = 80;
+
+export function validateBoxName(name: unknown): { value?: string; error?: string } {
+  if (typeof name !== "string") {
+    return { error: "Nombre inválido" };
+  }
+  const trimmed = name.trim();
+  if (trimmed.length < BOX_NAME_MIN || trimmed.length > BOX_NAME_MAX) {
+    return {
+      error: `El nombre debe tener entre ${BOX_NAME_MIN} y ${BOX_NAME_MAX} caracteres`,
+    };
+  }
+  return { value: trimmed };
+}
+
+export async function updateBoxName(
+  boxId: string,
+  name: string
+): Promise<{ error?: string; name?: string }> {
+  const parsed = validateBoxName(name);
+  if (parsed.error || !parsed.value) {
+    return { error: parsed.error };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("boxes")
+    .update({ name: parsed.value, updated_at: new Date().toISOString() })
+    .eq("id", boxId)
+    .select("name")
+    .single();
+
+  if (error) return { error: error.message };
+  return { name: data.name };
+}

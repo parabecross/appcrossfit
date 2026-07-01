@@ -20,6 +20,7 @@ import type { BoxStatus } from "@/types/database";
 import {
   ExternalLink,
   MoreVertical,
+  Pencil,
   Power,
   Trash2,
 } from "lucide-react";
@@ -58,6 +59,7 @@ function BoxActionsMenuPortal({
   onClose,
   labels,
   onToggleStatus,
+  onRename,
   onDelete,
 }: {
   anchor: MenuAnchor;
@@ -65,9 +67,11 @@ function BoxActionsMenuPortal({
   labels: {
     activate: string;
     deactivate: string;
+    editBoxName: string;
     deleteBox: string;
   };
   onToggleStatus: (box: BoxWithStats) => void;
+  onRename: (box: BoxWithStats) => void;
   onDelete: (box: BoxWithStats) => void;
 }) {
   const { box } = anchor;
@@ -94,6 +98,18 @@ function BoxActionsMenuPortal({
         style={{ top: anchor.top, left: anchor.left, width: MENU_WIDTH }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          role="menuitem"
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-white/10"
+          onClick={() => {
+            onClose();
+            onRename(box);
+          }}
+        >
+          <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
+          {labels.editBoxName}
+        </button>
         <button
           type="button"
           role="menuitem"
@@ -184,6 +200,8 @@ export function AthronBoxesTable({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoxWithStats | null>(null);
+  const [renameTarget, setRenameTarget] = useState<BoxWithStats | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const [confirmSlug, setConfirmSlug] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -207,6 +225,7 @@ export function AthronBoxesTable({
   const actionLabels = {
     activate: t("activate"),
     deactivate: t("deactivate"),
+    editBoxName: t("editBoxName"),
     deleteBox: t("deleteBox"),
     viewDetail: t("viewDetail"),
     actions: tc("actions"),
@@ -232,6 +251,36 @@ export function AthronBoxesTable({
 
     router.refresh();
     setLoadingId(null);
+  };
+
+  const handleRename = async () => {
+    if (!renameTarget) return;
+    const trimmed = renameDraft.trim();
+    if (!trimmed || trimmed === renameTarget.name) {
+      setRenameTarget(null);
+      return;
+    }
+
+    setLoadingId(renameTarget.id);
+    setError(null);
+
+    const res = await fetch(`/api/admin-athron/boxes/${renameTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? tc("error"));
+      setLoadingId(null);
+      return;
+    }
+
+    setRenameTarget(null);
+    setRenameDraft("");
+    setLoadingId(null);
+    router.refresh();
   };
 
   const handleDelete = async () => {
@@ -268,7 +317,7 @@ export function AthronBoxesTable({
 
   return (
     <div className="space-y-4">
-      {error && !deleteTarget && (
+      {error && !deleteTarget && !renameTarget && (
         <p className="text-sm text-red-400">{error}</p>
       )}
 
@@ -339,6 +388,11 @@ export function AthronBoxesTable({
           onClose={closeMenu}
           labels={actionLabels}
           onToggleStatus={(box) => void toggleStatus(box)}
+          onRename={(box) => {
+            setRenameTarget(box);
+            setRenameDraft(box.name);
+            setError(null);
+          }}
           onDelete={(box) => {
             setDeleteTarget(box);
             setConfirmSlug("");
@@ -346,6 +400,62 @@ export function AthronBoxesTable({
           }}
         />
       )}
+
+      <Dialog
+        open={!!renameTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenameTarget(null);
+            setRenameDraft("");
+            setError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editBoxName")}</DialogTitle>
+          </DialogHeader>
+          {renameTarget && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="rename-box">{t("boxNameLabel")}</Label>
+                <Input
+                  id="rename-box"
+                  className="mt-2"
+                  value={renameDraft}
+                  onChange={(e) => setRenameDraft(e.target.value)}
+                  maxLength={80}
+                  autoComplete="off"
+                />
+              </div>
+              {error && renameTarget && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setRenameTarget(null)}
+                  disabled={loadingId === renameTarget.id}
+                >
+                  {tc("cancel")}
+                </Button>
+                <Button
+                  onClick={() => void handleRename()}
+                  disabled={
+                    !renameDraft.trim() ||
+                    renameDraft.trim() === renameTarget.name ||
+                    loadingId === renameTarget.id
+                  }
+                >
+                  {loadingId === renameTarget.id
+                    ? tc("loading")
+                    : t("saveBoxName")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!deleteTarget}

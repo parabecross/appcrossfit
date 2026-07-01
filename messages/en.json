@@ -131,7 +131,11 @@
     "subscriptionNotes": "Internal notes",
     "saveNotes": "Save notes",
     "featuresSection": "Box features",
-    "featuresSectionDesc": "Manual overrides on top of the assigned plan"
+    "featuresSectionDesc": "Manual overrides on top of the assigned plan",
+    "editBoxName": "Edit name",
+    "boxNameLabel": "Gym name",
+    "saveBoxName": "Save name",
+    "boxNameSaved": "Name updated"
   },
   "nav": {
     "dashboard": "Dashboard",

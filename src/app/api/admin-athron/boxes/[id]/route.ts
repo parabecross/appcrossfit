@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteBoxPermanently } from "@/lib/box/delete-box";
 import { requireSuperAdminApi } from "@/lib/auth/super-admin-api";
-import { updateBoxStatus } from "@/lib/queries/athron-admin";
+import {
+  updateBoxName,
+  updateBoxStatus,
+  validateBoxName,
+} from "@/lib/queries/athron-admin";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import type { BoxStatus } from "@/types/database";
 
@@ -19,18 +23,43 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { status } = body as { status?: BoxStatus };
+  const { status, name } = body as { status?: BoxStatus; name?: string };
 
-  if (!status || !ALLOWED.includes(status)) {
-    return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
+  if (status === undefined && name === undefined) {
+    return NextResponse.json({ error: "Sin cambios" }, { status: 400 });
   }
 
-  const result = await updateBoxStatus(id, status);
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+  let updatedName: string | undefined;
+  let updatedStatus: BoxStatus | undefined;
+
+  if (name !== undefined) {
+    const parsed = validateBoxName(name);
+    if (parsed.error) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const result = await updateBoxName(id, parsed.value!);
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    updatedName = result.name;
   }
 
-  return NextResponse.json({ success: true, status });
+  if (status !== undefined) {
+    if (!ALLOWED.includes(status)) {
+      return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
+    }
+    const result = await updateBoxStatus(id, status);
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    updatedStatus = status;
+  }
+
+  return NextResponse.json({
+    success: true,
+    name: updatedName,
+    status: updatedStatus,
+  });
 }
 
 export async function DELETE(
