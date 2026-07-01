@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { avatarStoragePath } from "@/lib/avatars/upload";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
+import { validateAvatarFile } from "@/lib/security/validate-avatar-file";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { avatarStoragePath } from "@/lib/avatars/upload";
 
-const SIGNUP_WINDOW_MS = 15 * 60 * 1000;
+/**
+ * Post-signup window without session: registration may upload avatar before email
+ * confirmation creates a session (see register-form → uploadAvatarViaApi).
+ * Risk: valid user_id enumeration within the window — mitigated by rate limiting.
+ */
+const SIGNUP_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitOrNull(request, "auth:upload-avatar", 10);
+  if (limited) return limited;
+
   const formData = await request.formData();
   const userId = formData.get("user_id");
   const file = formData.get("file");
@@ -14,11 +24,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  const fileCheck = validateAvatarFile(file);
+  if (!fileCheck.ok) {
+    return NextResponse.json(
+      { error: fileCheck.error },
+      { status: fileCheck.status }
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // admin: bypasses RLS — user_id must match session or pass signup-window checks
   const admin = createAdminClient();
 
   if (user) {
@@ -46,14 +65,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const path = avatarStoragePath(userId, file.name);
+  const path = avatarStoragePath(userId, `avatar.${fileCheck.extension}`);
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await admin.storage
     .from("avatars")
     .upload(path, buffer, {
       upsert: true,
-      contentType: file.type || "image/jpeg",
+      contentType: fileCheck.contentType,
     });
 
   if (uploadError) {

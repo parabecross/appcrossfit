@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
+import { isAdminLikeRole } from "@/lib/auth/roles";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminLikeRole } from "@/lib/auth/roles";
 
 async function requireAdminApi() {
   const supabase = await createClient();
@@ -33,10 +34,14 @@ async function requireAdminApi() {
     };
   }
 
+  // admin: bypasses RLS — caller verified isAdminLikeRole + box_id on each mutation
   return { admin: createAdminClient(), boxId: profile.box_id, userId: user.id };
 }
 
 export async function PATCH(request: NextRequest) {
+  const limited = rateLimitOrNull(request, "admin:coach", 30);
+  if (limited) return limited;
+
   const auth = await requireAdminApi();
   if ("error" in auth && auth.error) return auth.error;
 

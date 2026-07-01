@@ -44,6 +44,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
+          # Node 20 lacks native WebSocket; scripts use ws transport (see scripts/lib/supabase-script-client.ts)
           node-version: "20"
           cache: npm
 

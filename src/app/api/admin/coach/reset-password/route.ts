@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
+import { isAdminLikeRole } from "@/lib/auth/roles";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminLikeRole } from "@/lib/auth/roles";
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitOrNull(request, "admin:coach-reset-password", 10);
+  if (limited) return limited;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,6 +45,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // admin: bypasses RLS — target coach box_id verified === auth.box_id below
   const admin = createAdminClient();
 
   const { data: target } = await admin
