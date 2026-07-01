@@ -87,14 +87,15 @@ export function ClassHistoryList({
     return monthGroups.slice(0, visibleMonths);
   }, [monthGroups, periodFilter, visibleMonths]);
 
+  const firstMonthKey = monthGroups[0]?.monthKey;
+
   useEffect(() => {
-    const firstKey = monthGroups[0]?.monthKey;
-    if (!firstKey) return;
+    if (!firstMonthKey) return;
     setExpandedMonths((prev) => {
       if (prev.size > 0) return prev;
-      return new Set([firstKey]);
+      return new Set([firstMonthKey]);
     });
-  }, [monthGroups[0]?.monthKey]);
+  }, [firstMonthKey]);
 
   const canEnterScores = !!profileId && !!gymTimezone;
 

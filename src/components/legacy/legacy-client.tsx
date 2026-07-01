@@ -244,7 +244,12 @@ export function LegacyClient({
 
   const runExport = useCallback(
     async (targetFormat: LegacyCardFormat, mode: "download" | "share") => {
-      const node = exportRefs[targetFormat].current;
+      const node =
+        targetFormat === "story"
+          ? storyExportRef.current
+          : targetFormat === "post"
+            ? postExportRef.current
+            : squareExportRef.current;
       if (!node) return;
       setLoading(true);
       setError(null);
