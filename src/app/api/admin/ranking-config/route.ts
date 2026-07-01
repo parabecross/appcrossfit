@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { isAdminLikeRole } from "@/lib/auth/roles";
 import { mergeRankingConfig } from "@/lib/ranking/config";
+import { parseRankingConfigPatch } from "@/lib/ranking/parse-config-patch";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimitOrNull(request, "admin:ranking-config", 30);
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const {
@@ -26,6 +32,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // admin: bypasses RLS — box_id scoped from authenticated profile
     const admin = createAdminClient();
     const { data } = await admin
       .from("ranking_config")
@@ -43,6 +50,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const limited = rateLimitOrNull(request, "admin:ranking-config", 30);
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const {
@@ -58,19 +68,24 @@ export async function PATCH(request: Request) {
       .eq("user_id", user.id)
       .single();
 
-    if (!profile?.box_id || profile.rol !== "admin") {
+    if (!profile?.box_id || !isAdminLikeRole(profile.rol)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
-    const admin = createAdminClient();
+    const parsed = parseRankingConfigPatch(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ errors: parsed.errors }, { status: 400 });
+    }
 
+    // admin: bypasses RLS — allowlisted fields only; box_id forced last
+    const admin = createAdminClient();
     const { data, error } = await admin
       .from("ranking_config")
       .upsert(
         {
+          ...parsed.patch,
           box_id: profile.box_id,
-          ...body,
         },
         { onConflict: "box_id" }
       )
