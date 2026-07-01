@@ -6,6 +6,8 @@ import { getAthronRankingForBox } from "@/lib/ranking/aggregate";
 import { AthronRankingPage } from "@/components/ranking/athron/athron-ranking-page";
 import type { AthleticLevel } from "@/types/database";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicRankingPage({
   params,
   searchParams,
