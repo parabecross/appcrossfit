@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
+import { isAdminLikeRole } from "@/lib/auth/roles";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminLikeRole } from "@/lib/auth/roles";
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitOrNull(request, "admin:crear-usuario", 10);
+  if (limited) return limited;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,6 +53,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
   }
 
+  // admin: bypasses RLS — new user forced to auth.box_id in insert below
   const admin = createAdminClient();
 
   // email_confirm: false → Supabase envía correo de confirmación (si está activo en Auth)

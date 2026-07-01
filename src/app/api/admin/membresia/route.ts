@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/audit/log";
-import { createClient } from "@/lib/supabase/server";
-import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
 import { isAdminLikeRole } from "@/lib/auth/roles";
+import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
+import { createClient } from "@/lib/supabase/server";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -34,6 +35,9 @@ async function requireAdmin() {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitOrNull(request, "admin:membresia", 30);
+  if (limited) return limited;
+
   const auth = await requireAdmin();
   if ("error" in auth && auth.error) return auth.error;
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { deleteBoxPermanently } from "@/lib/box/delete-box";
 import { updateBoxStatus } from "@/lib/queries/athron-admin";
+import { rateLimitOrNull } from "@/lib/security/rate-limit";
+import { createClient } from "@/lib/supabase/server";
 import type { BoxStatus } from "@/types/database";
 
 const ALLOWED: BoxStatus[] = ["active", "inactive", "trial"];
@@ -42,6 +43,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = rateLimitOrNull(request, "admin-athron:boxes", 30);
+  if (limited) return limited;
+
   const auth = await requireSuperAdminApi();
   if ("error" in auth && auth.error) return auth.error;
 
@@ -65,6 +69,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = rateLimitOrNull(request, "admin-athron:boxes", 30);
+  if (limited) return limited;
+
   const auth = await requireSuperAdminApi();
   if ("error" in auth && auth.error) return auth.error;
 
