@@ -36,8 +36,12 @@ export function assertFeatureEnabled(
     );
   }
   if (!canUseFeature(entitlements, featureKey)) {
-    const label = minPlanLabelForFeature(featureKey);
     const detail = entitlements.featureDetails.find((d) => d.key === featureKey);
+    if (detail?.source === "override" && !detail.enabled) {
+      throw new EntitlementError(
+        "Esta función fue desactivada para tu box. Contacta a soporte ATHRON."
+      );
+    }
     if (detail?.blockedBy) {
       throw new EntitlementError(
         detail.blockedBy === "ranking"
@@ -45,6 +49,7 @@ export function assertFeatureEnabled(
           : "Esta función requiere tener Estadísticas avanzadas activas."
       );
     }
+    const label = minPlanLabelForFeature(featureKey);
     throw new EntitlementError(
       label
         ? `Esta función está disponible en ${label}.`

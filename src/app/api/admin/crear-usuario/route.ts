@@ -3,6 +3,7 @@ import { logAdminAction } from "@/lib/audit/log";
 import { isAdminLikeRole } from "@/lib/auth/roles";
 import {
   assertCanCreateResources,
+  assertFeatureEnabled,
   assertWithinPlanLimit,
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
@@ -62,7 +63,10 @@ export async function POST(request: NextRequest) {
   try {
     const ent = await getBoxEntitlements(profile.box_id);
     assertCanCreateResources(ent);
-    if (rol === "socio") assertWithinPlanLimit(ent, "atletas");
+    if (rol === "socio") {
+      assertFeatureEnabled(ent, "membresias");
+      assertWithinPlanLimit(ent, "atletas");
+    }
     if (rol === "coach") assertWithinPlanLimit(ent, "coaches");
     if (rol === "admin") assertWithinPlanLimit(ent, "admins");
   } catch (e) {

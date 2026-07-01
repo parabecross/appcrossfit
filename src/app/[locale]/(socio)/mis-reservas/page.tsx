@@ -98,6 +98,12 @@ export default async function MisReservasPage({
         />
       )}
 
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="reservas"
+        title={t("bookingsSubtitle")}
+        description={t("bookingsSubtitle")}
+      >
       <WeeklyCalendar
         clases={clases}
         reservas={reservas ?? []}
@@ -109,6 +115,7 @@ export default async function MisReservasPage({
         athleteLevel={athleteLevel}
         athronSummary={athronSummary}
       />
+      </FeatureGate>
 
       <FeatureGate
         entitlements={entitlements}

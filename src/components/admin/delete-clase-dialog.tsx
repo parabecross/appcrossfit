@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { formatShortDay } from "@/lib/utils";
 
@@ -44,16 +43,18 @@ export function DeleteClaseDialog({
   const handleDelete = async () => {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error: deleteError } = await supabase
-      .from("clases")
-      .delete()
-      .eq("id", claseId);
+
+    const res = await fetch("/api/admin/clases", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: claseId }),
+    });
+    const payload = await res.json();
 
     setLoading(false);
 
-    if (deleteError) {
-      setError(deleteError.message);
+    if (!res.ok) {
+      setError(payload.error ?? tc("error"));
       return;
     }
 

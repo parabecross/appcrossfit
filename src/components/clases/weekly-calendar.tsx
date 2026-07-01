@@ -30,7 +30,6 @@ import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
-import { createClient } from "@/lib/supabase/client";
 import { countReservasForClase } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
@@ -78,7 +77,6 @@ export function WeeklyCalendar({
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
-  const supabase = createClient();
   const today = gymTimezone
     ? todayInTimezone(gymTimezone)
     : toDateString(new Date());
@@ -156,21 +154,18 @@ export function WeeklyCalendar({
     };
     setLocalReservas((prev) => [...prev, optimistic]);
 
-    const { data, error } = await supabase
-      .from("reservas")
-      .insert({
-        clase_id: claseId,
-        usuario_id: profileId,
-        estado: "confirmada",
-      })
-      .select("*")
-      .single();
+    const res = await fetch("/api/reservas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clase_id: claseId }),
+    });
+    const payload = await res.json();
 
     setLoading(null);
 
-    if (error || !data) {
+    if (!res.ok || !payload.reserva) {
       setLocalReservas((prev) => prev.filter((r) => r.id !== tempId));
-      const msg = error?.message ?? "";
+      const msg = payload.error ?? "";
       if (msg.includes("20 minutos") || msg.includes("20 minutes")) {
         setBookError(
           t("bookTooLate", { minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS })
@@ -186,7 +181,7 @@ export function WeeklyCalendar({
     }
 
     setLocalReservas((prev) =>
-      prev.map((r) => (r.id === tempId ? data : r))
+      prev.map((r) => (r.id === tempId ? payload.reserva : r))
     );
     router.refresh();
   };
@@ -208,15 +203,20 @@ export function WeeklyCalendar({
     const previous = localReservas.find((r) => r.id === reservaId);
     setLocalReservas((prev) => prev.filter((r) => r.id !== reservaId));
 
-    const { error } = await supabase
-      .from("reservas")
-      .update({ estado: "cancelada" })
-      .eq("id", reservaId);
+    const res = await fetch("/api/reservas", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reserva_id: reservaId }),
+    });
+    const payload = await res.json();
 
     setLoading(null);
 
-    if (error && previous) {
-      setLocalReservas((prev) => [...prev, previous]);
+    if (!res.ok) {
+      if (previous) {
+        setLocalReservas((prev) => [...prev, previous]);
+      }
+      setCancelError(payload.error ?? tc("error"));
       return;
     }
 

@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { FeatureGate } from "@/components/plans/feature-gate";
 import { createClient } from "@/lib/supabase/server";
 import { UsuariosTable } from "@/components/admin/usuarios-table";
 import { getMembresiaActual } from "@/lib/queries/memberships";
@@ -14,6 +16,7 @@ export default async function AdminUsuariosPage({
   const { locale } = await params;
   const adminProfile = await requireAdmin(locale);
   const boxConfig = await getBoxConfig(adminProfile.box_id);
+  const entitlements = await getBoxEntitlements(adminProfile.box_id!);
   const t = await getTranslations("nav");
   const supabase = await createClient();
 
@@ -32,13 +35,20 @@ export default async function AdminUsuariosPage({
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-black brand-text">{t("users")}</h1>
-      <UsuariosTable
-        users={users}
-        locale={locale}
-        gymTimezone={boxConfig.timezone}
-      />
-    </div>
+    <FeatureGate
+      entitlements={entitlements}
+      featureKey="membresias"
+      title={t("users")}
+      description={t("users")}
+    >
+      <div className="space-y-6">
+        <h1 className="text-3xl font-black brand-text">{t("users")}</h1>
+        <UsuariosTable
+          users={users}
+          locale={locale}
+          gymTimezone={boxConfig.timezone}
+        />
+      </div>
+    </FeatureGate>
   );
 }

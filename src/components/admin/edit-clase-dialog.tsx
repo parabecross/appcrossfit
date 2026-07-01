@@ -84,33 +84,57 @@ export function EditClaseDialog({
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const payload = isCoach
-      ? { entrenamiento: form.entrenamiento.trim() || null }
-      : {
-          nombre: form.nombre.trim(),
-          fecha: form.fecha,
-          hora_inicio: form.hora_inicio,
-          hora_fin: form.hora_fin,
-          cupo_maximo: form.cupo_maximo,
-          coach_id: form.coach_id || null,
-          entrenamiento: form.entrenamiento.trim() || null,
-        };
+    if (isCoach) {
+      const supabase = createClient();
+      const { data, error: updateError } = await supabase
+        .from("clases")
+        .update({ entrenamiento: form.entrenamiento.trim() || null })
+        .eq("id", clase.id)
+        .select("*")
+        .single();
 
-    const { data, error: updateError } = await supabase
-      .from("clases")
-      .update(payload)
-      .eq("id", clase.id)
-      .select("*")
-      .single();
+      setLoading(false);
 
-    setLoading(false);
+      if (updateError || !data) {
+        setError(updateError?.message ?? tc("error"));
+        return;
+      }
 
-    if (updateError || !data) {
-      setError(updateError?.message ?? tc("error"));
+      onUpdated?.({
+        ...clase,
+        ...data,
+        coach_nombre: clase.coach_nombre ?? null,
+        coach_foto_url: clase.coach_foto_url ?? null,
+        coach_bio: clase.coach_bio ?? null,
+      });
+      setOpen(false);
+      router.refresh();
       return;
     }
 
+    const res = await fetch("/api/admin/clases", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: clase.id,
+        nombre: form.nombre.trim(),
+        fecha: form.fecha,
+        hora_inicio: form.hora_inicio,
+        hora_fin: form.hora_fin,
+        cupo_maximo: form.cupo_maximo,
+        coach_id: form.coach_id || null,
+        entrenamiento: form.entrenamiento.trim() || null,
+      }),
+    });
+    const payload = await res.json();
+    setLoading(false);
+
+    if (!res.ok || !payload.clase) {
+      setError(payload.error ?? tc("error"));
+      return;
+    }
+
+    const data = payload.clase;
     const coach = coaches.find((c) => c.id === data.coach_id);
     onUpdated?.({
       ...clase,

@@ -47,18 +47,6 @@ export default async function AdminDashboardPage({
         }}
       />
 
-      <section className="space-y-3">
-        <p className="text-sm font-bold">{td("quickActions.title")}</p>
-        <DashboardQuickActions
-          labels={{
-            newClass: td("quickActions.newClass"),
-            newAthlete: td("quickActions.newAthlete"),
-            newCoach: td("quickActions.newCoach"),
-            assignMembership: td("quickActions.assignMembership"),
-          }}
-        />
-      </section>
-
       <CurrentPlanCard
         subscription={subscription}
         labels={{
@@ -76,6 +64,25 @@ export default async function AdminDashboardPage({
           daysLabel: td("planCard.daysLabel"),
         }}
       />
+
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="dashboard_basico"
+        title={t("dashboard")}
+        description={td("header.platformTagline")}
+      >
+      <section className="space-y-3">
+        <p className="text-sm font-bold">{td("quickActions.title")}</p>
+        <DashboardQuickActions
+          entitlements={entitlements}
+          labels={{
+            newClass: td("quickActions.newClass"),
+            newAthlete: td("quickActions.newAthlete"),
+            newCoach: td("quickActions.newCoach"),
+            assignMembership: td("quickActions.assignMembership"),
+          }}
+        />
+      </section>
 
       <FeatureGate
         entitlements={entitlements}
@@ -151,6 +158,12 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
+      <FeatureGate
+        entitlements={entitlements}
+        featureKey="clases"
+        title={td("upcomingClasses.title")}
+        description={td("upcomingClasses.empty")}
+      >
       <DashboardUpcomingClasses
         classes={data.todayClasses}
         labels={{
@@ -164,6 +177,7 @@ export default async function AdminDashboardPage({
           },
         }}
       />
+      </FeatureGate>
 
       <DashboardTodayTimeline
         events={data.recentActivity}
@@ -186,6 +200,12 @@ export default async function AdminDashboardPage({
       />
 
       {(data.recentPrs.length > 0 || data.recentSkills.length > 0) && (
+        <FeatureGate
+          entitlements={entitlements}
+          featureKey="progreso_atleta"
+          title={td("athleteProgress.title")}
+          description={td("athleteProgress.empty")}
+        >
         <DashboardAthleteProgress
           recentPrs={data.recentPrs}
           recentSkills={data.recentSkills}
@@ -201,6 +221,7 @@ export default async function AdminDashboardPage({
           exerciseLabel={(key) => tp(`exercises.${key}`)}
           skillLabel={(key) => tp(`skills.${key}`)}
         />
+        </FeatureGate>
       )}
 
       <FeatureGate
@@ -250,6 +271,7 @@ export default async function AdminDashboardPage({
           </div>
         </div>
       </section>
+      </FeatureGate>
       </FeatureGate>
     </div>
   );

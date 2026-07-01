@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import {
   getClassDates,
@@ -58,6 +57,8 @@ export function AdminClasesClient({
   locale,
   isCoach = false,
   gymTimezone,
+  canManageClases = true,
+  canMarkAttendanceFeature = true,
 }: {
   clases: Clase[];
   reservas: ReservaRow[];
@@ -66,6 +67,8 @@ export function AdminClasesClient({
   locale: string;
   isCoach?: boolean;
   gymTimezone?: string;
+  canManageClases?: boolean;
+  canMarkAttendanceFeature?: boolean;
 }) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -176,13 +179,15 @@ export function AdminClasesClient({
     ).length;
 
   const selectedClaseData = localClases.find((c) => c.id === selectedClase);
-  const canMarkAttendance = selectedClaseData
-    ? hasClassEnded(
+  const canMarkAttendance = Boolean(
+    canMarkAttendanceFeature &&
+      selectedClaseData &&
+      hasClassEnded(
         selectedClaseData.fecha,
         selectedClaseData.hora_fin,
         gymTimezone
       )
-    : false;
+  );
 
   const attendanceDayClasses = useMemo(
     () =>
@@ -330,15 +335,15 @@ export function AdminClasesClient({
     );
     setPendingReservaId(reservaId);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("reservas")
-      .update({ estado })
-      .eq("id", reservaId);
+    const res = await fetch("/api/admin/asistencia", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reserva_id: reservaId, estado }),
+    });
 
     setPendingReservaId(null);
 
-    if (error) {
+    if (!res.ok) {
       setLocalReservas((current) =>
         current.map((r) => (r.id === reservaId ? previous : r))
       );
@@ -536,7 +541,7 @@ export function AdminClasesClient({
           </div>
         </button>
         <WorkoutBlock entrenamiento={c.entrenamiento} compact className="mt-3" />
-        {isCoach && (
+        {isCoach && canManageClases && (
           <div className="mt-2 flex justify-end">
             <EditClaseDialog
               clase={c}
@@ -587,6 +592,7 @@ export function AdminClasesClient({
               </div>
 
               <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
+              {canManageClases && (
               <div className="flex justify-end">
                 <EditClaseDialog
                   clase={selectedClaseData}
@@ -598,6 +604,7 @@ export function AdminClasesClient({
                   onUpdated={handleClassUpdated}
                 />
               </div>
+              )}
 
               <AttendanceList />
             </div>
@@ -668,6 +675,7 @@ export function AdminClasesClient({
                         {selectedClaseData.nombre} —{" "}
                         {formatShortDay(selectedClaseData.fecha, locale)}
                       </p>
+                      {canManageClases && (
                       <EditClaseDialog
                         clase={selectedClaseData}
                         coaches={coaches}
@@ -677,6 +685,7 @@ export function AdminClasesClient({
                         variant="icon"
                         onUpdated={handleClassUpdated}
                       />
+                      )}
                     </div>
                     <WorkoutBlock
                       entrenamiento={selectedClaseData.entrenamiento}
@@ -701,6 +710,8 @@ export function AdminClasesClient({
     <div className="space-y-5 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h1 className="text-2xl md:text-3xl font-black brand-text">{t("title")}</h1>
+        {canManageClases ? (
+        <>
         <Dialog open={open} onOpenChange={(v) => {
           setOpen(v);
           if (!v) setCreateError(null);
@@ -821,6 +832,8 @@ export function AdminClasesClient({
           onConfirm={() => void executeCreateClase()}
           loading={loading}
         />
+        </>
+        ) : null}
       </div>
 
       <WeeklyCalendar
@@ -830,7 +843,7 @@ export function AdminClasesClient({
         canBook={false}
         locale={locale}
         isAdmin
-        canEditClass
+        canEditClass={canManageClases}
         coaches={coaches}
         onClassSelect={handleClassSelect}
         onDayChange={handleCalendarDayChange}
@@ -862,6 +875,8 @@ export function AdminClasesClient({
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {canManageClases && (
+                  <>
                 <EditClaseDialog
                   clase={selectedClaseData}
                   coaches={coaches}
@@ -878,6 +893,8 @@ export function AdminClasesClient({
                   variant="icon"
                   onDeleted={() => handleClassDeleted(selectedClaseData.id)}
                 />
+                  </>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -922,6 +939,8 @@ export function AdminClasesClient({
                   {formatShortDay(selectedClaseData.fecha, locale)}
                 </p>
                 <div className="flex items-center gap-2 shrink-0">
+                  {canManageClases && (
+                    <>
                   <EditClaseDialog
                     clase={selectedClaseData}
                     coaches={coaches}
@@ -939,6 +958,8 @@ export function AdminClasesClient({
                     variant="button"
                     onDeleted={() => handleClassDeleted(selectedClaseData.id)}
                   />
+                    </>
+                  )}
                 </div>
               </div>
               <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />

@@ -20,22 +20,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import type { Plan } from "@/types/database";
 
 export function PlanesAdmin({
   planes,
-  boxId,
 }: {
   planes: Plan[];
   boxId: string;
 }) {
   const t = useTranslations("plans");
   const tt = useTranslations("plans.types");
+  const tc = useTranslations("common");
   const router = useRouter();
-  const supabase = createClient();
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: "",
     tipo: "mensual_fijo" as Plan["tipo"],
@@ -44,24 +44,48 @@ export function PlanesAdmin({
   });
 
   const createPlan = async () => {
-    await supabase.from("planes").insert({
-      nombre: form.nombre,
-      tipo: form.tipo,
-      duracion_dias: form.duracion_dias,
-      precio: form.precio ? parseFloat(form.precio) : null,
-      activo: true,
-      box_id: boxId,
+    setLoading(true);
+    setError(null);
+
+    const res = await fetch("/api/admin/planes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: form.nombre,
+        tipo: form.tipo,
+        duracion_dias: form.duracion_dias,
+        precio: form.precio ? parseFloat(form.precio) : null,
+      }),
     });
+    const payload = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(payload.error ?? tc("error"));
+      return;
+    }
+
     setOpen(false);
     router.refresh();
   };
 
   const toggleActive = async (plan: Plan) => {
-    await supabase
-      .from("planes")
-      .update({ activo: !plan.activo })
-      .eq("id", plan.id)
-      .eq("box_id", boxId);
+    setLoading(true);
+    setError(null);
+
+    const res = await fetch("/api/admin/planes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: plan.id, activo: !plan.activo }),
+    });
+    const payload = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(payload.error ?? tc("error"));
+      return;
+    }
+
     router.refresh();
   };
 
@@ -131,13 +155,16 @@ export function PlanesAdmin({
                   }
                 />
               </div>
-              <Button onClick={createPlan} className="w-full">
-                Create
+              {error && <p className="text-sm text-red-400">{error}</p>}
+              <Button onClick={() => void createPlan()} className="w-full" disabled={loading}>
+                {loading ? tc("loading") : "Create"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
+
+      {error && !open && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="grid gap-4 md:grid-cols-2">
         {planes.map((p) => (
@@ -158,7 +185,8 @@ export function PlanesAdmin({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toggleActive(p)}
+              onClick={() => void toggleActive(p)}
+              disabled={loading}
             >
               {p.activo ? "Deactivate" : "Activate"}
             </Button>
