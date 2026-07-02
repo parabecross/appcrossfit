@@ -1,4 +1,5 @@
 import { formatPrValue } from "@/lib/progreso/helpers";
+import { cn } from "@/lib/utils";
 import type { PrUnidad } from "@/types/database";
 
 export function DashboardAthleteProgress({
@@ -7,6 +8,7 @@ export function DashboardAthleteProgress({
   topConsistent,
   labels,
   embedded = false,
+  compact = false,
 }: {
   recentPrs: Array<{
     valor: number;
@@ -28,11 +30,16 @@ export function DashboardAthleteProgress({
     perWeek: string;
   };
   embedded?: boolean;
+  compact?: boolean;
 }) {
   const hasData =
     recentPrs.length > 0 ||
     recentSkills.length > 0 ||
     topConsistent.length > 0;
+
+  const prLimit = compact ? 3 : 4;
+  const skillLimit = compact ? 2 : 4;
+  const consistentLimit = compact ? 3 : 10;
 
   return (
     <div
@@ -47,13 +54,18 @@ export function DashboardAthleteProgress({
       {!hasData ? (
         <p className="text-sm text-muted-foreground">{labels.empty}</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div
+          className={cn(
+            "grid gap-4",
+            compact ? "grid-cols-1" : "md:grid-cols-3"
+          )}
+        >
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {labels.recentPrs}
             </p>
             <div className="space-y-2">
-              {recentPrs.slice(0, 4).map((p) => (
+              {recentPrs.slice(0, prLimit).map((p) => (
                 <div
                   key={`${p.nombre}-${p.exerciseDisplay}-${p.valor}`}
                   className="text-sm rounded-lg border border-white/5 px-3 py-2"
@@ -71,12 +83,13 @@ export function DashboardAthleteProgress({
             </div>
           </div>
 
+          {!compact && (
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {labels.recentSkills}
             </p>
             <div className="space-y-2">
-              {recentSkills.slice(0, 4).map((s) => (
+              {recentSkills.slice(0, skillLimit).map((s) => (
                 <div
                   key={`${s.nombre}-${s.skillDisplay}`}
                   className="text-sm rounded-lg border border-white/5 px-3 py-2"
@@ -92,13 +105,14 @@ export function DashboardAthleteProgress({
               )}
             </div>
           </div>
+          )}
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {labels.topConsistent}
             </p>
             <div className="space-y-2">
-              {topConsistent.map((a) => (
+              {topConsistent.slice(0, consistentLimit).map((a) => (
                 <div
                   key={a.name}
                   className="flex justify-between text-sm rounded-lg border border-white/5 px-3 py-2"

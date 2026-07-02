@@ -15,6 +15,8 @@ const coachForbiddenAdminPaths = [
   "/admin/coaches",
   "/admin/planes",
   "/admin/estadisticas",
+  "/admin/rendimiento",
+  "/admin/actividad",
 ];
 
 type SessionProfile = {

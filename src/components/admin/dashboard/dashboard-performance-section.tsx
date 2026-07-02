@@ -34,6 +34,7 @@ export function DashboardPerformanceSection({
   topConsistent,
   progressLabels,
   labels,
+  compact = false,
 }: {
   entitlements: BoxEntitlements;
   weeklyData: WeeklySummaryData;
@@ -48,6 +49,7 @@ export function DashboardPerformanceSection({
     tabProgress: string;
     viewStats: string;
   };
+  compact?: boolean;
 }) {
   const canWeekly = canUseFeature(entitlements, "resumen_semanal");
   const canProgress = canUseFeature(entitlements, "progreso_atleta");
@@ -59,6 +61,7 @@ export function DashboardPerformanceSection({
       data={weeklyData}
       labels={weeklyLabels}
       embedded
+      compact={compact}
     />
   ) : (
     <LockedTabPanel
@@ -71,9 +74,10 @@ export function DashboardPerformanceSection({
     <DashboardAthleteProgress
       recentPrs={recentPrs.slice(0, 3)}
       recentSkills={recentSkills.slice(0, 3)}
-      topConsistent={topConsistent.slice(0, 3)}
+      topConsistent={topConsistent.slice(0, compact ? 3 : 10)}
       labels={progressLabels}
       embedded
+      compact={compact}
     />
   ) : (
     <LockedTabPanel
@@ -89,6 +93,7 @@ export function DashboardPerformanceSection({
       canProgress={canProgress}
       weeklyPanel={weeklyPanel}
       progressPanel={progressPanel}
+      compact={compact}
     />
   );
 }

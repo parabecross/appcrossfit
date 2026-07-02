@@ -47,6 +47,7 @@ export function DashboardWeeklySummary({
   data,
   labels,
   embedded = false,
+  compact = false,
 }: {
   data: WeeklySummaryData;
   labels: {
@@ -62,6 +63,7 @@ export function DashboardWeeklySummary({
     noTopClass: string;
   };
   embedded?: boolean;
+  compact?: boolean;
 }) {
   return (
     <section
@@ -79,7 +81,12 @@ export function DashboardWeeklySummary({
           <p className="text-sm text-muted-foreground mt-1">{labels.subtitle}</p>
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-3",
+          compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-3"
+        )}
+      >
         <SummaryRow
           icon={TrendingUp}
           label={labels.attendance}

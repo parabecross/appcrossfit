@@ -46,6 +46,7 @@ export function DashboardTodayTimeline({
   today,
   locale,
   labels,
+  hideHeader = false,
 }: {
   events: DashboardActivityEvent[];
   today: string;
@@ -58,6 +59,7 @@ export function DashboardTodayTimeline({
     yesterday: string;
     types: Record<DashboardActivityEvent["type"], string>;
   };
+  hideHeader?: boolean;
 }) {
   const t = useTranslations("adminDashboard.today");
   const dayGroups = useMemo(() => groupActivityByDay(events), [events]);
@@ -78,10 +80,12 @@ export function DashboardTodayTimeline({
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-      <div className="mb-4">
-        <p className="text-sm font-bold">{labels.title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{labels.subtitle}</p>
-      </div>
+      {!hideHeader && (
+        <div className="mb-4">
+          <p className="text-sm font-bold">{labels.title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{labels.subtitle}</p>
+        </div>
+      )}
 
       {dayGroups.length === 0 ? (
         <p className="text-sm text-muted-foreground">{labels.empty}</p>

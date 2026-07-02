@@ -11,9 +11,8 @@ import { DashboardTodayHero } from "@/components/admin/dashboard/dashboard-today
 import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
 import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-priority-alerts";
 import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
-import { DashboardRecentActivityCompact } from "@/components/admin/dashboard/dashboard-recent-activity-compact";
 import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
-import { DashboardStatsPreview } from "@/components/admin/dashboard/dashboard-stats-preview";
+import { DashboardChartsSection } from "@/components/admin/dashboard/dashboard-charts-section";
 
 export default async function AdminDashboardPage({
   params,
@@ -159,7 +158,7 @@ export default async function AdminDashboardPage({
             }
           />
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
             <FeatureGate
               entitlements={entitlements}
               featureKey="clases"
@@ -183,82 +182,65 @@ export default async function AdminDashboardPage({
               />
             </FeatureGate>
 
-            <DashboardRecentActivityCompact
-              events={data.recentActivity}
-              labels={{
-                title: td("today.title"),
-                empty: td("today.empty"),
-                viewAll: td("today.viewAll"),
-                types: {
-                  reserva: td("today.types.reserva"),
-                  asistencia: td("today.types.asistencia"),
-                  pr: td("today.types.pr"),
-                  skill: td("today.types.skill"),
-                  membresia: td("today.types.membresia"),
-                },
-              }}
-            />
+            {(canUseFeature(entitlements, "resumen_semanal") ||
+              canUseFeature(entitlements, "progreso_atleta")) && (
+              <DashboardPerformanceSection
+                compact
+                entitlements={entitlements}
+                weeklyData={data.weeklySummary}
+                weeklyLabels={{
+                  title: td("weekly.title"),
+                  subtitle: td("weekly.subtitle"),
+                  attendance: td("weekly.attendance"),
+                  attendanceDetail: `${td("weekly.attendanceVsLast", { last: ws.attendanceLastWeek })} · ${weeklyDeltaLabel}`,
+                  topClass: td("weekly.topClass"),
+                  topClassBookingsDetail:
+                    ws.topClassBookings > 0
+                      ? td("weekly.topClassBookings", {
+                          count: ws.topClassBookings,
+                        })
+                      : undefined,
+                  prs: td("weekly.prs"),
+                  goals: td("weekly.goals"),
+                  memberships: td("weekly.memberships"),
+                  noTopClass: td("weekly.noTopClass"),
+                }}
+                recentPrs={progressPrs}
+                recentSkills={progressSkills}
+                topConsistent={data.topConsistentAthletes}
+                progressLabels={{
+                  title: td("athleteProgress.title"),
+                  recentPrs: td("athleteProgress.recentPrs"),
+                  recentSkills: td("athleteProgress.recentSkills"),
+                  topConsistent: td("athleteProgress.topConsistent"),
+                  empty: td("athleteProgress.empty"),
+                  perWeek: ts("frequencyUnit"),
+                }}
+                labels={{
+                  title: td("performance.title"),
+                  tabWeekly: td("performance.tabWeekly"),
+                  tabProgress: td("performance.tabProgress"),
+                  viewStats: td("performance.viewStats"),
+                }}
+              />
+            )}
           </div>
-
-          {(canUseFeature(entitlements, "resumen_semanal") ||
-            canUseFeature(entitlements, "progreso_atleta")) && (
-            <DashboardPerformanceSection
-              entitlements={entitlements}
-              weeklyData={data.weeklySummary}
-              weeklyLabels={{
-                title: td("weekly.title"),
-                subtitle: td("weekly.subtitle"),
-                attendance: td("weekly.attendance"),
-                attendanceDetail: `${td("weekly.attendanceVsLast", { last: ws.attendanceLastWeek })} · ${weeklyDeltaLabel}`,
-                topClass: td("weekly.topClass"),
-                topClassBookingsDetail:
-                  ws.topClassBookings > 0
-                    ? td("weekly.topClassBookings", {
-                        count: ws.topClassBookings,
-                      })
-                    : undefined,
-                prs: td("weekly.prs"),
-                goals: td("weekly.goals"),
-                memberships: td("weekly.memberships"),
-                noTopClass: td("weekly.noTopClass"),
-              }}
-              recentPrs={progressPrs}
-              recentSkills={progressSkills}
-              topConsistent={data.topConsistentAthletes}
-              progressLabels={{
-                title: td("athleteProgress.title"),
-                recentPrs: td("athleteProgress.recentPrs"),
-                recentSkills: td("athleteProgress.recentSkills"),
-                topConsistent: td("athleteProgress.topConsistent"),
-                empty: td("athleteProgress.empty"),
-                perWeek: ts("frequencyUnit"),
-              }}
-              labels={{
-                title: td("performance.title"),
-                tabWeekly: td("performance.tabWeekly"),
-                tabProgress: td("performance.tabProgress"),
-                viewStats: td("performance.viewStats"),
-              }}
-            />
-          )}
 
           <FeatureGate
             entitlements={entitlements}
             featureKey="estadisticas_avanzadas"
-            title={td("charts.previewTitle")}
-            description={td("charts.expand")}
+            title={td("charts.title")}
+            description={td("charts.subtitle")}
           >
-            <DashboardStatsPreview
-              trend={data.charts.trend}
-              demand={data.charts.demand}
+            <DashboardChartsSection
+              charts={data.charts}
               locale={locale}
               labels={{
-                title: td("charts.previewTitle"),
+                title: td("charts.title"),
+                subtitle: td("charts.subtitle"),
+                viewStats: td("charts.viewStats"),
                 trend: ts("trend"),
                 demand: ts("demand"),
-                viewExecutive: td("charts.viewExecutive"),
-                expand: td("charts.expand"),
-                collapse: td("charts.collapse"),
               }}
             />
           </FeatureGate>

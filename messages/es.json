@@ -603,6 +603,12 @@
         "membresia": "Membresía asignada"
       }
     },
+    "activity": {
+      "pageTitle": "Actividad del box",
+      "pageSubtitle": "Reservas, asistencias, PRs y skills de los últimos días",
+      "searchPlaceholder": "Buscar por atleta o evento…",
+      "noResults": "Ningún evento coincide con tu búsqueda."
+    },
     "weekly": {
       "title": "Resumen semanal",
       "subtitle": "Comparativa y logros de la semana en curso",
@@ -619,24 +625,44 @@
       "deltaSame": "Igual que la semana pasada"
     },
     "charts": {
-      "sectionTitle": "Tendencias",
-      "previewTitle": "Vista rápida de estadísticas",
-      "expand": "Toca para ver gráficas de tendencia",
-      "collapse": "Ocultar gráficas",
-      "viewExecutive": "Ver dashboard ejecutivo"
+      "title": "Tendencias y demanda",
+      "subtitle": "Evolución de asistencia y horarios con más reservas",
+      "viewStats": "Ver análisis completo"
     },
     "performance": {
       "title": "Rendimiento del box",
+      "pageTitle": "Rendimiento del box",
+      "pageSubtitle": "Resumen semanal y progreso de tus atletas",
       "tabWeekly": "Resumen semanal",
       "tabProgress": "Progreso de atletas",
-      "viewStats": "Ver estadísticas completas"
+      "viewStats": "Ver resumen completo"
     },
     "athleteProgress": {
       "title": "Progreso de atletas",
       "recentPrs": "PRs recientes",
       "recentSkills": "Skills recientes",
       "topConsistent": "Más constantes",
-      "empty": "Aún no hay datos de progreso."
+      "empty": "Aún no hay datos de progreso.",
+      "explorerSubtitle": "Busca por nombre, filtra y abre el perfil de cada atleta",
+      "searchPlaceholder": "Buscar atleta por nombre…",
+      "filterAll": "Todos",
+      "filterActive": "Activos",
+      "filterWithPr": "Con PRs",
+      "filterWithSkill": "Con skills",
+      "filterConsistent": "Más constantes",
+      "sortLabel": "Ordenar",
+      "sortName": "Nombre A–Z",
+      "sortFrequency": "Mayor frecuencia",
+      "sortRecentPr": "PR más reciente",
+      "sortRecentSkill": "Skill más reciente",
+      "columnAthlete": "Atleta",
+      "columnFrequency": "Frecuencia",
+      "columnLatestPr": "Último PR",
+      "columnLatestSkill": "Última skill",
+      "viewProfile": "Ver perfil",
+      "noResults": "Ningún atleta coincide con tu búsqueda.",
+      "resultsSummary": "{total} atletas · {active} activos · {prs} con PR · {skills} con skills",
+      "pageOf": "Página {current} de {total}"
     }
   },
   "plans": {

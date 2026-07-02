@@ -51,8 +51,11 @@ export async function getStatsData(boxId?: string) {
   return { reservas: filteredReservas, clases: filteredClases };
 }
 
-export function computeFrequencyStats(
-  reservas: Array<{ estado: string; profile: { id: string; nombre_completo: string } | null }>
+export function computeFrequencyByUserId(
+  reservas: Array<{
+    estado: string;
+    profile: { id: string; nombre_completo: string } | null;
+  }>
 ) {
   const map = new Map<string, { name: string; count: number }>();
   for (const r of reservas) {
@@ -64,11 +67,25 @@ export function computeFrequencyStats(
     cur.count++;
     map.set(r.profile.id, cur);
   }
+
   const weeks = APP_CONFIG.TENDENCIA_SEMANAS;
-  return Array.from(map.values())
+  const result = new Map<string, { name: string; frequency: number }>();
+  for (const [id, v] of map) {
+    result.set(id, {
+      name: v.name,
+      frequency: +(v.count / weeks).toFixed(1),
+    });
+  }
+  return result;
+}
+
+export function computeFrequencyStats(
+  reservas: Array<{ estado: string; profile: { id: string; nombre_completo: string } | null }>
+) {
+  return Array.from(computeFrequencyByUserId(reservas).values())
     .map((v) => ({
       name: v.name.split(" ")[0],
-      frequency: +(v.count / weeks).toFixed(1),
+      frequency: v.frequency,
     }))
     .sort((a, b) => b.frequency - a.frequency)
     .slice(0, 15);

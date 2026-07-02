@@ -45,7 +45,7 @@ export function DashboardRecentActivityCompact({
         <p className="text-sm font-bold">{labels.title}</p>
         {events.length > 0 && (
           <Link
-            href="/admin/estadisticas"
+            href="/admin/actividad"
             className="inline-flex items-center gap-1 text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors shrink-0"
           >
             {labels.viewAll}
