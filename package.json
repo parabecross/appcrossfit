@@ -10,6 +10,7 @@
     "lint": "next lint",
     "demo": "tsx scripts/reset-parabellum-demo.ts",
     "check-isolation": "tsx scripts/check-box-isolation.ts",
+    "e2e-two-boxes": "tsx scripts/e2e-two-box-isolation.ts",
     "teardown-isolation-boxes": "tsx scripts/teardown-isolation-test-boxes.ts",
     "seed-demo-boxes": "tsx scripts/seed-demo-boxes-qa.ts",
     "reset-two-demo-boxes": "tsx scripts/reset-two-demo-boxes.ts",
