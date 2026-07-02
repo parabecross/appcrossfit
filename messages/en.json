@@ -877,6 +877,7 @@
   "rankingAthron": {
     "leagueTitle": "Athron Ranking",
     "unavailable": "Ranking unavailable",
+    "missingBoxParam": "Ranking unavailable. Use the share link from your box (it must include ?box=...).",
     "unavailableForBox": "Ranking is not available for this box.",
     "points": "Points",
     "pts": "pts",

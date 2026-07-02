@@ -281,6 +281,8 @@ CREATE TRIGGER trg_validate_coach
 CREATE OR REPLACE FUNCTION check_reserva_cupo()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_cupo_max INT;

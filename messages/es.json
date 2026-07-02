@@ -877,6 +877,7 @@
   "rankingAthron": {
     "leagueTitle": "Ranking Athron",
     "unavailable": "Ranking no disponible",
+    "missingBoxParam": "Ranking no disponible. Usa el enlace compartido por tu box (debe incluir ?box=...).",
     "unavailableForBox": "Ranking no disponible para este box.",
     "points": "Puntos",
     "pts": "pts",

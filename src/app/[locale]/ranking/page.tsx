@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import { APP_CONFIG } from "@/lib/config/app-config";
 import { getPublicRankingAccess } from "@/lib/entitlements/engine";
 import { getAthronRankingForBox } from "@/lib/ranking/aggregate";
 import { AthronRankingPage } from "@/components/ranking/athron/athron-ranking-page";
@@ -8,6 +7,13 @@ import type { AthleticLevel } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
+function RankingUnavailable({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <p className="text-muted-foreground text-center max-w-md">{message}</p>
+    </div>
+  );
+}
 
 export default async function PublicRankingPage({
   params,
@@ -19,17 +25,15 @@ export default async function PublicRankingPage({
   const { locale } = await params;
   const sp = await searchParams;
   const t = await getTranslations("rankingAthron");
-  const boxSlug = sp.box?.trim() || APP_CONFIG.DEFAULT_BOX_SLUG;
+  const boxSlug = sp.box?.trim();
+
+  if (!boxSlug) {
+    return <RankingUnavailable message={t("missingBoxParam")} />;
+  }
 
   const access = await getPublicRankingAccess(boxSlug);
   if (!access.allowed) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <p className="text-muted-foreground text-center max-w-md">
-          {t("unavailableForBox")}
-        </p>
-      </div>
-    );
+    return <RankingUnavailable message={t("unavailableForBox")} />;
   }
 
   const category = (
@@ -47,11 +51,7 @@ export default async function PublicRankingPage({
   });
 
   if (!data) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <p className="text-muted-foreground">{t("unavailable")}</p>
-      </div>
-    );
+    return <RankingUnavailable message={t("unavailable")} />;
   }
 
   return (

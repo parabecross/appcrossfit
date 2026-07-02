@@ -5,6 +5,7 @@ import {
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 async function requireSocioReservas() {
@@ -74,7 +75,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
   }
 
-  const { data, error } = await supabase
+  // Service role: el trigger check_reserva_cupo() usa SELECT … FOR UPDATE sobre
+  // clases; con RLS el socio no pasa clases_update_coach_assigned y falla el INSERT.
+  // Auth, box y clase ya validados arriba con el cliente del usuario.
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("reservas")
     .insert({
       clase_id,
