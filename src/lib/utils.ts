@@ -26,19 +26,22 @@ export function formatCompactDate(dateStr: string, locale = "es") {
 }
 
 export function formatShortDay(dateStr: string, locale = "es") {
-  const d = new Date(`${dateStr}T12:00:00`);
+  const d = new Date(`${dateStr}T12:00:00Z`);
   return new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
   }).format(d);
 }
 
-export function formatWeekdayShort(date: Date, locale = "es") {
-  return date.toLocaleDateString(locale === "es" ? "es-MX" : "en-US", {
+export function formatWeekdayShort(dateStr: string, locale = "es") {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  return new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
     weekday: "short",
     day: "numeric",
-  });
+    timeZone: "UTC",
+  }).format(d);
 }
 
 export function formatTime(time: string) {

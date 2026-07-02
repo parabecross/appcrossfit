@@ -12,17 +12,20 @@ import { cn } from "@/lib/utils";
 export function DailyMotivationBanner({
   audience,
   locale,
+  today,
   className,
 }: {
   audience: MotivationAudience;
   locale: string;
+  /** YYYY-MM-DD en zona del gym; calculado en el servidor para evitar hydration mismatch. */
+  today: string;
   className?: string;
 }) {
   const t = useTranslations("motivation");
 
   const message = useMemo(
-    () => getDailyMotivationMessage(audience, locale),
-    [audience, locale]
+    () => getDailyMotivationMessage(audience, locale, today),
+    [audience, locale, today]
   );
 
   return (

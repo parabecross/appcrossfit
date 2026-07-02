@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
 import { requireRole } from "@/lib/auth/get-profile";
+import { getBoxConfig } from "@/lib/box/config";
+import { daysUntilDateOnly, todayInTimezone } from "@/lib/dates/date-only";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
@@ -13,12 +15,6 @@ export const dynamic = "force-dynamic";
 
 type MembresiaWithPlan = Membresia & { plan: Plan | null };
 
-function daysUntil(dateStr: string) {
-  const end = new Date(`${dateStr}T23:59:59`);
-  const now = new Date();
-  return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export default async function MiMembresiaPage({
   params,
 }: {
@@ -29,6 +25,8 @@ export default async function MiMembresiaPage({
   const ts = await getTranslations("socio");
   const tm = await getTranslations("membership.status");
   const profile = await requireRole(locale, ["socio"]);
+  const boxConfig = await getBoxConfig(profile.box_id);
+  const today = todayInTimezone(boxConfig.timezone);
   const supabase = await createClient();
 
   const { data: membresias } = await supabase
@@ -39,7 +37,9 @@ export default async function MiMembresiaPage({
 
   const current = (membresias as MembresiaWithPlan[] | null)?.[0];
   const daysLeft =
-    current?.estado === "vigente" ? daysUntil(current.fecha_fin) : null;
+    current?.estado === "vigente"
+      ? daysUntilDateOnly(current.fecha_fin, today)
+      : null;
 
   return (
     <div className="space-y-5">

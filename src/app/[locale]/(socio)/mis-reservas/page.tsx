@@ -11,6 +11,7 @@ import {
 } from "@/lib/queries/class-scores";
 import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranking";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
+import { todayInTimezone } from "@/lib/dates/date-only";
 import { canReserve } from "@/lib/membresias/helpers";
 import { findNextBookedClass } from "@/lib/reservas/next-booking";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +30,7 @@ export default async function MisReservasPage({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const entitlements = await getBoxEntitlements(profile.box_id!);
+  const today = todayInTimezone(boxConfig.timezone);
 
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
@@ -87,6 +89,7 @@ export default async function MisReservasPage({
           profile={profile}
           membership={membership}
           locale={locale}
+          today={today}
         />
       }
       entitlements={entitlements}

@@ -8,6 +8,7 @@ import {
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
+import { todayInTimezone } from "@/lib/dates/date-only";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function SocioLayout({
   const { locale } = await params;
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
+  const today = todayInTimezone(boxConfig.timezone);
 
   const supabase = await createClient();
   await supabase.auth.getUser();
@@ -35,7 +37,12 @@ export default async function SocioLayout({
           <LanguageSwitcher />
         </header>
         <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden">
-          <DailyMotivationBanner audience="athlete" locale={locale} className="mb-5" />
+          <DailyMotivationBanner
+            audience="athlete"
+            locale={locale}
+            today={today}
+            className="mb-5"
+          />
           {children}
         </main>
         <InstallAppPrompt />

@@ -1,23 +1,20 @@
 import { getTranslations } from "next-intl/server";
 import { CalendarDays, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { daysUntilDateOnly } from "@/lib/dates/date-only";
 import { formatDate } from "@/lib/utils";
 import type { MembresiaWithPlan } from "@/lib/queries/memberships";
 import type { Profile } from "@/types/database";
 
-function daysUntil(dateStr: string) {
-  const end = new Date(`${dateStr}T23:59:59`);
-  return Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-}
-
 function cardTone(
   profile: Profile,
-  membership: MembresiaWithPlan | null
+  membership: MembresiaWithPlan | null,
+  today: string
 ): "success" | "warning" | "danger" | "muted" {
   if (profile.estado_cuenta === "pendiente_pago") return "warning";
   if (!membership) return "muted";
   if (membership.estado === "vencida") return "danger";
-  const days = daysUntil(membership.fecha_fin);
+  const days = daysUntilDateOnly(membership.fecha_fin, today);
   if (days <= 7) return "warning";
   return "success";
 }
@@ -36,16 +33,20 @@ export async function AthleteMembershipCard({
   profile,
   membership,
   locale,
+  today,
 }: {
   profile: Profile;
   membership: MembresiaWithPlan | null;
   locale: string;
+  today: string;
 }) {
   const t = await getTranslations("socioHome.membership");
   const tm = await getTranslations("membership.status");
-  const tone = cardTone(profile, membership);
+  const tone = cardTone(profile, membership, today);
   const daysLeft =
-    membership?.estado === "vigente" ? daysUntil(membership.fecha_fin) : null;
+    membership?.estado === "vigente"
+      ? daysUntilDateOnly(membership.fecha_fin, today)
+      : null;
 
   return (
     <div className={`rounded-2xl border p-5 ${toneStyles[tone]}`}>

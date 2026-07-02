@@ -5,6 +5,7 @@ import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
+import { todayInTimezone } from "@/lib/dates/date-only";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function AdminLayout({
   const { locale } = await params;
   const profile = await requireRole(locale, ["admin", "coach", "box_admin"]);
   const boxConfig = await getBoxConfig(profile.box_id);
+  const today = todayInTimezone(boxConfig.timezone);
 
   return (
     <div className="flex min-h-screen mobile-page w-full overflow-x-hidden">
@@ -35,7 +37,12 @@ export default async function AdminLayout({
           <LanguageSwitcher />
         </header>
         <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-6xl md:mx-auto overflow-x-hidden">
-          <DailyMotivationBanner audience="coach" locale={locale} className="mb-5" />
+          <DailyMotivationBanner
+            audience="coach"
+            locale={locale}
+            today={today}
+            className="mb-5"
+          />
           {children}
         </main>
       </div>

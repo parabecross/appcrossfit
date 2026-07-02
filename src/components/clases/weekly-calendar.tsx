@@ -6,7 +6,6 @@ import { CalendarX2, CheckCircle2 } from "lucide-react";
 import { cn, formatTime, formatWeekdayShort, formatShortDay } from "@/lib/utils";
 import {
   getClassDates,
-  dateStringToLocalDate,
   toDateString,
   todayInTimezone,
   addDaysToDateString,
@@ -274,7 +273,7 @@ export function WeeklyCalendar({
       if (dateStr === today) return t("bookedDayToday");
       if (dateStr === tomorrow) return t("bookedDayTomorrow");
     }
-    return formatWeekdayShort(dateStringToLocalDate(dateStr), locale);
+    return formatWeekdayShort(dateStr, locale);
   };
   const isToday = (ds: string) => ds === today;
 

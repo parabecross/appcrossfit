@@ -28,7 +28,6 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { useRouter } from "@/i18n/routing";
 import {
   getClassDates,
-  dateStringToLocalDate,
   toDateString,
   findOverlappingClasses,
   hasClassEnded,
@@ -401,7 +400,7 @@ export function AdminClasesClient({
                   : "bg-secondary/60 text-muted-foreground"
               )}
             >
-              <span>{formatWeekdayShort(dateStringToLocalDate(ds), locale)}</span>
+              <span>{formatWeekdayShort(ds, locale)}</span>
               {count > 1 && (
                 <span
                   className={cn(
