@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { canCancelReservation } from "@/lib/clases/helpers";
-import { countReservasForClase } from "@/lib/reservas/helpers";
+import { occupiedForSocioClass } from "@/lib/reservas/helpers";
 import { formatShortDay, formatTime } from "@/lib/utils";
 import type { Clase, Reserva } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -18,12 +18,16 @@ export function AthleteNextClassCard({
   locale,
   gymTimezone,
   reservas,
+  serverReservas,
+  profileId,
   onReservationsChange,
 }: {
   booking: { clase: Clase; reserva: Reserva };
   locale: string;
   gymTimezone?: string;
   reservas: Reserva[];
+  serverReservas: Reserva[];
+  profileId: string;
   onReservationsChange?: Dispatch<SetStateAction<Reserva[]>>;
 }) {
   const t = useTranslations("socioHome");
@@ -33,7 +37,13 @@ export function AthleteNextClassCard({
   const [error, setError] = useState<string | null>(null);
 
   const { clase, reserva } = booking;
-  const occupied = countReservasForClase(reservas, clase.id);
+  const occupied = occupiedForSocioClass(
+    clase.id,
+    clase.cupo_ocupado ?? 0,
+    reservas,
+    serverReservas,
+    profileId
+  );
   const canCancel = canCancelReservation(
     clase.fecha,
     clase.hora_inicio,

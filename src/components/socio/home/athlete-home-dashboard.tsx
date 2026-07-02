@@ -55,6 +55,7 @@ export function AthleteHomeDashboard({
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
   const [localReservas, setLocalReservas] = useState(reservas);
+  const [serverReservas] = useState(reservas);
 
   useEffect(() => {
     setLocalReservas(reservas);
@@ -107,6 +108,8 @@ export function AthleteHomeDashboard({
                 locale={locale}
                 gymTimezone={gymTimezone}
                 reservas={localReservas}
+                serverReservas={serverReservas}
+                profileId={profileId}
                 onReservationsChange={setLocalReservas}
               />
             </div>
@@ -116,6 +119,7 @@ export function AthleteHomeDashboard({
             <WeeklyCalendar
               clases={clases}
               reservas={localReservas}
+              serverReservas={serverReservas}
               profileId={profileId}
               canBook={canBook}
               locale={locale}

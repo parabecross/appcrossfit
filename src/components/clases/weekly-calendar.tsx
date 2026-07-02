@@ -36,7 +36,7 @@ import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
-import { countReservasForClase } from "@/lib/reservas/helpers";
+import { countReservasForClase, occupiedForSocioClass } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -44,6 +44,7 @@ import type { Dispatch, SetStateAction } from "react";
 interface WeeklyCalendarProps {
   clases: Clase[];
   reservas: Reserva[];
+  serverReservas?: Reserva[];
   onReservationsChange?: Dispatch<SetStateAction<Reserva[]>>;
   profileId: string;
   canBook: boolean;
@@ -70,6 +71,7 @@ interface WeeklyCalendarProps {
 export function WeeklyCalendar({
   clases,
   reservas,
+  serverReservas = reservas,
   onReservationsChange,
   profileId,
   canBook,
@@ -171,21 +173,14 @@ export function WeeklyCalendar({
         ["confirmada", "asistio"].includes(r.estado)
     );
 
-  const hadReservationOnLoad = (claseId: string) =>
-    reservas.some(
-      (r) =>
-        r.clase_id === claseId &&
-        r.usuario_id === profileId &&
-        ["confirmada", "asistio"].includes(r.estado)
+  const occupiedForSocio = (claseId: string, baseOccupied: number) =>
+    occupiedForSocioClass(
+      claseId,
+      baseOccupied,
+      localReservas,
+      serverReservas,
+      profileId
     );
-
-  const occupiedForSocio = (claseId: string, baseOccupied: number) => {
-    const hasNow = !!myReservation(claseId);
-    const hadOnLoad = hadReservationOnLoad(claseId);
-    if (hasNow && !hadOnLoad) return baseOccupied + 1;
-    if (!hasNow && hadOnLoad) return Math.max(0, baseOccupied - 1);
-    return baseOccupied;
-  };
 
   const handleBook = async (claseId: string) => {
     const clase = clases.find((c) => c.id === claseId);

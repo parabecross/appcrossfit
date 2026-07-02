@@ -1,6 +1,6 @@
 import type { ReservaEstado } from "@/types/database";
 import { describe, expect, it } from "vitest";
-import { countReservasForClase, isActiveReserva } from "./helpers";
+import { countReservasForClase, isActiveReserva, occupiedForSocioClass } from "./helpers";
 
 describe("isActiveReserva", () => {
   it("treats confirmada, asistio, no_asistio as active", () => {
@@ -24,5 +24,33 @@ describe("countReservasForClase", () => {
     ];
     expect(countReservasForClase(reservas, "c1")).toBe(2);
     expect(countReservasForClase(reservas, "c2")).toBe(1);
+  });
+});
+
+describe("occupiedForSocioClass", () => {
+  const profileId = "u1";
+  type Ref = { clase_id: string; usuario_id: string; estado: ReservaEstado };
+
+  it("returns base when unchanged", () => {
+    const reservas: Ref[] = [
+      { clase_id: "c1", usuario_id: profileId, estado: "confirmada" },
+    ];
+    expect(occupiedForSocioClass("c1", 3, reservas, reservas, profileId)).toBe(3);
+  });
+
+  it("adds one on optimistic book", () => {
+    const server: Ref[] = [];
+    const local: Ref[] = [
+      { clase_id: "c1", usuario_id: profileId, estado: "confirmada" },
+    ];
+    expect(occupiedForSocioClass("c1", 2, local, server, profileId)).toBe(3);
+  });
+
+  it("subtracts one on optimistic cancel", () => {
+    const server: Ref[] = [
+      { clase_id: "c1", usuario_id: profileId, estado: "confirmada" },
+    ];
+    const local: Ref[] = [];
+    expect(occupiedForSocioClass("c1", 3, local, server, profileId)).toBe(2);
   });
 });
