@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/get-profile";
+
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
@@ -16,6 +17,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { AthleteHomeDashboard } from "@/components/socio/home/athlete-home-dashboard";
 import { AthleteMembershipCard } from "@/components/socio/home/athlete-membership-card";
+
+export const dynamic = "force-dynamic";
 
 export default async function MisReservasPage({
   params,

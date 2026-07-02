@@ -1,7 +1,10 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
 import { ActivityFeedExplorer } from "@/components/admin/actividad/activity-feed-explorer";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminActividadPage({
   params,

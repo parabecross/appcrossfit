@@ -1,9 +1,12 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireSuperAdmin } from "@/lib/auth/get-profile";
 import { getAllBoxesWithStats } from "@/lib/queries/athron-admin";
 import { AthronBoxesTable } from "@/components/athron/boxes-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function AthronDashboardPage({
   params,

@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { UserDetailClient } from "@/components/admin/user-detail";
+
+export const dynamic = "force-dynamic";
 
 export default async function UserDetailPage({
   params,

@@ -1,6 +1,9 @@
 import { getProfile } from "@/lib/auth/get-profile";
+
 import { getBoxConfig } from "@/lib/box/config";
 import { BoxInactivoClient } from "@/components/auth/box-inactivo-client";
+
+export const dynamic = "force-dynamic";
 
 export default async function BoxInactivoPage() {
   const profile = await getProfile();

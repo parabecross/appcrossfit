@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -8,6 +9,8 @@ import { AthleteProgress } from "@/components/socio/athlete-progress";
 import { AthronProgressSection } from "@/components/ranking/athron/athron-progress-section";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { FeatureGate } from "@/components/plans/feature-gate";
+
+export const dynamic = "force-dynamic";
 
 export default async function MiProgresoPage({
   params,

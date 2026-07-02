@@ -1,9 +1,12 @@
 import { requireRole } from "@/lib/auth/get-profile";
+
 import { getBoxConfig } from "@/lib/box/config";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({
   children,

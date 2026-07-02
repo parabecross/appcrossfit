@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -9,6 +10,8 @@ import { AthleteProgressExplorer } from "@/components/admin/rendimiento/athlete-
 import { DashboardRecentActivityCompact } from "@/components/admin/dashboard/dashboard-recent-activity-compact";
 import { getBoxAthleteProgressOverview } from "@/lib/queries/athlete-progress-overview";
 import { redirect } from "@/i18n/routing";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminRendimientoPage({
   params,

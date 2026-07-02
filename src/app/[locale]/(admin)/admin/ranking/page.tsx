@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
@@ -14,6 +15,8 @@ import { MonthlyAwards } from "@/components/ranking/athron/monthly-awards";
 import { AwardShareCard } from "@/components/ranking/athron/award-share-card";
 import { AdminRankingTabs } from "@/components/ranking/athron/admin-ranking-tabs";
 import type { AthleticLevel } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminRankingPage({
   params,

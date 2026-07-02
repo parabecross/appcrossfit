@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireRole } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,8 @@ import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { formatDate } from "@/lib/utils";
 import { CreditCard, CalendarDays } from "lucide-react";
 import type { Membresia, Plan } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 type MembresiaWithPlan = Membresia & { plan: Plan | null };
 

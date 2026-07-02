@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -13,6 +14,8 @@ import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-
 import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
 import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
 import { DashboardChartsSection } from "@/components/admin/dashboard/dashboard-charts-section";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage({
   params,

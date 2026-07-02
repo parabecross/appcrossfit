@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/get-profile";
+
 import { isAdminLikeRole } from "@/lib/auth/roles";
 import { getBoxConfig } from "@/lib/box/config";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -13,6 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminClasesClient } from "@/components/admin/clases-admin";
 import { LockedFeatureCard } from "@/components/plans/locked-feature-card";
 import { getTranslations } from "next-intl/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminClasesPage({
   params,

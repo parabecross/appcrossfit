@@ -1,8 +1,11 @@
 import { requireRole } from "@/lib/auth/get-profile";
+
 import { getBoxConfig } from "@/lib/box/config";
 import { createClient } from "@/lib/supabase/server";
 import { LegacyClient } from "@/components/legacy/legacy-client";
 import type { AtletaObjetivo, AtletaPerfilDeportivo } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 export default async function LegacyPage({
   params,

@@ -1,9 +1,12 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import { createClient } from "@/lib/supabase/server";
 import { PlanesAdmin } from "@/components/admin/planes-admin";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPlanesPage({
   params,

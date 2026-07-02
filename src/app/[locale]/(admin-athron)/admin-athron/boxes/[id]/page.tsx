@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { requireSuperAdmin } from "@/lib/auth/get-profile";
@@ -25,6 +26,8 @@ import {
 } from "@/components/stats/charts";
 import { ArrowLeft, UserCheck, AlertTriangle, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 export default async function AthronBoxDetailPage({
   params,

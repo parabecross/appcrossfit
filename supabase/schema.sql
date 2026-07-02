@@ -289,7 +289,13 @@ BEGIN
   END IF;
 
   SELECT cupo_maximo INTO v_cupo_max
-  FROM clases WHERE id = NEW.clase_id;
+  FROM clases
+  WHERE id = NEW.clase_id
+  FOR UPDATE;
+
+  IF v_cupo_max IS NULL THEN
+    RAISE EXCEPTION 'Clase no encontrada: %', NEW.clase_id;
+  END IF;
 
   SELECT COUNT(*) INTO v_ocupado
   FROM reservas

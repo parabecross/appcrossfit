@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/get-profile";
+
 import { getBoxConfig } from "@/lib/box/config";
 import {
   SocioDesktopSidebar,
@@ -8,6 +9,8 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function SocioLayout({
   children,

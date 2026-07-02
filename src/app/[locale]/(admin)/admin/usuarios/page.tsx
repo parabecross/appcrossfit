@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -7,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { UsuariosTable } from "@/components/admin/usuarios-table";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import type { Profile } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminUsuariosPage({
   params,

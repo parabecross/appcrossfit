@@ -1,7 +1,10 @@
 import { getTranslations } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/get-profile";
 import { ProfileForm } from "@/components/socio/profile-form";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminMiPerfilPage({
   params,

@@ -1,8 +1,11 @@
 import { requireSuperAdmin } from "@/lib/auth/get-profile";
+
 import {
   AthronAdminSidebar,
   AthronAdminMobileHeader,
 } from "@/components/layout/athron-admin-nav";
+
+export const dynamic = "force-dynamic";
 
 export default async function AthronAdminLayout({
   children,
