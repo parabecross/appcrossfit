@@ -1,7 +1,6 @@
 import { forwardRef } from "react";
 import type { AthleteCardData, LegacyCardFormat } from "@/lib/legacy/types";
 import { getInitials } from "@/lib/legacy/build-athlete-card";
-import { isLocalAvatarUrl } from "@/lib/avatars/placeholder";
 import {
   CARD_TYPO,
   CardBrandingFooter,
@@ -113,17 +112,14 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
         <div className="relative h-full overflow-hidden">
           <div className="absolute inset-0">
             {data.photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.photoUrl}
-                alt=""
-                loading="eager"
-                decoding="async"
-                className="h-full w-full object-cover object-[center_24%]"
-                style={{ filter: PHOTO_FILTER }}
-                {...(!isLocalAvatarUrl(data.photoUrl)
-                  ? { crossOrigin: "anonymous" as const }
-                  : {})}
+              <div
+                data-legacy-photo
+                className="absolute inset-0 bg-cover bg-no-repeat"
+                style={{
+                  backgroundImage: `url("${data.photoUrl.replace(/"/g, '\\"')}")`,
+                  backgroundPosition: "center 24%",
+                  filter: PHOTO_FILTER,
+                }}
               />
             ) : (
               <div

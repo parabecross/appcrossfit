@@ -221,7 +221,8 @@
     "errors": {
       "yearsInvalid": "Los años entrenando deben ser 0 o más.",
       "heightInvalid": "La estatura debe ser mayor a 0.",
-      "weightInvalid": "El peso debe ser mayor a 0."
+      "weightInvalid": "El peso debe ser mayor a 0.",
+      "photoExportFailed": "No pudimos cargar tu foto para compartir. Actualiza tu foto en Perfil e intenta de nuevo."
     }
   },
   "membership": {

@@ -221,7 +221,8 @@
     "errors": {
       "yearsInvalid": "Years training must be 0 or more.",
       "heightInvalid": "Height must be greater than 0.",
-      "weightInvalid": "Weight must be greater than 0."
+      "weightInvalid": "Weight must be greater than 0.",
+      "photoExportFailed": "We couldn't load your photo for sharing. Update your photo in Profile and try again."
     }
   },
   "membership": {

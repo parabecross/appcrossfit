@@ -1,3 +1,5 @@
+import { isMobileExportDevice } from "@/lib/legacy/resolve-card-images";
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -27,16 +29,10 @@ function waitForImage(img: HTMLImageElement): Promise<void> {
   });
 }
 
-async function fetchAsDataUrlClient(src: string): Promise<string> {
-  const res = await fetch(src, { mode: "cors", cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const blob = await res.blob();
-  return blobToDataUrl(blob);
-}
-
 async function fetchAsDataUrlProxy(src: string): Promise<string> {
   const res = await fetch(
-    `/api/legacy/image-data-url?url=${encodeURIComponent(src)}`
+    `/api/legacy/image-data-url?url=${encodeURIComponent(src)}`,
+    { credentials: "same-origin", cache: "no-store" }
   );
   if (!res.ok) throw new Error("Proxy fetch failed");
   const payload = (await res.json()) as { dataUrl?: string };
@@ -44,8 +40,23 @@ async function fetchAsDataUrlProxy(src: string): Promise<string> {
   return payload.dataUrl;
 }
 
+async function fetchAsDataUrlClient(src: string): Promise<string> {
+  const res = await fetch(src, { mode: "cors", cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  return blobToDataUrl(blob);
+}
+
 export async function resolveImageDataUrl(src: string): Promise<string> {
   if (!src || src.startsWith("data:")) return src;
+
+  if (isMobileExportDevice()) {
+    try {
+      return await fetchAsDataUrlProxy(src);
+    } catch {
+      return fetchAsDataUrlClient(src);
+    }
+  }
 
   try {
     return await fetchAsDataUrlClient(src);
@@ -54,15 +65,30 @@ export async function resolveImageDataUrl(src: string): Promise<string> {
   }
 }
 
+function extractBackgroundUrl(style: CSSStyleDeclaration): string | null {
+  const bg = style.backgroundImage;
+  if (!bg || bg === "none") return null;
+  const match = bg.match(/url\(["']?(.*?)["']?\)/);
+  return match?.[1] ?? null;
+}
+
+function setBackgroundUrl(el: HTMLElement, dataUrl: string) {
+  el.style.backgroundImage = `url("${dataUrl.replace(/"/g, '\\"')}")`;
+}
+
 /** Inline external images so html-to-image can paint them (mobile Safari / CORS). */
 export async function embedImagesForExport(
   root: HTMLElement
 ): Promise<() => void> {
-  const restores: { img: HTMLImageElement; src: string }[] = [];
-  const images = Array.from(root.querySelectorAll("img"));
+  const restores: Array<() => void> = [];
 
-  await Promise.all(
-    images.map(async (img) => {
+  const images = Array.from(root.querySelectorAll("img"));
+  const bgNodes = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-legacy-photo], [data-legacy-logo]")
+  );
+
+  await Promise.all([
+    ...images.map(async (img) => {
       const original = img.currentSrc || img.src;
       if (!original || original.startsWith("data:")) {
         await waitForImage(img).catch(() => undefined);
@@ -71,23 +97,46 @@ export async function embedImagesForExport(
 
       try {
         const dataUrl = await resolveImageDataUrl(original);
-        restores.push({ img, src: original });
+        const prevSrc = img.src;
         img.removeAttribute("crossorigin");
         img.src = dataUrl;
         await waitForImage(img);
+        restores.push(() => {
+          img.src = prevSrc;
+        });
       } catch {
         await waitForImage(img).catch(() => undefined);
       }
-    })
-  );
+    }),
+    ...bgNodes.map(async (el) => {
+      const original = extractBackgroundUrl(el.style);
+      if (!original || original.startsWith("data:")) return;
+
+      try {
+        const dataUrl = await resolveImageDataUrl(original);
+        const prev = el.style.backgroundImage;
+        setBackgroundUrl(el, dataUrl);
+        restores.push(() => {
+          el.style.backgroundImage = prev;
+        });
+      } catch {
+        /* keep original */
+      }
+    }),
+  ]);
 
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 
   return () => {
-    for (const { img, src } of restores) {
-      img.src = src;
-    }
+    for (const restore of restores) restore();
   };
+}
+
+export function getLegacyCardCaptureRoot(shell: HTMLElement): HTMLElement {
+  return (
+    (shell.querySelector("[data-legacy-card-root]") as HTMLElement | null) ??
+    shell
+  );
 }

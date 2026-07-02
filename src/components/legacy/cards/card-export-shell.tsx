@@ -42,6 +42,7 @@ export const CardExportShell = forwardRef<
         <div
           className="relative h-full w-full overflow-hidden text-white"
           style={{ width, height, background: "#121214" }}
+          data-legacy-card-root
         >
           {children}
         </div>

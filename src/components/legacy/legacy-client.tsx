@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Calendar, Share2, Sparkles } from "lucide-react";
@@ -23,6 +24,7 @@ import {
   legacyFilename,
   sharePng,
 } from "@/lib/legacy/export-card";
+import { resolveImageDataUrl } from "@/lib/legacy/embed-export-images";
 import type { AthleticLevel, LegacyCardFormat } from "@/lib/legacy/types";
 import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
 import { createClient } from "@/lib/supabase/client";
@@ -81,12 +83,16 @@ export function LegacyClient({
   activeGoal,
   boxName,
   boxLogoUrl,
+  embeddedPhotoUrl = null,
+  embeddedLogoUrl = null,
 }: {
   profile: Profile;
   perfilDeportivo: AtletaPerfilDeportivo | null;
   activeGoal: AtletaObjetivo | null;
   boxName: string;
   boxLogoUrl: string | null;
+  embeddedPhotoUrl?: string | null;
+  embeddedLogoUrl?: string | null;
 }) {
   const t = useTranslations("legacy");
   const tc = useTranslations("common");
@@ -104,8 +110,45 @@ export function LegacyClient({
 
   const [format, setFormat] = useState<LegacyCardFormat>("story");
   const [loading, setLoading] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedPhotoUrl, setResolvedPhotoUrl] = useState<string | null>(
+    embeddedPhotoUrl ?? profile.foto_url
+  );
+  const [resolvedLogoUrl, setResolvedLogoUrl] = useState<string | null>(
+    embeddedLogoUrl ?? boxLogoUrl
+  );
+
+  useEffect(() => {
+    if (embeddedPhotoUrl) {
+      setResolvedPhotoUrl(embeddedPhotoUrl);
+      return;
+    }
+    const url = profile.foto_url?.trim();
+    if (!url || url.startsWith("data:")) {
+      setResolvedPhotoUrl(url ?? null);
+      return;
+    }
+    void resolveImageDataUrl(url)
+      .then((dataUrl) => setResolvedPhotoUrl(dataUrl))
+      .catch(() => setResolvedPhotoUrl(url));
+  }, [embeddedPhotoUrl, profile.foto_url]);
+
+  useEffect(() => {
+    if (embeddedLogoUrl) {
+      setResolvedLogoUrl(embeddedLogoUrl);
+      return;
+    }
+    const url = boxLogoUrl?.trim();
+    if (!url || url.startsWith("data:")) {
+      setResolvedLogoUrl(url ?? null);
+      return;
+    }
+    void resolveImageDataUrl(url)
+      .then((dataUrl) => setResolvedLogoUrl(dataUrl))
+      .catch(() => setResolvedLogoUrl(url));
+  }, [embeddedLogoUrl, boxLogoUrl]);
 
   const [form, setForm] = useState({
     fecha_nacimiento: perfilDeportivo?.fecha_nacimiento ?? "",
@@ -142,14 +185,26 @@ export function LegacyClient({
   const cardData = useMemo(
     () =>
       buildAthleteCardData({
-        profile,
+        profile: {
+          ...profile,
+          foto_url: resolvedPhotoUrl ?? profile.foto_url,
+        },
         perfil: previewPerfil,
         activeGoal,
         boxName,
-        boxLogoUrl,
+        boxLogoUrl: resolvedLogoUrl ?? boxLogoUrl,
         defaultTagline: t("defaultTagline"),
       }),
-    [profile, previewPerfil, activeGoal, boxName, boxLogoUrl, t]
+    [
+      profile,
+      resolvedPhotoUrl,
+      previewPerfil,
+      activeGoal,
+      boxName,
+      resolvedLogoUrl,
+      boxLogoUrl,
+      t,
+    ]
   );
 
   const cardLabels = useMemo(
@@ -233,17 +288,49 @@ export function LegacyClient({
 
   const runExport = useCallback(
     async (targetFormat: LegacyCardFormat) => {
-      const node =
-        targetFormat === "story"
-          ? storyExportRef.current
-          : targetFormat === "post"
-            ? postExportRef.current
-            : squareExportRef.current;
-      if (!node) return;
       setLoading(true);
       setError(null);
       setMessage(null);
+
+      flushSync(() => {
+        setCapturing(true);
+      });
+
       try {
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+
+        const node =
+          targetFormat === "story"
+            ? storyExportRef.current
+            : targetFormat === "post"
+              ? postExportRef.current
+              : squareExportRef.current;
+        if (!node) return;
+
+        if (profile.foto_url) {
+          let photoDataUrl = resolvedPhotoUrl;
+          if (!photoDataUrl || !photoDataUrl.startsWith("data:")) {
+            photoDataUrl = await resolveImageDataUrl(profile.foto_url);
+          }
+          if (!photoDataUrl?.startsWith("data:")) {
+            setError(t("errors.photoExportFailed"));
+            return;
+          }
+          setResolvedPhotoUrl(photoDataUrl);
+          const photoEl = node.querySelector(
+            "[data-legacy-photo]"
+          ) as HTMLElement | null;
+          if (photoEl) {
+            photoEl.style.backgroundImage = `url("${photoDataUrl.replace(/"/g, '\\"')}")`;
+          }
+        }
+
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+
         const dataUrl = await exportCardToPng(node, targetFormat);
         const filename = legacyFilename(profile.nombre_completo, targetFormat);
         const result = await sharePng(
@@ -257,10 +344,11 @@ export function LegacyClient({
       } catch (e) {
         setError(e instanceof Error ? e.message : tc("error"));
       } finally {
+        setCapturing(false);
         setLoading(false);
       }
     },
-    [profile.nombre_completo, t, tc]
+    [profile.foto_url, profile.nombre_completo, resolvedPhotoUrl, t, tc]
   );
 
   const [scale, setScale] = useState(0.28);
@@ -509,19 +597,32 @@ export function LegacyClient({
         </section>
       </div>
 
-      {/* Off-screen export target at full resolution */}
+      {/* Export target — visible briefly on mobile so Safari paints the photo */}
+      {capturing && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95">
+          <p className="absolute top-8 text-sm text-white/70">{tc("loading")}</p>
+        </div>
+      )}
       <div
-        className="pointer-events-none fixed -left-[10000px] top-0 -z-50"
-        aria-hidden
+        className={cn(
+          capturing
+            ? "fixed left-1/2 top-1/2 z-[101] -translate-x-1/2 -translate-y-1/2"
+            : "pointer-events-none fixed left-0 top-0 -z-50 h-0 w-0 overflow-hidden opacity-0"
+        )}
+        aria-hidden={!capturing}
       >
         {(["story", "post", "square"] as const).map((f) => (
-          <AthleteCard
+          <div
             key={f}
-            ref={exportRefs[f]}
-            data={cardData}
-            format={f}
-            labels={cardLabels}
-          />
+            className={cn(capturing && format !== f && "hidden")}
+          >
+            <AthleteCard
+              ref={exportRefs[f]}
+              data={cardData}
+              format={f}
+              labels={cardLabels}
+            />
+          </div>
         ))}
       </div>
     </div>

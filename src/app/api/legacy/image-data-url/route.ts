@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  loadImageAsDataUrl,
+  parseSupabasePublicObjectUrl,
+} from "@/lib/legacy/load-storage-image";
 
 function isAllowedStorageUrl(url: string): boolean {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return false;
+  if (!parseSupabasePublicObjectUrl(url)) return false;
   try {
-    const parsed = new URL(url);
-    const allowed = new URL(base);
-    if (parsed.origin !== allowed.origin) return false;
-    return parsed.pathname.startsWith("/storage/v1/object/public/");
+    return new URL(url).origin === new URL(base).origin;
   } catch {
     return false;
   }
@@ -29,14 +31,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
   }
 
-  const upstream = await fetch(url, { cache: "no-store" });
-  if (!upstream.ok) {
+  const dataUrl = await loadImageAsDataUrl(url);
+  if (!dataUrl) {
     return NextResponse.json({ error: "Image not found" }, { status: 404 });
   }
-
-  const buffer = Buffer.from(await upstream.arrayBuffer());
-  const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
-  const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
 
   return NextResponse.json({ dataUrl });
 }
