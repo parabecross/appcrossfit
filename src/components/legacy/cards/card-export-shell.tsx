@@ -1,6 +1,7 @@
 import { forwardRef, type ReactNode } from "react";
 import type { LegacyCardFormat } from "@/lib/legacy/types";
 import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
+import { isLocalAvatarUrl } from "@/lib/avatars/placeholder";
 import { cn } from "@/lib/utils";
 import { CARD_TYPO } from "@/components/legacy/cards/card-typography";
 
@@ -68,9 +69,13 @@ export function CardBrandingFooter({
         <img
           src={boxLogoUrl}
           alt=""
+          loading="eager"
+          decoding="async"
           className="rounded-full object-cover"
           style={{ width: 40, height: 40 }}
-          crossOrigin="anonymous"
+          {...(!isLocalAvatarUrl(boxLogoUrl)
+            ? { crossOrigin: "anonymous" as const }
+            : {})}
         />
       ) : (
         <div

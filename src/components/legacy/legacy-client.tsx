@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { Calendar, Download, Share2, Sparkles } from "lucide-react";
+import { Calendar, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,6 @@ import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { AthleteCard } from "@/components/legacy/cards/athlete-card";
 import { buildAthleteCardData } from "@/lib/legacy/build-athlete-card";
 import {
-  downloadPng,
   exportCardToPng,
   legacyFilename,
   sharePng,
@@ -75,16 +74,6 @@ function parseOptionalFloat(value: string): number | null {
   const parsed = parseFloat(value);
   return Number.isNaN(parsed) ? null : parsed;
 }
-
-const DOWNLOAD_FORMATS: {
-  key: LegacyCardFormat;
-  labelKey: "story" | "post" | "square";
-  size: string;
-}[] = [
-  { key: "story", labelKey: "story", size: "1080 × 1920" },
-  { key: "post", labelKey: "post", size: "1080 × 1350" },
-  { key: "square", labelKey: "square", size: "1080 × 1080" },
-];
 
 export function LegacyClient({
   profile,
@@ -243,7 +232,7 @@ export function LegacyClient({
   };
 
   const runExport = useCallback(
-    async (targetFormat: LegacyCardFormat, mode: "download" | "share") => {
+    async (targetFormat: LegacyCardFormat) => {
       const node =
         targetFormat === "story"
           ? storyExportRef.current
@@ -257,19 +246,14 @@ export function LegacyClient({
       try {
         const dataUrl = await exportCardToPng(node, targetFormat);
         const filename = legacyFilename(profile.nombre_completo, targetFormat);
-        if (mode === "share") {
-          const result = await sharePng(
-            dataUrl,
-            filename,
-            `${profile.nombre_completo} — ATHRON`
-          );
-          setMessage(
-            result === "shared" ? t("shareSuccess") : t("downloadSuccess")
-          );
-        } else {
-          downloadPng(dataUrl, filename);
-          setMessage(t("downloadSuccess"));
-        }
+        const result = await sharePng(
+          dataUrl,
+          filename,
+          `${profile.nombre_completo} — ATHRON`
+        );
+        setMessage(
+          result === "shared" ? t("shareSuccess") : t("downloadSuccess")
+        );
       } catch (e) {
         setError(e instanceof Error ? e.message : tc("error"));
       } finally {
@@ -511,49 +495,23 @@ export function LegacyClient({
             />
           </div>
 
-          <div className="space-y-3 border-t border-white/10 pt-4">
+          <div className="border-t border-white/10 pt-4">
             <Button
               variant="default"
               className="w-full h-12 text-base font-semibold"
               disabled={loading}
-              onClick={() => void runExport(format, "share")}
+              onClick={() => void runExport(format)}
             >
               <Share2 className="h-4 w-4 mr-2 shrink-0" />
               {t("actions.share")}
             </Button>
-
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
-              {t("actions.downloadTitle")}
-            </p>
-
-            <div className="flex flex-col gap-2">
-              {DOWNLOAD_FORMATS.map(({ key, labelKey, size }) => (
-                <Button
-                  key={key}
-                  variant="outline"
-                  className="h-auto w-full justify-between gap-3 px-4 py-3"
-                  disabled={loading}
-                  onClick={() => void runExport(key, "download")}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Download className="h-4 w-4 shrink-0 text-orange-400" />
-                    <span className="font-medium">
-                      {t(`actions.format.${labelKey}`)}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {size}
-                  </span>
-                </Button>
-              ))}
-            </div>
           </div>
         </section>
       </div>
 
       {/* Off-screen export target at full resolution */}
       <div
-        className="pointer-events-none fixed left-[-9999px] top-0 opacity-0"
+        className="pointer-events-none fixed -left-[10000px] top-0 -z-50"
         aria-hidden
       >
         {(["story", "post", "square"] as const).map((f) => (

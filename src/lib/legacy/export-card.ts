@@ -1,4 +1,5 @@
 import { toPng } from "html-to-image";
+import { embedImagesForExport } from "@/lib/legacy/embed-export-images";
 import type { LegacyCardFormat } from "@/lib/legacy/types";
 import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
 
@@ -7,19 +8,25 @@ export async function exportCardToPng(
   format: LegacyCardFormat
 ): Promise<string> {
   const { width, height } = LEGACY_CARD_DIMENSIONS[format];
+  const restoreImages = await embedImagesForExport(element);
 
-  return toPng(element, {
-    width,
-    height,
-    pixelRatio: 2,
-    cacheBust: true,
-    skipAutoScale: true,
-    style: {
-      width: `${width}px`,
-      height: `${height}px`,
-      transform: "none",
-    },
-  });
+  try {
+    return await toPng(element, {
+      width,
+      height,
+      pixelRatio: 2,
+      cacheBust: true,
+      skipAutoScale: true,
+      skipFonts: true,
+      style: {
+        width: `${width}px`,
+        height: `${height}px`,
+        transform: "none",
+      },
+    });
+  } finally {
+    restoreImages();
+  }
 }
 
 export function downloadPng(dataUrl: string, filename: string) {

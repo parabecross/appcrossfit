@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import type { AthleteCardData, LegacyCardFormat } from "@/lib/legacy/types";
 import { getInitials } from "@/lib/legacy/build-athlete-card";
+import { isLocalAvatarUrl } from "@/lib/avatars/placeholder";
 import {
   CARD_TYPO,
   CardBrandingFooter,
@@ -116,9 +117,13 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
               <img
                 src={data.photoUrl}
                 alt=""
-                crossOrigin="anonymous"
+                loading="eager"
+                decoding="async"
                 className="h-full w-full object-cover object-[center_24%]"
                 style={{ filter: PHOTO_FILTER }}
+                {...(!isLocalAvatarUrl(data.photoUrl)
+                  ? { crossOrigin: "anonymous" as const }
+                  : {})}
               />
             ) : (
               <div
