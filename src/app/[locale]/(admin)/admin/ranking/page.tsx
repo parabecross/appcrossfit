@@ -8,6 +8,10 @@ import { FeatureGate } from "@/components/plans/feature-gate";
 import { getRankingConfig } from "@/lib/ranking/engine";
 import { getAthronRankingForBox } from "@/lib/ranking/aggregate";
 import { computeMonthlyAwards } from "@/lib/ranking/awards";
+import {
+  buildPublicRankingPreviewPath,
+  buildPublicRankingUrl,
+} from "@/lib/ranking/public-url";
 import { AthronRankingPage } from "@/components/ranking/athron/athron-ranking-page";
 import { RankingShareBar } from "@/components/ranking/athron/ranking-share-bar";
 import { RankingConfigForm } from "@/components/ranking/athron/ranking-config-form";
@@ -61,9 +65,17 @@ export default async function AdminRankingPage({
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
   const proto = headersList.get("x-forwarded-proto") ?? "https";
-  const shareUrl = host
-    ? `${proto}://${host}/${locale}/ranking?category=${category}`
-    : `/${locale}/ranking`;
+  const shareUrl = buildPublicRankingUrl({
+    locale,
+    boxSlug: boxConfig.slug,
+    category,
+    host,
+    proto,
+  });
+  const previewHref = buildPublicRankingPreviewPath({
+    boxSlug: boxConfig.slug,
+    category,
+  });
 
   const shareableAwards = awards.filter((a) => a.award_type !== "top3");
 
@@ -94,7 +106,11 @@ export default async function AdminRankingPage({
         config={<RankingConfigForm initial={config} />}
         share={
           <div className="space-y-8">
-            <RankingShareBar shareUrl={shareUrl} locale={locale} />
+            <RankingShareBar
+              shareUrl={shareUrl}
+              previewHref={previewHref}
+              locale={locale}
+            />
             <MonthlyAwards awards={awards} locale={locale} />
             {shareableAwards.length > 0 && (
               <div className="space-y-4">

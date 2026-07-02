@@ -193,6 +193,84 @@ export async function awardAttendance(params: {
   return { awarded: events.length > 0, events };
 }
 
+/** Elimina puntos de asistencia/WOD ligados a una reserva y recalcula rachas del atleta. */
+export async function revokeAttendanceRanking(params: {
+  reservaId: string;
+  admin?: AdminClient;
+}): Promise<{ revoked: boolean; eventsRemoved: number }> {
+  const admin = params.admin ?? createAdminClient();
+
+  const { data: reserva } = await admin
+    .from("reservas")
+    .select(
+      "id, usuario_id, estado, clase:clases!inner(id, fecha, box_id)"
+    )
+    .eq("id", params.reservaId)
+    .single();
+
+  if (!reserva) return { revoked: false, eventsRemoved: 0 };
+
+  const clase = reserva.clase as unknown as {
+    id: string;
+    fecha: string;
+    box_id: string | null;
+  };
+  if (!clase.box_id) return { revoked: false, eventsRemoved: 0 };
+
+  const boxId = clase.box_id;
+  const usuarioId = reserva.usuario_id;
+  let eventsRemoved = 0;
+
+  const countDeleted = (rows: { id: string }[] | null) => rows?.length ?? 0;
+
+  const { data: byReserva, error: reservaErr } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("reserva_id", params.reservaId)
+    .select("id");
+  if (reservaErr) throw new Error(reservaErr.message);
+  eventsRemoved += countDeleted(byReserva);
+
+  const { data: byWod, error: wodErr } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("clase_id", clase.id)
+    .eq("usuario_id", usuarioId)
+    .in("event_type", ["wod_position", "evolution"])
+    .select("id");
+  if (wodErr) throw new Error(wodErr.message);
+  eventsRemoved += countDeleted(byWod);
+
+  const { data: streakRows, error: streakDelErr } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("box_id", boxId)
+    .eq("usuario_id", usuarioId)
+    .eq("event_type", "streak")
+    .select("id");
+  if (streakDelErr) throw new Error(streakDelErr.message);
+  eventsRemoved += countDeleted(streakRows);
+
+  const { data: asistioReservas } = await admin
+    .from("reservas")
+    .select("id, clase:clases!inner(fecha, box_id)")
+    .eq("usuario_id", usuarioId)
+    .eq("estado", "asistio")
+    .eq("clase.box_id", boxId);
+
+  const sorted = [...(asistioReservas ?? [])].sort((a, b) =>
+    (a.clase as unknown as { fecha: string }).fecha.localeCompare(
+      (b.clase as unknown as { fecha: string }).fecha
+    )
+  );
+
+  for (const r of sorted) {
+    await awardAttendance({ reservaId: r.id, admin });
+  }
+
+  return { revoked: true, eventsRemoved };
+}
+
 async function enrichScoresWithLevel(
   admin: AdminClient,
   scores: ClaseScoreWithProfile[]

@@ -8,9 +8,11 @@ import { Link } from "@/i18n/routing";
 
 export function RankingShareBar({
   shareUrl,
+  previewHref,
   locale,
 }: {
   shareUrl: string;
+  previewHref: string;
   locale: string;
 }) {
   const t = useTranslations("rankingAthron");
@@ -46,7 +48,7 @@ export function RankingShareBar({
           </a>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link href="/ranking" locale={locale} target="_blank">
+          <Link href={previewHref} locale={locale} target="_blank">
             {t("preview")}
           </Link>
         </Button>

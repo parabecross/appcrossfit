@@ -7,6 +7,12 @@ import {
 import { EntitlementError } from "@/lib/entitlements/types";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { canUseFeature } from "@/lib/entitlements/permissions";
+import {
+  awardAttendance,
+  revokeAttendanceRanking,
+} from "@/lib/ranking/engine";
 
 async function requireAttendanceStaff() {
   const supabase = await createClient();
@@ -47,7 +53,7 @@ export async function PATCH(request: NextRequest) {
   const auth = await requireAttendanceStaff();
   if ("error" in auth && auth.error) return auth.error;
 
-  const { supabase } = auth;
+  const { supabase, profile } = auth;
   const body = await request.json();
   const { reserva_id, estado } = body as {
     reserva_id?: string;
@@ -65,6 +71,20 @@ export async function PATCH(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  try {
+    const entitlements = await getBoxEntitlements(profile.box_id);
+    if (canUseFeature(entitlements, "ranking")) {
+      const admin = createAdminClient();
+      if (estado === "asistio") {
+        await awardAttendance({ reservaId: reserva_id, admin });
+      } else {
+        await revokeAttendanceRanking({ reservaId: reserva_id, admin });
+      }
+    }
+  } catch (rankingErr) {
+    console.error("[asistencia] ranking sync failed:", rankingErr);
   }
 
   return NextResponse.json({ success: true, estado });
