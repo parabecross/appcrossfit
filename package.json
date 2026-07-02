@@ -10,6 +10,8 @@
     "lint": "next lint",
     "demo": "tsx scripts/reset-parabellum-demo.ts",
     "check-isolation": "tsx scripts/check-box-isolation.ts",
+    "seed-demo-boxes": "tsx scripts/seed-demo-boxes-qa.ts",
+    "teardown-demo-boxes": "tsx scripts/teardown-demo-boxes-qa.ts",
     "test": "vitest run",
     "reset-parabellum": "tsx scripts/reset-parabellum-demo.ts",
     "create-super-admin": "tsx scripts/create-athron-super-admin.ts",
