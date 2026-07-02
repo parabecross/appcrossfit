@@ -4,6 +4,7 @@ import {
   canRankScore,
   parseScoreNumeric,
   parseTimeToSeconds,
+  scoreTypeHasRxScaled,
 } from "./helpers";
 
 describe("parseTimeToSeconds", () => {
@@ -23,6 +24,19 @@ describe("parseScoreNumeric", () => {
 
   it("returns null for empty tiempo", () => {
     expect(parseScoreNumeric("tiempo", "")).toBeNull();
+  });
+});
+
+describe("scoreTypeHasRxScaled", () => {
+  it("omits RX step for calories", () => {
+    expect(scoreTypeHasRxScaled("cals")).toBe(false);
+  });
+
+  it("keeps RX step for weight-based score types", () => {
+    expect(scoreTypeHasRxScaled("tiempo")).toBe(true);
+    expect(scoreTypeHasRxScaled("peso")).toBe(true);
+    expect(scoreTypeHasRxScaled("reps")).toBe(true);
+    expect(scoreTypeHasRxScaled("rondas")).toBe(true);
   });
 });
 

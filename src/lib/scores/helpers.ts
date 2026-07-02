@@ -51,6 +51,11 @@ export function isLowerBetter(tipo: ClaseScoreTipo): boolean {
   return tipo === "tiempo";
 }
 
+/** RX/Scaled aplica a pesos del WOD; no tiene sentido para calorías. */
+export function scoreTypeHasRxScaled(tipo: ClaseScoreTipo): boolean {
+  return tipo !== "cals";
+}
+
 export function isScoreSkipped(
   score: Pick<ClaseScore, "sin_score"> | null | undefined
 ): boolean {

@@ -267,30 +267,12 @@ export function ClassHistoryList({
                             const responded = hasScoreResponse(score);
 
                             return (
-                              <li key={r.id}>
+                              <li key={r.id} className="space-y-2">
                                 <div
                                   className={cn(
-                                    "flex items-center gap-2 rounded-lg px-2 py-2 text-sm",
-                                    canScore && "hover:bg-white/5 cursor-pointer",
+                                    "flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg px-2 py-2 text-sm",
                                     isExpanded && "bg-white/[0.03]"
                                   )}
-                                  onClick={() => {
-                                    if (!canScore) return;
-                                    setExpandedClaseId((cur) =>
-                                      cur === r.clase_id ? null : r.clase_id
-                                    );
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (!canScore) return;
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      setExpandedClaseId((cur) =>
-                                        cur === r.clase_id ? null : r.clase_id
-                                      );
-                                    }
-                                  }}
-                                  role={canScore ? "button" : undefined}
-                                  tabIndex={canScore ? 0 : undefined}
                                 >
                                   <span className="w-[4.5rem] shrink-0 text-xs text-muted-foreground tabular-nums">
                                     {formatTime(r.clase.hora_inicio)}
@@ -308,18 +290,35 @@ export function ClassHistoryList({
                                     {badgeFor(r.estado, true)}
                                   </span>
                                   {canScore && (
-                                    <span className="shrink-0 text-muted-foreground">
+                                    <Button
+                                      type="button"
+                                      variant={responded ? "outline" : "default"}
+                                      size="sm"
+                                      className={cn(
+                                        "h-8 shrink-0 rounded-lg text-xs font-semibold gap-1.5 ml-auto",
+                                        !responded &&
+                                          "bg-orange-500 hover:bg-orange-600 text-white border-0"
+                                      )}
+                                      onClick={() =>
+                                        setExpandedClaseId((cur) =>
+                                          cur === r.clase_id ? null : r.clase_id
+                                        )
+                                      }
+                                    >
                                       {responded ? (
                                         <Pencil className="h-3.5 w-3.5" />
                                       ) : (
-                                        <Plus className="h-3.5 w-3.5 text-orange-400" />
+                                        <Plus className="h-3.5 w-3.5" />
                                       )}
-                                    </span>
+                                      {responded
+                                        ? tcl("editResult")
+                                        : tcl("addResult")}
+                                    </Button>
                                   )}
                                 </div>
 
                                 {canScore && isExpanded && profileId && (
-                                  <div className="px-2 pb-3 pt-1 ml-[4.5rem]">
+                                  <div className="px-1 pb-2">
                                     <ScoreEntryForm
                                       claseId={r.clase_id}
                                       reservaId={r.id}

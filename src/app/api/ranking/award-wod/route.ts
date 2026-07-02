@@ -5,7 +5,7 @@ import {
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
-import { awardWodResult } from "@/lib/ranking/engine";
+import { syncWodRankingForClass } from "@/lib/ranking/engine";
 
 export async function POST(request: Request) {
   try {
@@ -86,9 +86,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await awardWodResult({
+    const result = await syncWodRankingForClass({
       claseId: body.claseId,
-      usuarioId: body.usuarioId,
     });
     return NextResponse.json(result);
   } catch (e) {

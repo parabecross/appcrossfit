@@ -271,6 +271,85 @@ export async function revokeAttendanceRanking(params: {
   return { revoked: true, eventsRemoved };
 }
 
+async function clearWodRankingEventsForUser(
+  admin: AdminClient,
+  claseId: string,
+  usuarioId: string
+): Promise<number> {
+  const { data, error } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("clase_id", claseId)
+    .eq("usuario_id", usuarioId)
+    .in("event_type", ["wod_position", "evolution"])
+    .select("id");
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
+}
+
+/** Borra y recalcula puntos WOD de un atleta tras editar su score. */
+export async function syncWodRankingForUser(params: {
+  claseId: string;
+  usuarioId: string;
+  admin?: AdminClient;
+}): Promise<{ synced: boolean; events: string[]; eventsRemoved: number }> {
+  const admin = params.admin ?? createAdminClient();
+  const eventsRemoved = await clearWodRankingEventsForUser(
+    admin,
+    params.claseId,
+    params.usuarioId
+  );
+  const result = await awardWodResult({
+    claseId: params.claseId,
+    usuarioId: params.usuarioId,
+    admin,
+  });
+  return {
+    synced: result.awarded || eventsRemoved > 0,
+    events: result.events,
+    eventsRemoved,
+  };
+}
+
+/** Recalcula ranking WOD de toda la clase (todos los atletas afectados). */
+export async function syncWodRankingForClass(params: {
+  claseId: string;
+  admin?: AdminClient;
+}): Promise<{ athletes: number; totalEvents: number }> {
+  const admin = params.admin ?? createAdminClient();
+
+  const [{ data: reservas }, { data: scores }] = await Promise.all([
+    admin
+      .from("reservas")
+      .select("usuario_id")
+      .eq("clase_id", params.claseId)
+      .eq("estado", "asistio"),
+    admin
+      .from("clase_scores")
+      .select("usuario_id")
+      .eq("clase_id", params.claseId),
+  ]);
+
+  const userIds = Array.from(
+    new Set([
+      ...(reservas ?? []).map((r) => r.usuario_id),
+      ...(scores ?? []).map((s) => s.usuario_id),
+    ])
+  );
+
+  let totalEvents = 0;
+  for (const usuarioId of userIds) {
+    const result = await syncWodRankingForUser({
+      claseId: params.claseId,
+      usuarioId,
+      admin,
+    });
+    totalEvents += result.events.length;
+  }
+
+  return { athletes: userIds.length, totalEvents };
+}
+
 async function enrichScoresWithLevel(
   admin: AdminClient,
   scores: ClaseScoreWithProfile[]
@@ -312,7 +391,7 @@ export async function awardWodResult(params: {
   }
 
   const hasSinScore = score.sin_score === true;
-  if (!hasSinScore && !canRankScore(score)) {
+  if (hasSinScore || !canRankScore(score)) {
     return { awarded: false, events: [] };
   }
 
