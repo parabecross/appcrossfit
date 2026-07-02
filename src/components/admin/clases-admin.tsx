@@ -40,10 +40,15 @@ import {
   formatWeekdayShort,
 } from "@/lib/utils";
 import type { Clase, Profile, Reserva } from "@/types/database";
-import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { ScheduleOverlapDialog } from "@/components/admin/schedule-overlap-dialog";
+import {
+  AdminClassesToolbar,
+  type AdminClassesViewMode,
+} from "@/components/admin/clases/admin-classes-toolbar";
+import { CupoProgress } from "@/components/clases/cupo-progress";
 import { WorkoutBlock } from "@/components/clases/workout-block";
+import { summarizeWorkout } from "@/lib/clases/workout-summary";
 import { getSampleWorkout } from "@/lib/clases/sample-workouts";
 import { useReservasRealtime } from "@/lib/hooks/use-reservas-realtime";
 
@@ -90,6 +95,10 @@ export function AdminClasesClient({
   const [calendarDay, setCalendarDay] = useState(today);
   const [selectedClase, setSelectedClase] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"list" | "attendance">("list");
+  const [adminViewMode, setAdminViewMode] =
+    useState<AdminClassesViewMode>("cards");
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminCoachFilter, setAdminCoachFilter] = useState("all");
 
   useEffect(() => {
     setLocalReservas(reservas);
@@ -504,43 +513,43 @@ export function AdminClasesClient({
     selected: boolean;
   }) => {
     const count = enrollmentCount(c.id);
-    const classEnded = hasClassEnded(c.fecha, c.hora_fin, gymTimezone);
-    const attended = classEnded
-      ? localReservas.filter(
-          (r) => r.clase_id === c.id && r.estado === "asistio"
-        ).length
-      : 0;
+    const summary = summarizeWorkout(c.entrenamiento, 2);
 
     return (
       <div
         className={cn(
-          "w-full rounded-2xl border px-4 py-4 text-left transition-all",
+          "w-full rounded-xl border px-3.5 py-3 text-left transition-all",
           selected
-            ? "border-primary/60 bg-primary/10 ring-1 ring-primary/40"
-            : "border-white/10 bg-card/50 hover:border-white/20"
+            ? "border-orange-500/40 bg-orange-500/[0.05] ring-1 ring-orange-500/25"
+            : "border-white/10 bg-white/[0.02] hover:border-white/20"
         )}
       >
         <button type="button" onClick={onSelect} className="w-full text-left">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-bold text-base">{c.nombre}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {formatTime(c.hora_inicio)} – {formatTime(c.hora_fin)}
               </p>
-            </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <Badge variant="secondary" className="font-semibold">
-                {count} {t("enrolled").toLowerCase()}
-              </Badge>
-              {attended > 0 && (
-                <span className="text-[10px] text-green-400">
-                  {attended} ✓
-                </span>
+              <p className="font-bold text-sm mt-0.5">{c.nombre}</p>
+              {c.coach_nombre && (
+                <p className="text-xs text-muted-foreground mt-1 truncate">
+                  {t("coach")}: {c.coach_nombre}
+                </p>
               )}
             </div>
+            <Badge variant="secondary" className="text-[10px] h-5 shrink-0">
+              {count} {t("enrolled").toLowerCase()}
+            </Badge>
+          </div>
+          {summary.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+              {summary.join(" · ")}
+            </p>
+          )}
+          <div className="mt-2.5">
+            <CupoProgress occupied={count} max={c.cupo_maximo} showTone compact />
           </div>
         </button>
-        <WorkoutBlock entrenamiento={c.entrenamiento} compact className="mt-3" />
         {isCoach && canManageClases && (
           <div className="mt-2 flex justify-end">
             <EditClaseDialog
@@ -707,9 +716,14 @@ export function AdminClasesClient({
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-        <h1 className="text-2xl md:text-3xl font-black brand-text">{t("title")}</h1>
+    <div className="space-y-4 md:space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+        <div>
+          <h1 className="text-xl md:text-2xl font-black brand-text">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 hidden sm:block">
+            {t("adminSubtitle")}
+          </p>
+        </div>
         {canManageClases ? (
         <>
         <Dialog open={open} onOpenChange={(v) => {
@@ -836,6 +850,16 @@ export function AdminClasesClient({
         ) : null}
       </div>
 
+      <AdminClassesToolbar
+        search={adminSearch}
+        onSearchChange={setAdminSearch}
+        coachFilter={adminCoachFilter}
+        onCoachFilterChange={setAdminCoachFilter}
+        viewMode={adminViewMode}
+        onViewModeChange={setAdminViewMode}
+        coaches={coaches}
+      />
+
       <WeeklyCalendar
         clases={localClases}
         reservas={localReservas}
@@ -852,6 +876,9 @@ export function AdminClasesClient({
         onClassUpdated={handleClassUpdated}
         focusDate={focusDate}
         gymTimezone={gymTimezone}
+        adminViewMode={adminViewMode}
+        adminSearch={adminSearch}
+        adminCoachFilter={adminCoachFilter}
       />
 
       {/* Mobile: slide-up attendance when class selected */}
@@ -874,46 +901,23 @@ export function AdminClasesClient({
                   {formatShortDay(selectedClaseData.fecha, locale)}
                 </p>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {canManageClases && (
-                  <>
-                <EditClaseDialog
-                  clase={selectedClaseData}
-                  coaches={coaches}
-                  existingClases={localClases}
-                  locale={locale}
-                  onUpdated={handleClassUpdated}
-                />
-                <DeleteClaseDialog
-                  claseId={selectedClaseData.id}
-                  nombre={selectedClaseData.nombre}
-                  fecha={selectedClaseData.fecha}
-                  locale={locale}
-                  enrolledCount={claseReservas.length}
-                  variant="icon"
-                  onDeleted={() => handleClassDeleted(selectedClaseData.id)}
-                />
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedClase(null)}
-                >
-                  {tc("close")}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedClase(null)}
+              >
+                {tc("close")}
+              </Button>
             </div>
-            <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
             <AttendanceList />
           </div>
         )}
       </div>
 
-      {/* Desktop: attendance card */}
-      <Card className="hidden md:block border-white/5">
-        <CardHeader>
-          <CardTitle>{t("attendance")}</CardTitle>
+      {/* Desktop: attendance */}
+      <Card className="hidden md:block border-white/5 bg-white/[0.02]">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t("attendance")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Select
@@ -931,40 +935,21 @@ export function AdminClasesClient({
               ))}
             </SelectContent>
           </Select>
-          {selectedClase && selectedClaseData && (
+          {selectedClase && selectedClaseData ? (
             <>
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium">
-                  {selectedClaseData.nombre} —{" "}
-                  {formatShortDay(selectedClaseData.fecha, locale)}
+              <div className="rounded-xl bg-black/20 px-3 py-2.5">
+                <p className="text-sm font-medium">{selectedClaseData.nombre}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatShortDay(selectedClaseData.fecha, locale)} ·{" "}
+                  {formatTime(selectedClaseData.hora_inicio)}
                 </p>
-                <div className="flex items-center gap-2 shrink-0">
-                  {canManageClases && (
-                    <>
-                  <EditClaseDialog
-                    clase={selectedClaseData}
-                    coaches={coaches}
-                    existingClases={localClases}
-                    locale={locale}
-                    variant="button"
-                    onUpdated={handleClassUpdated}
-                  />
-                  <DeleteClaseDialog
-                    claseId={selectedClaseData.id}
-                    nombre={selectedClaseData.nombre}
-                    fecha={selectedClaseData.fecha}
-                    locale={locale}
-                    enrolledCount={claseReservas.length}
-                    variant="button"
-                    onDeleted={() => handleClassDeleted(selectedClaseData.id)}
-                  />
-                    </>
-                  )}
-                </div>
               </div>
-              <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
               <AttendanceList compact />
             </>
+          ) : (
+            <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-white/10 px-4 py-8 text-center">
+              {t("selectClassForAttendance")}
+            </p>
           )}
         </CardContent>
       </Card>

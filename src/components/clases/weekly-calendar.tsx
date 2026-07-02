@@ -15,6 +15,13 @@ import {
   filterClassesForSocio,
   hasClassEnded,
 } from "@/lib/clases/helpers";
+import {
+  getClassTimeBlock,
+  type ClassTimeBlock,
+} from "@/lib/clases/workout-summary";
+import { AdminClassCardCompact } from "@/components/admin/clases/admin-class-card-compact";
+import { AdminClassListRow } from "@/components/admin/clases/admin-class-list-row";
+import type { AdminClassesViewMode } from "@/components/admin/clases/admin-classes-toolbar";
 import { ScoreEntryForm } from "@/components/clases/score-entry-form";
 import { ScoreResponseSummary } from "@/components/clases/score-response-summary";
 import { AthronPointsWidget } from "@/components/ranking/athron/athron-points-widget";
@@ -54,6 +61,9 @@ interface WeeklyCalendarProps {
   athleteLevel?: AthleticLevel | null;
   athronSummary?: UserAthronSummary | null;
   hideRankingWidget?: boolean;
+  adminViewMode?: AdminClassesViewMode;
+  adminSearch?: string;
+  adminCoachFilter?: string;
 }
 
 export function WeeklyCalendar({
@@ -75,6 +85,9 @@ export function WeeklyCalendar({
   classScores = [],
   athronSummary,
   hideRankingWidget = false,
+  adminViewMode = "cards",
+  adminSearch = "",
+  adminCoachFilter = "all",
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -109,9 +122,40 @@ export function WeeklyCalendar({
     if (focusDate) setSelected(focusDate);
   }, [focusDate]);
 
-  const dayClases = displayClases.filter(
-    (c) => c.fecha === selected && c.estado === "programada"
-  );
+  const dayClases = useMemo(() => {
+    let list = displayClases.filter(
+      (c) => c.fecha === selected && c.estado === "programada"
+    );
+
+    if (isAdmin) {
+      if (adminSearch.trim()) {
+        const q = adminSearch.trim().toLowerCase();
+        list = list.filter((c) => c.nombre.toLowerCase().includes(q));
+      }
+      if (adminCoachFilter !== "all") {
+        list = list.filter((c) => c.coach_id === adminCoachFilter);
+      }
+    }
+
+    return list.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+  }, [
+    displayClases,
+    selected,
+    isAdmin,
+    adminSearch,
+    adminCoachFilter,
+  ]);
+
+  const adminGroupedClases = useMemo(() => {
+    if (!isAdmin) return [];
+    const blocks: ClassTimeBlock[] = ["morning", "afternoon", "evening"];
+    return blocks
+      .map((block) => ({
+        block,
+        classes: dayClases.filter((c) => getClassTimeBlock(c.hora_inicio) === block),
+      }))
+      .filter((g) => g.classes.length > 0);
+  }, [isAdmin, dayClases]);
 
   const myReservation = (claseId: string) =>
     localReservas.find(
@@ -225,8 +269,13 @@ export function WeeklyCalendar({
     router.refresh();
   };
 
-  const dayLabel = (dateStr: string) =>
-    formatWeekdayShort(dateStringToLocalDate(dateStr), locale);
+  const dayLabel = (dateStr: string) => {
+    if (isAdmin) {
+      if (dateStr === today) return t("bookedDayToday");
+      if (dateStr === tomorrow) return t("bookedDayTomorrow");
+    }
+    return formatWeekdayShort(dateStringToLocalDate(dateStr), locale);
+  };
   const isToday = (ds: string) => ds === today;
 
   const myBookingsOnDay = dayClases.filter((c) => myReservation(c.id)).length;
@@ -309,14 +358,83 @@ export function WeeklyCalendar({
       )}
 
       {daysWithClasses.length === 0 || dayClases.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-white/10 py-12 text-center">
           <CalendarX2 className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-          <p className="text-muted-foreground font-medium">{t("noClasses")}</p>
-          {daysWithClasses.length > 0 && (
+          <p className="text-muted-foreground font-medium">
+            {isAdmin ? t("adminNoClassesDay") : t("noClasses")}
+          </p>
+          {daysWithClasses.length > 0 && !isAdmin && (
             <p className="text-xs text-muted-foreground/70 mt-1">
               {t("tryAnotherDay")}
             </p>
           )}
+        </div>
+      ) : isAdmin ? (
+        <div className="space-y-5">
+          {adminGroupedClases.map(({ block, classes }) => (
+            <section key={block} className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground px-0.5">
+                {t(`adminTimeBlock.${block}`)}
+              </p>
+              {adminViewMode === "list" ? (
+                <div className="space-y-1.5">
+                  {classes.map((clase) => {
+                    const occupied = countReservasForClase(
+                      localReservas,
+                      clase.id
+                    );
+                    return (
+                      <AdminClassListRow
+                        key={clase.id}
+                        clase={clase}
+                        occupied={occupied}
+                        locale={locale}
+                        coaches={coaches}
+                        existingClases={clases}
+                        canEdit={canEditClass}
+                        selected={selectedClaseId === clase.id}
+                        onSelect={
+                          onClassSelect
+                            ? () => onClassSelect(clase.id)
+                            : undefined
+                        }
+                        onUpdated={onClassUpdated}
+                        onDeleted={() => onClassDeleted?.(clase.id)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="grid gap-2.5 md:grid-cols-2">
+                  {classes.map((clase) => {
+                    const occupied = countReservasForClase(
+                      localReservas,
+                      clase.id
+                    );
+                    return (
+                      <AdminClassCardCompact
+                        key={clase.id}
+                        clase={clase}
+                        occupied={occupied}
+                        locale={locale}
+                        coaches={coaches}
+                        existingClases={clases}
+                        canEdit={canEditClass}
+                        selected={selectedClaseId === clase.id}
+                        onSelect={
+                          onClassSelect
+                            ? () => onClassSelect(clase.id)
+                            : undefined
+                        }
+                        onUpdated={onClassUpdated}
+                        onDeleted={() => onClassDeleted?.(clase.id)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          ))}
         </div>
       ) : (
         <div className="grid gap-3 md:gap-4 md:grid-cols-2">

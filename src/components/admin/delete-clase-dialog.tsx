@@ -21,6 +21,9 @@ interface DeleteClaseDialogProps {
   locale: string;
   enrolledCount?: number;
   variant?: "icon" | "button";
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onDeleted?: () => void;
 }
 
@@ -31,12 +34,17 @@ export function DeleteClaseDialog({
   locale,
   enrolledCount = 0,
   variant = "button",
+  hideTrigger = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   onDeleted,
 }: DeleteClaseDialogProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,29 +73,31 @@ export function DeleteClaseDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {variant === "icon" ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            className="gap-1.5"
-          >
-            <Trash2 className="h-4 w-4" />
-            {t("deleteClass")}
-          </Button>
-        )}
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          {variant === "icon" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              {t("deleteClass")}
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("deleteClass")}</DialogTitle>

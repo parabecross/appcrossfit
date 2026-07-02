@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getBoxConfig } from "@/lib/box/config";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
-import type { AlertaMembresia, Profile } from "@/types/database";
+import type { AlertaMembresia } from "@/types/database";
 
 export async function getMembresiaActual(profileId: string) {
   const supabase = await createClient();

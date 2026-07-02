@@ -34,6 +34,9 @@ interface EditClaseDialogProps {
   locale: string;
   isCoach?: boolean;
   variant?: "icon" | "button";
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onUpdated?: (clase: Clase) => void;
 }
 
@@ -44,12 +47,17 @@ export function EditClaseDialog({
   locale,
   isCoach = false,
   variant = "icon",
+  hideTrigger = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   onUpdated,
 }: EditClaseDialogProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [overlapOpen, setOverlapOpen] = useState(false);
   const [overlapConflicts, setOverlapConflicts] = useState<
     ReturnType<typeof findOverlappingClasses>
@@ -182,31 +190,32 @@ export function EditClaseDialog({
 
   return (
     <>
-      {variant === "icon" ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            openDialog();
-          }}
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={openDialog}
-        >
-          <Pencil className="h-4 w-4" />
-          {t("edit")}
-        </Button>
-      )}
+      {!hideTrigger &&
+        (variant === "icon" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              openDialog();
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={openDialog}
+          >
+            <Pencil className="h-4 w-4" />
+            {t("edit")}
+          </Button>
+        ))}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>

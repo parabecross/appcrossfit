@@ -446,7 +446,20 @@
     "workoutPlaceholder": "E.g. Warm-up 10 min\n\nWOD (15 min cap):\n5 rounds\n• 10 thrusters\n• 10 pull-ups",
     "workoutHint": "Members will see this on the class card. You can use line breaks.",
     "workoutCreateHint": "Optional. If left empty, a sample workout is used based on the class name.",
-    "noWorkout": "Workout to be announced"
+    "noWorkout": "Workout to be announced",
+    "viewDetail": "View details",
+    "adminSubtitle": "Schedule classes, review capacity and mark attendance.",
+    "adminSearchPlaceholder": "Search class…",
+    "adminFilterCoaches": "Coaches",
+    "adminFilterAll": "All",
+    "adminViewCards": "Cards",
+    "adminViewList": "List",
+    "adminNoClassesDay": "No classes scheduled for this day.",
+    "adminTimeBlock": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    }
   },
   "admin": {
     "dashboard": "Control panel",

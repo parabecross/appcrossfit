@@ -446,7 +446,20 @@
     "workoutPlaceholder": "Ej: Calentamiento 10 min\n\nWOD (15 min cap):\n5 rondas\n• 10 thrusters\n• 10 pull-ups",
     "workoutHint": "Los socios verán este texto en la tarjeta de la clase. Puedes usar saltos de línea.",
     "workoutCreateHint": "Opcional. Si lo dejas vacío, se usará un ejemplo según el nombre de la clase.",
-    "noWorkout": "Entrenamiento por anunciar"
+    "noWorkout": "Entrenamiento por anunciar",
+    "viewDetail": "Ver detalle",
+    "adminSubtitle": "Programa, revisa cupos y marca asistencia.",
+    "adminSearchPlaceholder": "Buscar clase…",
+    "adminFilterCoaches": "Coaches",
+    "adminFilterAll": "Todos",
+    "adminViewCards": "Cards",
+    "adminViewList": "Lista",
+    "adminNoClassesDay": "No hay clases programadas para este día.",
+    "adminTimeBlock": {
+      "morning": "Mañana",
+      "afternoon": "Tarde",
+      "evening": "Noche"
+    }
   },
   "admin": {
     "dashboard": "Panel de control",
