@@ -2,36 +2,70 @@ import { createClient } from "@/lib/supabase/server";
 import { getBoxConfig } from "@/lib/box/config";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
-import type { AlertaMembresia } from "@/types/database";
+import type { AlertaMembresia, Membresia, Plan } from "@/types/database";
 
-export async function getMembresiaActual(profileId: string) {
+const MEMBRESIA_SELECT =
+  "id, usuario_id, plan_id, fecha_inicio, fecha_fin, estado, metodo_asignacion, notas, created_at, updated_at, plan:planes(id, nombre, tipo, duracion_dias, precio, activo, box_id, created_at)";
+
+export type MembresiaWithPlan = Omit<Membresia, "plan"> & { plan: Plan | null };
+
+function normalizeMembresiaRow(row: {
+  id: string;
+  usuario_id: string;
+  plan_id: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: Membresia["estado"];
+  metodo_asignacion: Membresia["metodo_asignacion"];
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+  plan?: Plan | Plan[] | null;
+}): MembresiaWithPlan {
+  const { plan: rawPlan, ...rest } = row;
+  const plan = Array.isArray(rawPlan) ? (rawPlan[0] ?? null) : (rawPlan ?? null);
+  return { ...rest, plan };
+}
+
+export async function getMembresiaActual(
+  profileId: string
+): Promise<MembresiaWithPlan | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("membresias")
-    .select("*, plan:planes(*)")
+    .select(MEMBRESIA_SELECT)
     .eq("usuario_id", profileId)
     .in("estado", ["vigente", "vencida"])
     .order("fecha_fin", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return data;
+  return data
+    ? normalizeMembresiaRow(
+        data as Parameters<typeof normalizeMembresiaRow>[0]
+      )
+    : null;
 }
 
 export async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
-  if (usuarioIds.length === 0) return new Map<string, Awaited<ReturnType<typeof getMembresiaActual>>>();
+  if (usuarioIds.length === 0) {
+    return new Map<string, MembresiaWithPlan>();
+  }
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("membresias")
-    .select("*, plan:planes(*)")
+    .select(MEMBRESIA_SELECT)
     .in("usuario_id", usuarioIds)
     .in("estado", ["vigente", "vencida"])
     .order("fecha_fin", { ascending: false });
 
-  const map = new Map<string, NonNullable<typeof data>[number]>();
+  const map = new Map<string, MembresiaWithPlan>();
   for (const m of data ?? []) {
     if (!map.has(m.usuario_id)) {
-      map.set(m.usuario_id, m);
+      map.set(
+        m.usuario_id,
+        normalizeMembresiaRow(m as Parameters<typeof normalizeMembresiaRow>[0])
+      );
     }
   }
   return map;

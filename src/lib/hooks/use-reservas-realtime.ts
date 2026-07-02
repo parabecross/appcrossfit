@@ -6,6 +6,9 @@ import type { Profile, Reserva } from "@/types/database";
 
 export type ReservaWithProfile = Reserva & { profile: Profile | null };
 
+const RESERVAS_REALTIME_SELECT =
+  "id, clase_id, estado, profile:profiles!reservas_usuario_id_fkey(nombre_completo)";
+
 export function useReservasRealtime(
   claseIds: string[],
   onUpdate: (reservas: ReservaWithProfile[]) => void
@@ -25,11 +28,21 @@ export function useReservasRealtime(
     const refetch = async () => {
       const { data, error } = await supabase
         .from("reservas")
-        .select("*, profile:profiles!reservas_usuario_id_fkey(*)")
+        .select(RESERVAS_REALTIME_SELECT)
         .in("clase_id", claseIds);
 
       if (!cancelled && !error && data) {
-        onUpdateRef.current(data as ReservaWithProfile[]);
+        const normalized = data.map((row) => {
+          const profile = row.profile;
+          const normalizedProfile = Array.isArray(profile)
+            ? profile[0] ?? null
+            : profile ?? null;
+          return {
+            ...row,
+            profile: normalizedProfile,
+          };
+        });
+        onUpdateRef.current(normalized as ReservaWithProfile[]);
       }
     };
 

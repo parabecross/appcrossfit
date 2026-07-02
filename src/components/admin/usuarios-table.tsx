@@ -22,12 +22,13 @@ import {
   syncMembresiaEstadoLocal,
   type SocioDisplayStatus,
 } from "@/lib/membresias/helpers";
-import type { Profile, Membresia, Plan } from "@/types/database";
+import type { MembresiaWithPlan } from "@/lib/queries/memberships";
+import type { Profile } from "@/types/database";
 import { useRouter } from "@/i18n/routing";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 
 interface UserRow extends Profile {
-  membresia: (Membresia & { plan: Plan | null }) | null;
+  membresia: MembresiaWithPlan | null;
 }
 
 function socioStatusLabel(

@@ -10,7 +10,9 @@ export async function getClasesByDateRange(
   const supabase = await createClient();
   const { data: clases } = await supabase
     .from("clases")
-    .select("*")
+    .select(
+      "id, nombre, fecha, hora_inicio, hora_fin, cupo_maximo, box_id, coach_id, entrenamiento, estado, created_at, updated_at"
+    )
     .eq("box_id", resolvedBoxId)
     .gte("fecha", from)
     .lte("fecha", to)
@@ -50,7 +52,7 @@ export async function getClasesByDateRange(
       const coach = c.coach_id ? coachMap.get(c.coach_id) : null;
       return {
         ...c,
-        coach_nombre: coach?.nombre_completo ?? null,
+        coach_nombre: coach?.nombre_completo,
         coach_foto_url: coach?.foto_url ?? null,
         coach_bio: coach?.bio ?? null,
         cupo_ocupado: 0,
@@ -74,6 +76,6 @@ export async function getClasesByDateRange(
 
   return result.map((c) => ({
     ...c,
-    cupo_ocupado: cupoMap.get(c.id) ?? 0,
+    cupo_ocupado: Number(cupoMap.get(c.id) ?? 0),
   }));
 }

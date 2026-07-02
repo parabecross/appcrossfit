@@ -6,7 +6,7 @@ import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import { createClient } from "@/lib/supabase/server";
 import { UsuariosTable } from "@/components/admin/usuarios-table";
-import { getMembresiaActual } from "@/lib/queries/memberships";
+import { getMembresiasMapForUsuarios } from "@/lib/queries/memberships";
 import type { Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +30,12 @@ export default async function AdminUsuariosPage({
     .eq("rol", "socio")
     .order("nombre_completo");
 
-  const users = await Promise.all(
-    ((profiles ?? []) as Profile[]).map(async (p) => ({
-      ...p,
-      membresia: await getMembresiaActual(p.id),
-    }))
-  );
+  const socios = (profiles ?? []) as Profile[];
+  const memMap = await getMembresiasMapForUsuarios(socios.map((p) => p.id));
+  const users = socios.map((p) => ({
+    ...p,
+    membresia: memMap.get(p.id) ?? null,
+  }));
 
   return (
     <FeatureGate

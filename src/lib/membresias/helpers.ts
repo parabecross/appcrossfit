@@ -1,4 +1,4 @@
-import type { MembresiaActual, Profile } from "@/types/database";
+import type { Membresia, MembresiaActual, Profile } from "@/types/database";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   daysUntilDateOnly,
@@ -57,7 +57,7 @@ export function socioDisplayStatusBadgeVariant(
 
 export function canReserve(
   profile: Profile,
-  membership: MembresiaActual | null,
+  membership: Pick<Membresia, "estado" | "fecha_fin"> | null,
   timeZone?: string
 ): { ok: boolean; reason?: "pending" | "expired" | "none" } {
   if (profile.estado_cuenta === "pendiente_pago") {

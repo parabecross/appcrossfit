@@ -14,8 +14,32 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminClasesClient } from "@/components/admin/clases-admin";
 import { LockedFeatureCard } from "@/components/plans/locked-feature-card";
 import { getTranslations } from "next-intl/server";
+import type { Profile, Reserva } from "@/types/database";
 
 export const dynamic = "force-dynamic";
+
+type ReservaRow = Reserva & { profile: Profile | null };
+
+async function fetchReservasForClases(claseIds: string[]): Promise<ReservaRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("reservas")
+    .select(
+      "id, clase_id, usuario_id, fecha_reserva, estado, created_at, profile:profiles!reservas_usuario_id_fkey(nombre_completo)"
+    )
+    .in("clase_id", claseIds);
+
+  return (data ?? []).map((row) => {
+    const profile = row.profile;
+    const normalizedProfile = Array.isArray(profile)
+      ? profile[0] ?? null
+      : profile ?? null;
+    return {
+      ...row,
+      profile: normalizedProfile ?? undefined,
+    };
+  }) as ReservaRow[];
+}
 
 export default async function AdminClasesPage({
   params,
@@ -70,15 +94,12 @@ export default async function AdminClasesPage({
       ? [profile]
       : [];
 
-  const supabase = await createClient();
-  const { data: reservas } = await supabase
-    .from("reservas")
-    .select("*, profile:profiles!reservas_usuario_id_fkey(*)");
+  const claseIds = clases.map((c) => c.id);
+  let reservasFiltradas: ReservaRow[] = [];
 
-  const claseIds = new Set(clases.map((c) => c.id));
-  const reservasFiltradas = (reservas ?? []).filter((r) =>
-    claseIds.has(r.clase_id)
-  );
+  if (claseIds.length > 0) {
+    reservasFiltradas = await fetchReservasForClases(claseIds);
+  }
 
   return (
     <AdminClasesClient

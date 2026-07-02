@@ -2,9 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { CalendarDays, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import type { Membresia, Plan, Profile } from "@/types/database";
-
-type MembresiaWithPlan = Membresia & { plan: Plan | null };
+import type { MembresiaWithPlan } from "@/lib/queries/memberships";
+import type { Profile } from "@/types/database";
 
 function daysUntil(dateStr: string) {
   const end = new Date(`${dateStr}T23:59:59`);
