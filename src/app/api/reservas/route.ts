@@ -75,6 +75,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
   }
 
+  const { data: existing } = await supabase
+    .from("reservas")
+    .select("*")
+    .eq("clase_id", clase_id)
+    .eq("usuario_id", profile!.id)
+    .in("estado", ["confirmada", "asistio"])
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ success: true, reserva: existing });
+  }
+
   // Service role: el trigger check_reserva_cupo() usa SELECT … FOR UPDATE sobre
   // clases; con RLS el socio no pasa clases_update_coach_assigned y falla el INSERT.
   // Auth, box y clase ya validados arriba con el cliente del usuario.
@@ -90,6 +102,19 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    if (error.message.includes("idx_reservas_activa")) {
+      const { data: existingActive } = await admin
+        .from("reservas")
+        .select("*")
+        .eq("clase_id", clase_id)
+        .eq("usuario_id", profile!.id)
+        .in("estado", ["confirmada", "asistio"])
+        .maybeSingle();
+
+      if (existingActive) {
+        return NextResponse.json({ success: true, reserva: existingActive });
+      }
+    }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
@@ -109,6 +134,12 @@ export async function PATCH(request: NextRequest) {
 
   if (!reserva_id) {
     return NextResponse.json({ error: "Falta reserva_id" }, { status: 400 });
+  }
+
+  const uuidRe =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRe.test(reserva_id)) {
+    return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
   }
 
   const { data: reserva, error: fetchError } = await supabase

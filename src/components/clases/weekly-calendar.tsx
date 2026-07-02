@@ -36,7 +36,7 @@ import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
-import { countReservasForClase, occupiedForSocioClass } from "@/lib/reservas/helpers";
+import { countReservasForClase, isOptimisticReservaId, occupiedForSocioClass } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -106,18 +106,20 @@ export function WeeklyCalendar({
   );
   const daysWithClasses = useMemo(() => getClassDates(displayClases), [displayClases]);
   const [selected, setSelected] = useState(today);
-  const [localReservas, setLocalReservas] = useState(reservas);
+  const controlled = !!onReservationsChange;
+  const [uncontrolledReservas, setUncontrolledReservas] = useState(reservas);
   const [loading, setLoading] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [bookError, setBookError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLocalReservas(reservas);
-  }, [reservas]);
+  const localReservas = controlled ? reservas : uncontrolledReservas;
+  const updateReservas = controlled ? onReservationsChange! : setUncontrolledReservas;
 
   useEffect(() => {
-    onReservationsChange?.(localReservas);
-  }, [localReservas, onReservationsChange]);
+    if (!controlled) {
+      setUncontrolledReservas(reservas);
+    }
+  }, [reservas, controlled]);
 
   useEffect(() => {
     if (daysWithClasses.length === 0) return;
@@ -186,6 +188,16 @@ export function WeeklyCalendar({
     const clase = clases.find((c) => c.id === claseId);
     if (!clase || !canBookClass(clase.fecha, clase.hora_inicio, gymTimezone)) return;
 
+    if (
+      localReservas.some(
+        (r) =>
+          r.clase_id === claseId &&
+          (r.estado === "confirmada" || isOptimisticReservaId(r.id))
+      )
+    ) {
+      return;
+    }
+
     setLoading(claseId);
     setCancelError(null);
     setBookError(null);
@@ -199,7 +211,7 @@ export function WeeklyCalendar({
       fecha_reserva: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
-    setLocalReservas((prev) => [...prev, optimistic]);
+    updateReservas((prev) => [...prev, optimistic]);
 
     const res = await fetch("/api/reservas", {
       method: "POST",
@@ -211,7 +223,7 @@ export function WeeklyCalendar({
     setLoading(null);
 
     if (!res.ok || !payload.reserva) {
-      setLocalReservas((prev) => prev.filter((r) => r.id !== tempId));
+      updateReservas((prev) => prev.filter((r) => r.id !== tempId));
       const msg = payload.error ?? "";
       if (msg.includes("20 minutos") || msg.includes("20 minutes")) {
         setBookError(
@@ -227,9 +239,11 @@ export function WeeklyCalendar({
       return;
     }
 
-    setLocalReservas((prev) =>
-      prev.map((r) => (r.id === tempId ? payload.reserva : r))
-    );
+    updateReservas((prev) => {
+      const withoutTemp = prev.filter((r) => r.id !== tempId);
+      const withoutDup = withoutTemp.filter((r) => r.id !== payload.reserva.id);
+      return [...withoutDup, payload.reserva];
+    });
     router.refresh();
   };
 
@@ -245,10 +259,15 @@ export function WeeklyCalendar({
       return;
     }
 
+    if (isOptimisticReservaId(reservaId)) {
+      updateReservas((prev) => prev.filter((r) => r.id !== reservaId));
+      return;
+    }
+
     setCancelError(null);
     setLoading(reservaId);
-    const previous = localReservas.find((r) => r.id === reservaId);
-    setLocalReservas((prev) => prev.filter((r) => r.id !== reservaId));
+    const previous = localReservas;
+    updateReservas((prev) => prev.filter((r) => r.id !== reservaId));
 
     const res = await fetch("/api/reservas", {
       method: "PATCH",
@@ -260,9 +279,7 @@ export function WeeklyCalendar({
     setLoading(null);
 
     if (!res.ok) {
-      if (previous) {
-        setLocalReservas((prev) => [...prev, previous]);
-      }
+      updateReservas(previous);
       setCancelError(payload.error ?? tc("error"));
       return;
     }

@@ -1,5 +1,13 @@
 import type { Reserva } from "@/types/database";
 
+export function isOptimisticReservaId(id: string): boolean {
+  return id.startsWith("temp-");
+}
+
+export function isPersistedReservaId(id: string): boolean {
+  return !isOptimisticReservaId(id);
+}
+
 export const ACTIVE_RESERVA_ESTADOS = [
   "confirmada",
   "asistio",

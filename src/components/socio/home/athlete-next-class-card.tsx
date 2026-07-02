@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { canCancelReservation } from "@/lib/clases/helpers";
-import { occupiedForSocioClass } from "@/lib/reservas/helpers";
+import { occupiedForSocioClass, isOptimisticReservaId } from "@/lib/reservas/helpers";
 import { formatShortDay, formatTime } from "@/lib/utils";
 import type { Clase, Reserva } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -51,6 +51,8 @@ export function AthleteNextClassCard({
   );
 
   const handleCancel = async () => {
+    if (isOptimisticReservaId(reserva.id)) return;
+
     setLoading(true);
     setError(null);
     const previous = reservas;
@@ -103,7 +105,7 @@ export function AthleteNextClassCard({
           variant="outline"
           size="sm"
           className="h-8 rounded-lg border-white/10 text-xs"
-          disabled={!canCancel || loading}
+          disabled={!canCancel || loading || isOptimisticReservaId(reserva.id)}
           onClick={() => void handleCancel()}
         >
           {loading ? tc("loading") : t("nextClass.cancel")}

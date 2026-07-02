@@ -1,4 +1,5 @@
 import { hasClassEnded } from "@/lib/clases/helpers";
+import { isPersistedReservaId } from "@/lib/reservas/helpers";
 import type { Clase, Reserva } from "@/types/database";
 
 export type NextBookedClass = {
@@ -16,7 +17,11 @@ export function findNextBookedClass(
   const upcoming: NextBookedClass[] = [];
 
   for (const reserva of reservas) {
-    if (reserva.usuario_id !== profileId || reserva.estado !== "confirmada") {
+    if (
+      !isPersistedReservaId(reserva.id) ||
+      reserva.usuario_id !== profileId ||
+      reserva.estado !== "confirmada"
+    ) {
       continue;
     }
     const clase = claseById.get(reserva.clase_id);

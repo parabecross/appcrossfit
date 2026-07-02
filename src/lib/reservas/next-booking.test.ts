@@ -42,4 +42,13 @@ describe("findNextBookedClass", () => {
     ];
     expect(findNextBookedClass(clases, reservas, userId)).toBeNull();
   });
+
+  it("ignores optimistic temp reservations", () => {
+    const userId = "u1";
+    const clases = [baseClase("c1", "2099-06-01")];
+    const reservas = [
+      { ...reserva("c1", userId), id: "temp-123" },
+    ];
+    expect(findNextBookedClass(clases, reservas, userId)).toBeNull();
+  });
 });
