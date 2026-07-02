@@ -2,6 +2,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { todayInTimezone } from "@/lib/clases/helpers";
 import { computeAttendanceStreak } from "@/lib/progreso/attendance";
 import { RANKING_LEVELS } from "@/lib/scores/helpers";
+import { summarizePointBreakdown } from "./point-breakdown";
+import type {
+  PointBreakdownDetail,
+  PointBreakdownTotals,
+} from "./point-breakdown";
 import { getRankingConfig } from "./engine";
 import type {
   AthleticLevel,
@@ -20,6 +25,8 @@ export type LeaderboardRow = {
   streak: number;
   rank: number;
   rank_delta: number | null;
+  point_breakdown: PointBreakdownTotals;
+  point_details: PointBreakdownDetail[];
 };
 
 export type DailyClassResult = {
@@ -171,6 +178,7 @@ export async function getAthronRankingForBox(params: {
       new Set(attendanceDatesByUser.get(usuarioId) ?? [])
     );
     const streak = computeAttendanceStreak(dates, today);
+    const { totals, details } = summarizePointBreakdown(userEvents);
 
     rows.push({
       usuario_id: usuarioId,
@@ -181,6 +189,8 @@ export async function getAthronRankingForBox(params: {
       total_points,
       attendances,
       streak,
+      point_breakdown: totals,
+      point_details: details,
     });
   }
 

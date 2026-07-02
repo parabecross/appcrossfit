@@ -739,6 +739,8 @@
     },
     "badges": {
       "primer_pr": "Primer PR",
+      "benchmark": "Nuevo récord personal",
+      "murph": "Murph completado",
       "siete_dias": "7 días entrenando",
       "treinta_dias": "30 días entrenando",
       "cien_clases": "100 clases",
@@ -943,6 +945,36 @@
     "viewFullRanking": "Ver ranking completo",
     "sectionTitle": "Ranking Athron",
     "sectionSubtitle": "Tus puntos del mes, racha y posición en tu categoría Legacy.",
-    "monthAttendances": "{count} asistencias este mes"
+    "monthAttendances": "{count} asistencias este mes",
+    "breakdownTitle": "¿Por qué sumó estos puntos?",
+    "breakdownType": {
+      "attendance": "asis.",
+      "streak": "racha",
+      "wod_position": "WOD",
+      "evolution": "evol.",
+      "achievement": "logro"
+    },
+    "breakdownDetail": {
+      "attendance": "Asistencia confirmada por el coach",
+      "streak": "Bonus por racha de asistencia",
+      "streakDays": "Racha de {days} días consecutivos",
+      "wod": "Puntos por posición en el WOD",
+      "wodRank": "#{rank} en {className}",
+      "wodClass": "clase",
+      "rxBonus": "+{points} bonus RX",
+      "achievement": "Logro: {badge}",
+      "achievementGeneric": "Logro especial",
+      "generic": "Puntos del ranking",
+      "evolution": {
+        "first_rx": "Primer score RX registrado",
+        "personal_best_small": "Mejora personal (pequeña)",
+        "personal_best_medium": "Mejora personal (media)",
+        "personal_best_large": "Mejora personal (grande)",
+        "rank_improved_small": "Subió puestos en el WOD (pequeño)",
+        "rank_improved_medium": "Subió puestos en el WOD (medio)",
+        "rank_improved_large": "Subió puestos en el WOD (grande)",
+        "generic": "Bonus por evolución personal"
+      }
+    }
   }
 }

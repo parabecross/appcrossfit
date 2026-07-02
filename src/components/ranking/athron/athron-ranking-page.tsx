@@ -48,7 +48,7 @@ export function AthronRankingPage({
 
       <PodiumTop3 rows={data.leaderboard} />
 
-      <LeaderboardTable rows={data.leaderboard} />
+      <LeaderboardTable rows={data.leaderboard} locale={locale} />
 
       <DailyHistory
         key={`${data.month_key}-${category}`}

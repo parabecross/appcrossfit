@@ -739,6 +739,8 @@
     },
     "badges": {
       "primer_pr": "First PR",
+      "benchmark": "New personal record",
+      "murph": "Murph completed",
       "siete_dias": "7 training days",
       "treinta_dias": "30 training days",
       "cien_clases": "100 classes",
@@ -943,6 +945,36 @@
     "viewFullRanking": "View full ranking",
     "sectionTitle": "Athron Ranking",
     "sectionSubtitle": "Your monthly points, streak and position in your Legacy category.",
-    "monthAttendances": "{count} attendances this month"
+    "monthAttendances": "{count} attendances this month",
+    "breakdownTitle": "Why did they earn these points?",
+    "breakdownType": {
+      "attendance": "att.",
+      "streak": "streak",
+      "wod_position": "WOD",
+      "evolution": "evol.",
+      "achievement": "badge"
+    },
+    "breakdownDetail": {
+      "attendance": "Coach-confirmed attendance",
+      "streak": "Attendance streak bonus",
+      "streakDays": "{days}-day attendance streak",
+      "wod": "WOD position points",
+      "wodRank": "#{rank} in {className}",
+      "wodClass": "class",
+      "rxBonus": "+{points} RX bonus",
+      "achievement": "Achievement: {badge}",
+      "achievementGeneric": "Special achievement",
+      "generic": "Ranking points",
+      "evolution": {
+        "first_rx": "First RX score logged",
+        "personal_best_small": "Personal best (small)",
+        "personal_best_medium": "Personal best (medium)",
+        "personal_best_large": "Personal best (large)",
+        "rank_improved_small": "Moved up in WOD (small)",
+        "rank_improved_medium": "Moved up in WOD (medium)",
+        "rank_improved_large": "Moved up in WOD (large)",
+        "generic": "Personal evolution bonus"
+      }
+    }
   }
 }

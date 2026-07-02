@@ -10,6 +10,11 @@ import {
   getWeekStartMonday,
 } from "@/lib/dates/format-display";
 import { groupDailyHistoryByWeek } from "@/lib/ranking/daily-history-grouping";
+import { summarizePointBreakdown } from "@/lib/ranking/point-breakdown";
+import {
+  PointBreakdownChips,
+  PointBreakdownDetails,
+} from "@/components/ranking/athron/point-breakdown-view";
 import { cn, formatTime } from "@/lib/utils";
 import type { DailyHistoryDay } from "@/lib/ranking/aggregate";
 
@@ -234,11 +239,14 @@ function DayTimelineRow({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  {clase.athletes.map((a) => (
+                  {clase.athletes.map((a) => {
+                    const breakdown = summarizePointBreakdown(a.events);
+                    return (
                     <div
                       key={a.usuario_id}
-                      className="flex items-center gap-3 rounded-lg bg-secondary/30 px-3 py-2"
+                      className="rounded-lg bg-secondary/30 px-3 py-2 space-y-2"
                     >
+                      <div className="flex items-center gap-3">
                       <AthleteAvatar
                         fotoUrl={a.foto_url}
                         seed={a.usuario_id}
@@ -252,22 +260,20 @@ function DayTimelineRow({
                         <p className="text-xs text-muted-foreground">
                           {a.score_display ?? "—"} · {a.rx ? "RX" : "Scaled"}
                           {a.wod_rank ? ` · #${a.wod_rank}` : ""}
-                          {(() => {
-                            const wodEv = a.events.find(
-                              (e) => e.event_type === "wod_position"
-                            );
-                            const rxBonus = wodEv?.metadata?.rx_bonus;
-                            return typeof rxBonus === "number" && rxBonus > 0
-                              ? ` · +${rxBonus} RX`
-                              : "";
-                          })()}
                         </p>
                       </div>
                       <p className="text-sm font-bold text-orange-300 tabular-nums">
                         +{a.day_points}
                       </p>
+                      </div>
+                      <PointBreakdownChips totals={breakdown.totals} />
+                      <PointBreakdownDetails
+                        details={breakdown.details}
+                        locale={locale}
+                      />
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
