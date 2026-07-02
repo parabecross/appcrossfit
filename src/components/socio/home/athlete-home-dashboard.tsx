@@ -1,19 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { SocioClassHistory } from "@/components/clases/socio-class-history";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
 import { AthleteNextClassCard } from "@/components/socio/home/athlete-next-class-card";
-import { AthleteRankingSnapshot } from "@/components/socio/home/athlete-ranking-snapshot";
-import { AthleteQuickActions } from "@/components/socio/home/athlete-quick-actions";
 import { AthleteExpandableSection } from "@/components/socio/home/athlete-expandable-section";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
 import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import type { NextBookedClass } from "@/lib/reservas/next-booking";
-import type { UserAthronSummary } from "@/lib/ranking/aggregate";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
 import type { AthleticLevel, Clase, ClaseScore, Reserva } from "@/types/database";
 import type { ReactNode } from "react";
@@ -22,13 +18,11 @@ export function AthleteHomeDashboard({
   firstName,
   locale,
   gymTimezone,
-  boxSlug,
   showBanner,
   bannerType,
   membershipExpiry,
   nextBooking,
   membershipCard,
-  athronSummary,
   entitlements,
   canBook,
   clases,
@@ -43,13 +37,11 @@ export function AthleteHomeDashboard({
   firstName: string;
   locale: string;
   gymTimezone: string;
-  boxSlug: string;
   showBanner: boolean;
   bannerType: "pending" | "expired" | null;
   membershipExpiry?: string;
   nextBooking: NextBookedClass | null;
   membershipCard: ReactNode;
-  athronSummary: UserAthronSummary | null;
   entitlements: BoxEntitlements;
   canBook: boolean;
   clases: Clase[];
@@ -63,21 +55,6 @@ export function AthleteHomeDashboard({
 }) {
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
-  const bookingRef = useRef<HTMLDivElement>(null);
-  const [bookingOpen, setBookingOpen] = useState(!nextBooking);
-
-  const scrollToBooking = () => {
-    setBookingOpen(true);
-    requestAnimationFrame(() => {
-      bookingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
-
-  const features = {
-    reservas: entitlements.features.reservas,
-    ranking: entitlements.features.ranking,
-    progreso_atleta: entitlements.features.progreso_atleta,
-  };
 
   return (
     <div className="space-y-6 pb-2">
@@ -96,58 +73,36 @@ export function AthleteHomeDashboard({
         />
       )}
 
+      {membershipCard}
+
       <FeatureGate
         entitlements={entitlements}
         featureKey="reservas"
         title={ts("bookingsSubtitle")}
         description={ts("bookingsSubtitle")}
       >
-        <AthleteNextClassCard
-          booking={nextBooking}
-          locale={locale}
-          gymTimezone={gymTimezone}
-          reservas={reservas}
-          onBookNow={scrollToBooking}
-          canBook={canBook}
-        />
-      </FeatureGate>
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+          <div className="px-4 pt-4 pb-3 border-b border-white/5">
+            <p className="text-sm font-bold">{t("sections.bookingTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {nextBooking
+                ? t("sections.bookingSubtitleBooked")
+                : t("sections.bookingSubtitle")}
+            </p>
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {membershipCard}
-        <AthleteRankingSnapshot
-          summary={athronSummary}
-          locale={locale}
-          enabled={features.ranking}
-          boxSlug={boxSlug}
-        />
-      </div>
+          {nextBooking && (
+            <div className="px-4 py-3 border-b border-white/5">
+              <AthleteNextClassCard
+                booking={nextBooking}
+                locale={locale}
+                gymTimezone={gymTimezone}
+                reservas={reservas}
+              />
+            </div>
+          )}
 
-      <section className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-0.5">
-          {t("quickActionsTitle")}
-        </p>
-        <AthleteQuickActions
-          onBook={scrollToBooking}
-          features={features}
-          boxSlug={boxSlug}
-        />
-      </section>
-
-      <div ref={bookingRef}>
-        <FeatureGate
-          entitlements={entitlements}
-          featureKey="reservas"
-          title={ts("bookingsSubtitle")}
-          description={ts("bookingsSubtitle")}
-        >
-          <AthleteExpandableSection
-            title={t("sections.bookingTitle")}
-            subtitle={t("sections.bookingSubtitle")}
-            open={bookingOpen}
-            onOpenChange={setBookingOpen}
-            expandLabel={t("sections.expand")}
-            collapseLabel={t("sections.collapse")}
-          >
+          <div className="p-4">
             <WeeklyCalendar
               clases={clases}
               reservas={reservas}
@@ -157,12 +112,11 @@ export function AthleteHomeDashboard({
               gymTimezone={gymTimezone}
               classScores={classScores}
               athleteLevel={athleteLevel}
-              athronSummary={athronSummary}
               hideRankingWidget
             />
-          </AthleteExpandableSection>
-        </FeatureGate>
-      </div>
+          </div>
+        </section>
+      </FeatureGate>
 
       <FeatureGate
         entitlements={entitlements}

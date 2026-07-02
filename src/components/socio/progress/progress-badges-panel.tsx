@@ -13,13 +13,7 @@ import {
 } from "@/lib/progreso/badges";
 import { cn } from "@/lib/utils";
 
-export function ProgressBadgesPanel({
-  input,
-  compact = false,
-}: {
-  input: BadgeInput;
-  compact?: boolean;
-}) {
+export function ProgressBadgesPanel({ input }: { input: BadgeInput }) {
   const t = useTranslations("progress");
 
   const badges = useMemo(() => computeBadges(input), [input]);
@@ -29,32 +23,26 @@ export function ProgressBadgesPanel({
   const unlockedSkills = skills.filter((b) => b.unlocked);
 
   return (
-    <div className="space-y-4">
-      {/* Skills — siempre visible, protagonismo CrossFit */}
-      <div className="rounded-2xl border border-orange-500/15 bg-gradient-to-br from-orange-500/[0.06] to-transparent p-4 md:p-5">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Award className="h-4 w-4 text-orange-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-orange-300/90">
+    <div className="space-y-3">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Award className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-orange-300/90">
                 {t("badgesSection.skills")}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {t("badgesSection.skillsSubtitle")}
               </p>
             </div>
           </div>
-          <span className="shrink-0 rounded-full bg-orange-500/15 border border-orange-500/25 px-2.5 py-1 text-[11px] font-bold tabular-nums text-orange-200">
+          <span className="shrink-0 rounded-md bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-orange-200">
             {unlockedSkills.length}/{skills.length}
           </span>
         </div>
 
-        <div
-          className={cn(
-            "grid gap-2",
-            compact ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-          )}
-        >
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
           {skills.map((badge) => {
             if (!isSkillBadgeKey(badge.key)) return null;
             const skillKey = skillKeyFromBadgeKey(badge.key);
@@ -74,30 +62,34 @@ export function ProgressBadgesPanel({
         </div>
       </div>
 
-      {/* Hitos generales */}
-      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 md:p-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Medal className="h-4 w-4 text-muted-foreground shrink-0" />
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t("badgesSection.milestones")}
-            </p>
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Medal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {t("badgesSection.milestones")}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {t("badgesSection.milestonesSubtitle")}
+              </p>
+            </div>
           </div>
-          <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-[10px] font-semibold tabular-nums text-muted-foreground">
             {unlockedMilestones.length}/{milestones.length}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {milestones.map((badge) => (
-              <BadgeChip
-                key={badge.key}
-                label={t(`badges.${badge.key}`)}
-                unlocked={badge.unlocked}
-                lockedLabel={t("badgesSection.locked")}
-              />
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {milestones.map((badge) => (
+            <BadgeChip
+              key={badge.key}
+              label={t(`badges.${badge.key}`)}
+              unlocked={badge.unlocked}
+              lockedLabel={t("badgesSection.locked")}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -117,14 +109,11 @@ function BadgeChip({
   if (!unlocked) {
     return (
       <div
-        className={cn(
-          "flex items-center gap-2 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5",
-          "opacity-50"
-        )}
+        className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-black/20 px-2 py-1.5 opacity-45"
         title={lockedLabel}
       >
-        <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-[11px] font-medium text-muted-foreground line-clamp-2 leading-snug">
+        <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+        <span className="text-[10px] font-medium text-muted-foreground line-clamp-2 leading-snug">
           {label}
         </span>
       </div>
@@ -134,18 +123,18 @@ function BadgeChip({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all",
+        "flex items-center gap-1.5 rounded-lg border px-2 py-1.5",
         mastered
-          ? "border-orange-400/40 bg-gradient-to-r from-orange-500/25 to-red-500/15 shadow-[0_0_16px_-6px_rgba(249,115,22,0.4)]"
-          : "border-orange-500/25 bg-gradient-to-r from-orange-500/15 to-red-500/5"
+          ? "border-orange-400/35 bg-orange-500/15"
+          : "border-orange-500/20 bg-orange-500/10"
       )}
     >
       {mastered ? (
-        <Star className="h-3.5 w-3.5 text-orange-300 shrink-0 fill-orange-400/30" />
+        <Star className="h-3 w-3 text-orange-300 shrink-0 fill-orange-400/30" />
       ) : (
-        <Award className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+        <Award className="h-3 w-3 text-orange-400 shrink-0" />
       )}
-      <span className="text-[11px] font-semibold text-orange-50 line-clamp-2 leading-snug">
+      <span className="text-[10px] font-semibold text-orange-50 line-clamp-2 leading-snug">
         {label}
       </span>
     </div>

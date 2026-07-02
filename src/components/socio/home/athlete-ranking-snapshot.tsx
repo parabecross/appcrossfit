@@ -97,6 +97,8 @@ export function AthleteRankingSnapshot({
       <Link
         href={`/ranking?box=${encodeURIComponent(boxSlug)}`}
         locale={locale}
+        target="_blank"
+        rel="noopener noreferrer"
         className="mt-4 block text-center text-xs font-semibold text-orange-400 hover:text-orange-300"
       >
         {tr("viewFullRanking")} →

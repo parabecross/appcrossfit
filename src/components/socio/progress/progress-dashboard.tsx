@@ -70,7 +70,7 @@ export function ProgressDashboard({
       : t("noData");
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <ProgressStatCard
         icon={Flame}
         label={t("dashboard.streak")}

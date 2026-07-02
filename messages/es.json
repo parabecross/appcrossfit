@@ -304,7 +304,8 @@
     },
     "sections": {
       "bookingTitle": "Reservar clase",
-      "bookingSubtitle": "Calendario de clases disponibles",
+      "bookingSubtitle": "Elige día y hora en el calendario",
+      "bookingSubtitleBooked": "Tu reserva confirmada — puedes cancelar o elegir otra clase",
       "historyTitle": "Historial resumido",
       "historySubtitle": "{attended} asistencias · {noShow} faltas",
       "expand": "Ver más",
@@ -731,8 +732,9 @@
     },
     "badgesSection": {
       "skills": "Insignias de skills",
-      "skillsSubtitle": "Se desbloquean al marcar Logrado o Dominado",
-      "milestones": "Hitos",
+      "skillsSubtitle": "Al marcar Logrado o Dominado",
+      "milestones": "Logros",
+      "milestonesSubtitle": "PR, constancia, clases y objetivos",
       "locked": "Bloqueada"
     },
     "badges": {

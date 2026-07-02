@@ -7,9 +7,11 @@ import type { UserAthronSummary } from "@/lib/ranking/aggregate";
 export function AthronProgressSection({
   summary,
   locale,
+  boxSlug,
 }: {
   summary: UserAthronSummary;
   locale: string;
+  boxSlug?: string;
 }) {
   const t = useTranslations("rankingAthron");
 
@@ -26,6 +28,7 @@ export function AthronProgressSection({
         streak={summary.streak}
         category={summary.category}
         locale={locale}
+        boxSlug={boxSlug}
       />
       <p className="text-xs text-muted-foreground text-center">
         {t("monthAttendances", { count: summary.attendances })}

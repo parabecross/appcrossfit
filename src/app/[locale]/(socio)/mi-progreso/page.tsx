@@ -41,7 +41,11 @@ export default async function MiProgresoPage({
         title={t("expediente.title")}
         description={t("expediente.pageSubtitle")}
       >
-        <AthronProgressSection summary={athronSummary} locale={locale} />
+        <AthronProgressSection
+          summary={athronSummary}
+          locale={locale}
+          boxSlug={boxConfig.slug}
+        />
         <AthleteProgress
           profileId={profile.id}
           marcas={expediente.marcas}

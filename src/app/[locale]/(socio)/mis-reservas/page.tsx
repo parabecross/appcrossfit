@@ -8,7 +8,6 @@ import {
   getScoresForClases,
   scoresByClaseId,
 } from "@/lib/queries/class-scores";
-import { getUserAthronSummary } from "@/lib/ranking/aggregate";
 import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranking";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
@@ -40,17 +39,10 @@ export default async function MisReservasPage({
     ]);
 
   const claseIds = clases.map((c) => c.id);
-  const [rawClassScores, myScores, athleteLevel, athronSummary] =
-    await Promise.all([
+  const [rawClassScores, myScores, athleteLevel] = await Promise.all([
       getScoresForClases(claseIds),
       getScoresByUsuario(profile.id),
       getAthleteLevel(profile.id),
-      getUserAthronSummary({
-        boxId: profile.box_id!,
-        boxSlug: boxConfig.slug,
-        usuarioId: profile.id,
-        timezone: boxConfig.timezone,
-      }),
     ]);
   const classScores = await enrichScoresForSocio(rawClassScores);
   const myScoresMap = scoresByClaseId(myScores);
@@ -83,7 +75,6 @@ export default async function MisReservasPage({
       firstName={firstName}
       locale={locale}
       gymTimezone={boxConfig.timezone}
-      boxSlug={boxConfig.slug}
       showBanner={showBanner}
       bannerType={bannerType}
       membershipExpiry={membership?.fecha_fin}
@@ -95,7 +86,6 @@ export default async function MisReservasPage({
           locale={locale}
         />
       }
-      athronSummary={athronSummary}
       entitlements={entitlements}
       canBook={reserveCheck.ok}
       clases={clases}

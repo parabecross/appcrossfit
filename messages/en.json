@@ -304,7 +304,8 @@
     },
     "sections": {
       "bookingTitle": "Book a class",
-      "bookingSubtitle": "Available class calendar",
+      "bookingSubtitle": "Pick a day and time in the calendar",
+      "bookingSubtitleBooked": "Your booking is confirmed — cancel or pick another class",
       "historyTitle": "Recent history",
       "historySubtitle": "{attended} attended · {noShow} no-shows",
       "expand": "Show more",
@@ -731,8 +732,9 @@
     },
     "badgesSection": {
       "skills": "Skill badges",
-      "skillsSubtitle": "Unlock when marked Achieved or Mastered",
-      "milestones": "Milestones",
+      "skillsSubtitle": "When marked Achieved or Mastered",
+      "milestones": "Achievements",
+      "milestonesSubtitle": "PRs, consistency, classes and goals",
       "locked": "Locked"
     },
     "badges": {

@@ -11,6 +11,7 @@ export function AthronPointsWidget({
   streak,
   category,
   locale,
+  boxSlug,
 }: {
   monthPoints: number;
   todayPoints: number;
@@ -18,9 +19,14 @@ export function AthronPointsWidget({
   streak: number;
   category: string | null;
   locale: string;
+  boxSlug?: string;
 }) {
   const t = useTranslations("rankingAthron");
   const tl = useTranslations("legacy");
+
+  const rankingHref = boxSlug
+    ? `/ranking?box=${encodeURIComponent(boxSlug)}`
+    : "/ranking";
 
   return (
     <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-transparent p-4 space-y-3">
@@ -70,8 +76,10 @@ export function AthronPointsWidget({
         </p>
       )}
       <Link
-        href="/ranking"
+        href={rankingHref}
         locale={locale}
+        target="_blank"
+        rel="noopener noreferrer"
         className="block text-center text-xs font-semibold text-orange-400 hover:text-orange-300"
       >
         {t("viewFullRanking")} →
