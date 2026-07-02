@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import Image from "next/image";
-import { User } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAvatarForUser } from "@/lib/avatars/upload";
 import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
-import {
-  profilePhotoFrameClass,
-  profilePhotoImageClass,
-} from "@/components/ui/profile-photo-frame";
 import { useRouter } from "@/i18n/routing";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
-import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 export function ProfileForm({
@@ -46,7 +39,6 @@ export function ProfileForm({
     bio: profile.bio ?? "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState(profile.foto_url);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -64,9 +56,6 @@ export function ProfileForm({
 
   const handlePhotoChange = (file: File | null) => {
     setPhoto(file);
-    if (file) {
-      setPhotoPreview(URL.createObjectURL(file));
-    }
   };
 
   const save = async () => {
@@ -114,30 +103,6 @@ export function ProfileForm({
         title={tn("profile")}
         subtitle={pageSubtitle}
       />
-
-      <div className="flex flex-col items-center py-2">
-        <div
-          className={cn(
-            profilePhotoFrameClass,
-            "aspect-[4/5] w-[108px] border-primary/25 ring-primary/15"
-          )}
-        >
-          {photoPreview ? (
-            <Image
-              src={photoPreview}
-              alt={form.nombre_completo}
-              fill
-              className={profilePhotoImageClass}
-              sizes="108px"
-            />
-          ) : (
-            <div className="flex h-full min-h-[135px] w-full items-center justify-center bg-secondary/80">
-              <User className="h-10 w-10 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-        <p className="font-bold text-lg mt-3">{form.nombre_completo}</p>
-      </div>
 
       <div className="rounded-2xl border border-white/10 bg-card/50 p-4 md:p-6 space-y-4">
         <div>

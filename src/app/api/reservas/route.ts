@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasClassEnded } from "@/lib/clases/helpers";
+import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   assertFeatureEnabled,
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
-import { ACTIVE_RESERVA_ESTADOS } from "@/lib/reservas/helpers";
+import {
+  ACTIVE_RESERVA_ESTADOS,
+  RESERVA_LIMITE_MAX_CODE,
+} from "@/lib/reservas/helpers";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -88,10 +93,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, reserva: existing });
   }
 
+  const { data: boxRow } = await supabase
+    .from("boxes")
+    .select("timezone")
+    .eq("id", profile!.box_id)
+    .maybeSingle();
+  const gymTimezone = boxRow?.timezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  const admin = createAdminClient();
+  const { data: activeReservas } = await admin
+    .from("reservas")
+    .select("id, estado, clase:clases!inner(fecha, hora_fin, box_id)")
+    .eq("usuario_id", profile!.id)
+    .eq("clase.box_id", profile!.box_id)
+    .in("estado", [...ACTIVE_RESERVA_ESTADOS]);
+
+  const upcomingCount = (activeReservas ?? []).filter((row) => {
+    const clase = row.clase as unknown as { fecha: string; hora_fin: string } | null;
+    if (!clase) return false;
+    return !hasClassEnded(clase.fecha, clase.hora_fin, gymTimezone);
+  }).length;
+
+  if (upcomingCount >= APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS) {
+    return NextResponse.json({ error: RESERVA_LIMITE_MAX_CODE }, { status: 400 });
+  }
+
   // Service role: el trigger check_reserva_cupo() usa SELECT … FOR UPDATE sobre
   // clases; con RLS el socio no pasa clases_update_coach_assigned y falla el INSERT.
   // Auth, box y clase ya validados arriba con el cliente del usuario.
-  const admin = createAdminClient();
   const { data, error } = await admin
     .from("reservas")
     .insert({

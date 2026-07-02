@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   ACTIVE_RESERVA_ESTADOS,
   countReservasForClase,
+  countUpcomingActiveReservasForUser,
+  hasReachedFutureReservaLimit,
   isActiveReserva,
   occupiedForSocioClass,
 } from "./helpers";
@@ -132,5 +134,50 @@ describe("occupiedForSocioClass", () => {
       { clase_id: "c1", usuario_id: profileId, estado: "cancelada" },
     ];
     expect(occupiedForSocioClass("c1", 5, local, server, profileId)).toBe(4);
+  });
+});
+
+describe("countUpcomingActiveReservasForUser", () => {
+  const tz = "America/Mexico_City";
+  const profileId = "u1";
+  const clasesById = new Map([
+    ["c-future-1", { fecha: "2099-06-01", hora_fin: "08:00" }],
+    ["c-future-2", { fecha: "2099-06-02", hora_fin: "08:00" }],
+    ["c-future-3", { fecha: "2099-06-03", hora_fin: "08:00" }],
+    ["c-past", { fecha: "2020-01-01", hora_fin: "08:00" }],
+  ]);
+
+  it("counts only future active reservas for the user", () => {
+    const reservas: {
+      clase_id: string;
+      usuario_id: string;
+      estado: ReservaEstado;
+    }[] = [
+      { clase_id: "c-future-1", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-past", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-2", usuario_id: profileId, estado: "cancelada" },
+      { clase_id: "c-future-3", usuario_id: "other", estado: "confirmada" },
+    ];
+    expect(
+      countUpcomingActiveReservasForUser(reservas, profileId, clasesById, tz)
+    ).toBe(1);
+  });
+
+  it("reaches limit at 3 upcoming reservas", () => {
+    const reservas: {
+      clase_id: string;
+      usuario_id: string;
+      estado: ReservaEstado;
+    }[] = [
+      { clase_id: "c-future-1", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-2", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-3", usuario_id: profileId, estado: "confirmada" },
+    ];
+    expect(
+      hasReachedFutureReservaLimit(reservas, profileId, clasesById, tz, 3)
+    ).toBe(true);
+    expect(
+      hasReachedFutureReservaLimit(reservas, profileId, clasesById, tz, 4)
+    ).toBe(false);
   });
 });

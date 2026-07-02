@@ -36,7 +36,7 @@ import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
-import { countReservasForClase, isActiveReserva, isOptimisticReservaId, occupiedForSocioClass } from "@/lib/reservas/helpers";
+import { countReservasForClase, countUpcomingActiveReservasForUser, hasReachedFutureReservaLimit, isActiveReserva, isOptimisticReservaId, occupiedForSocioClass, RESERVA_LIMITE_MAX_CODE } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -114,6 +114,38 @@ export function WeeklyCalendar({
 
   const localReservas = controlled ? reservas : uncontrolledReservas;
   const updateReservas = controlled ? onReservationsChange! : setUncontrolledReservas;
+  const effectiveTimezone = gymTimezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  const clasesById = useMemo(
+    () =>
+      new Map(
+        clases.map((c) => [c.id, { fecha: c.fecha, hora_fin: c.hora_fin }])
+      ),
+    [clases]
+  );
+
+  const upcomingReservationCount = useMemo(
+    () =>
+      !isAdmin
+        ? countUpcomingActiveReservasForUser(
+            localReservas,
+            profileId,
+            clasesById,
+            effectiveTimezone
+          )
+        : 0,
+    [isAdmin, localReservas, profileId, clasesById, effectiveTimezone]
+  );
+
+  const atReservationLimit =
+    !isAdmin &&
+    hasReachedFutureReservaLimit(
+      localReservas,
+      profileId,
+      clasesById,
+      effectiveTimezone,
+      APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS
+    );
 
   useEffect(() => {
     if (!controlled) {
@@ -198,6 +230,21 @@ export function WeeklyCalendar({
       return;
     }
 
+    if (
+      hasReachedFutureReservaLimit(
+        localReservas,
+        profileId,
+        clasesById,
+        effectiveTimezone,
+        APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS
+      )
+    ) {
+      setBookError(
+        t("reservationLimit", { max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS })
+      );
+      return;
+    }
+
     setLoading(claseId);
     setCancelError(null);
     setBookError(null);
@@ -233,6 +280,10 @@ export function WeeklyCalendar({
         setBookError(t("classEnded"));
       } else if (msg.includes("llena") || msg.includes("cupo")) {
         setBookError(t("full"));
+      } else if (msg.includes(RESERVA_LIMITE_MAX_CODE)) {
+        setBookError(
+          t("reservationLimit", { max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS })
+        );
       } else {
         setBookError(msg || tc("error"));
       }
@@ -359,6 +410,22 @@ export function WeeklyCalendar({
           {t("bookedSelectedDay", {
             count: myBookingsOnDay,
             dayLabel: bookedDayLabel,
+          })}
+        </div>
+      )}
+
+      {!isAdmin && upcomingReservationCount > 0 && (
+        <div
+          className={cn(
+            "rounded-2xl border px-4 py-3 text-sm leading-relaxed",
+            atReservationLimit
+              ? "border-orange-500/30 bg-orange-500/10 text-orange-200"
+              : "border-white/10 bg-white/[0.03] text-muted-foreground"
+          )}
+        >
+          {t("reservationLimitHint", {
+            count: upcomingReservationCount,
+            max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
           })}
         </div>
       )}
@@ -607,7 +674,11 @@ export function WeeklyCalendar({
                           <Button
                             className="w-full h-12 rounded-xl text-base font-semibold"
                             disabled={
-                              !canBook || full || bookingClosed || loading === clase.id
+                              !canBook ||
+                              full ||
+                              bookingClosed ||
+                              atReservationLimit ||
+                              loading === clase.id
                             }
                             onClick={() => handleBook(clase.id)}
                           >
@@ -615,11 +686,20 @@ export function WeeklyCalendar({
                               ? tc("loading")
                               : full
                                 ? t("full")
-                                : bookingClosed
-                                  ? t("bookClosed")
-                                  : t("book")}
+                                : atReservationLimit
+                                  ? t("reservationLimitShort")
+                                  : bookingClosed
+                                    ? t("bookClosed")
+                                    : t("book")}
                           </Button>
-                          {bookingClosed && !full && !classEnded && (
+                          {atReservationLimit && !full && !bookingClosed && (
+                            <p className="text-xs text-orange-400 text-center leading-relaxed">
+                              {t("reservationLimit", {
+                                max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
+                              })}
+                            </p>
+                          )}
+                          {bookingClosed && !full && !classEnded && !atReservationLimit && (
                             <p className="text-xs text-orange-400 text-center leading-relaxed">
                               {t("bookTooLate", {
                                 minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS,

@@ -1,4 +1,7 @@
 import type { Reserva } from "@/types/database";
+import { hasClassEnded } from "@/lib/clases/helpers";
+
+export const RESERVA_LIMITE_MAX_CODE = "RESERVA_LIMITE_MAX";
 
 export function isOptimisticReservaId(id: string): boolean {
   return id.startsWith("temp-");
@@ -55,4 +58,52 @@ export function occupiedForSocioClass(
   if (hasNow && !hadOnLoad) return baseOccupied + 1;
   if (!hasNow && hadOnLoad) return Math.max(0, baseOccupied - 1);
   return baseOccupied;
+}
+
+type ClaseScheduleRef = { fecha: string; hora_fin: string };
+
+type ReservaUpcomingRef = Pick<Reserva, "clase_id" | "usuario_id" | "estado">;
+
+function isUpcomingActiveReserva(
+  reserva: ReservaUpcomingRef,
+  profileId: string,
+  clasesById: Map<string, ClaseScheduleRef>,
+  timeZone: string
+): boolean {
+  if (reserva.usuario_id !== profileId) return false;
+  if (!isActiveReserva(reserva.estado)) return false;
+
+  const clase = clasesById.get(reserva.clase_id);
+  if (!clase) return true;
+
+  return !hasClassEnded(clase.fecha, clase.hora_fin, timeZone);
+}
+
+/** Reservas activas cuya clase aún no termina (ocupan cupo de límite 3). */
+export function countUpcomingActiveReservasForUser(
+  reservas: ReservaUpcomingRef[],
+  profileId: string,
+  clasesById: Map<string, ClaseScheduleRef>,
+  timeZone: string
+): number {
+  return reservas.filter((r) =>
+    isUpcomingActiveReserva(r, profileId, clasesById, timeZone)
+  ).length;
+}
+
+export function hasReachedFutureReservaLimit(
+  reservas: ReservaUpcomingRef[],
+  profileId: string,
+  clasesById: Map<string, ClaseScheduleRef>,
+  timeZone: string,
+  max = 3
+): boolean {
+  return (
+    countUpcomingActiveReservasForUser(
+      reservas,
+      profileId,
+      clasesById,
+      timeZone
+    ) >= max
+  );
 }
