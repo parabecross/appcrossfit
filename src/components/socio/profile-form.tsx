@@ -12,8 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAvatarForUser } from "@/lib/avatars/upload";
 import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
+import {
+  profilePhotoFrameClass,
+  profilePhotoImageClass,
+} from "@/components/ui/profile-photo-frame";
 import { useRouter } from "@/i18n/routing";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 export function ProfileForm({
@@ -111,17 +116,22 @@ export function ProfileForm({
       />
 
       <div className="flex flex-col items-center py-2">
-        <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/30 ring-4 ring-primary/10">
+        <div
+          className={cn(
+            profilePhotoFrameClass,
+            "aspect-[4/5] w-[108px] border-primary/25 ring-primary/15"
+          )}
+        >
           {photoPreview ? (
             <Image
               src={photoPreview}
               alt={form.nombre_completo}
               fill
-              className="object-cover"
-              sizes="96px"
+              className={profilePhotoImageClass}
+              sizes="108px"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-secondary">
+            <div className="flex h-full min-h-[135px] w-full items-center justify-center bg-secondary/80">
               <User className="h-10 w-10 text-muted-foreground" />
             </div>
           )}

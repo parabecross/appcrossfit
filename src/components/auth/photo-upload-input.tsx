@@ -2,8 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Camera, X } from "lucide-react";
+import { Camera, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  profilePhotoFrameClass,
+  profilePhotoImageClass,
+} from "@/components/ui/profile-photo-frame";
+import { prepareProfilePhoto } from "@/lib/avatars/crop-avatar";
 import { cn } from "@/lib/utils";
 
 interface PhotoUploadInputProps {
@@ -24,6 +29,8 @@ export function PhotoUploadInput({
   const [preview, setPreview] = useState<string | null>(initialPreview);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isBlob, setIsBlob] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
 
   useEffect(() => {
     setPreview(initialPreview);
@@ -37,75 +44,115 @@ export function PhotoUploadInput({
     };
   }, [isBlob, preview]);
 
-  const handleChange = (file: File | null) => {
+  const handleChange = async (file: File | null) => {
     if (isBlob && preview) URL.revokeObjectURL(preview);
 
     if (!file) {
       setPreview(initialPreview);
       setFileName(null);
       setIsBlob(false);
+      setCropError(null);
       onChange(null);
       if (inputRef.current) inputRef.current.value = "";
       return;
     }
 
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    setFileName(file.name);
-    setIsBlob(true);
-    onChange(file);
+    setProcessing(true);
+    setCropError(null);
+
+    try {
+      const prepared = await prepareProfilePhoto(file);
+      const url = URL.createObjectURL(prepared);
+      setPreview(url);
+      setFileName(prepared.name);
+      setIsBlob(true);
+      onChange(prepared);
+    } catch {
+      setCropError(t("photoCropFailed"));
+      setPreview(initialPreview);
+      setFileName(null);
+      setIsBlob(false);
+      onChange(null);
+      if (inputRef.current) inputRef.current.value = "";
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center gap-4">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-secondary/50">
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <Camera className="h-8 w-8 text-muted-foreground" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
-          <input
-            ref={inputRef}
-            id={id}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => handleChange(e.target.files?.[0] ?? null)}
-          />
-          <div className="flex flex-wrap gap-2">
+    <div className={cn("space-y-4", className)}>
+      <div
+        className={cn(
+          profilePhotoFrameClass,
+          "mx-auto aspect-[4/5] w-full max-w-[140px]"
+        )}
+      >
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="" className={profilePhotoImageClass} />
+        ) : processing ? (
+          <div className="flex h-full min-h-[175px] items-center justify-center">
+            <Loader2 className="h-9 w-9 animate-spin text-orange-400" />
+          </div>
+        ) : (
+          <div className="flex h-full min-h-[175px] flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+            <Camera className="h-9 w-9 opacity-70" />
+            <span className="text-xs leading-snug">{t("photoPlaceholder")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <input
+          ref={inputRef}
+          id={id}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(e) => void handleChange(e.target.files?.[0] ?? null)}
+          disabled={processing}
+        />
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-white/15 bg-white/[0.03]"
+            onClick={() => inputRef.current?.click()}
+            disabled={processing}
+          >
+            {processing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            {processing ? t("photoProcessing") : t("selectPhoto")}
+          </Button>
+          {(fileName || (preview && preview !== initialPreview)) && (
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => inputRef.current?.click()}
+              className="rounded-xl"
+              onClick={() => void handleChange(null)}
+              disabled={processing}
             >
-              <Camera className="h-4 w-4" />
-              {t("selectPhoto")}
+              <X className="h-4 w-4" />
+              {t("removePhoto")}
             </Button>
-            {(fileName || (preview && preview !== initialPreview)) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleChange(null)}
-              >
-                <X className="h-4 w-4" />
-                {t("removePhoto")}
-              </Button>
-            )}
-          </div>
-          <p className="truncate text-sm text-muted-foreground">
-            {fileName ?? t("noPhotoSelected")}
-          </p>
+          )}
         </div>
+        <p className="truncate text-center text-sm text-muted-foreground">
+          {fileName ?? t("noPhotoSelected")}
+        </p>
+        {cropError && (
+          <p className="text-center text-sm text-red-400">{cropError}</p>
+        )}
+        {!cropError && !fileName && !processing && (
+          <p className="text-center text-xs text-muted-foreground">
+            {t("photoCropHint")}
+          </p>
+        )}
       </div>
     </div>
   );
