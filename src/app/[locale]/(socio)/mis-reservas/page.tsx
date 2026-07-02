@@ -1,4 +1,3 @@
-import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
@@ -13,14 +12,11 @@ import { getUserAthronSummary } from "@/lib/ranking/aggregate";
 import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranking";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { canReserve } from "@/lib/membresias/helpers";
+import { findNextBookedClass } from "@/lib/reservas/next-booking";
 import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
-import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
-import { SocioClassHistory } from "@/components/clases/socio-class-history";
-import { FeatureGate } from "@/components/plans/feature-gate";
-import { MembershipBanner } from "@/components/membresias/membership-banner";
-import { SocioPageHeader } from "@/components/socio/socio-page-header";
-import { Badge } from "@/components/ui/badge";
+import { AthleteHomeDashboard } from "@/components/socio/home/athlete-home-dashboard";
+import { AthleteMembershipCard } from "@/components/socio/home/athlete-membership-card";
 
 export default async function MisReservasPage({
   params,
@@ -28,8 +24,6 @@ export default async function MisReservasPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations("socio");
-  const tm = await getTranslations("membership.status");
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const entitlements = await getBoxEntitlements(profile.box_id!);
@@ -70,71 +64,48 @@ export default async function MisReservasPage({
   const attended = classHistory.filter((r) => r.estado === "asistio").length;
   const noShow = classHistory.filter((r) => r.estado === "no_asistio").length;
 
+  const nextBooking = findNextBookedClass(
+    clases,
+    reservas ?? [],
+    profile.id,
+    boxConfig.timezone
+  );
+
+  const bannerType =
+    profile.estado_cuenta === "pendiente_pago"
+      ? ("pending" as const)
+      : reserveCheck.reason === "expired"
+        ? ("expired" as const)
+        : null;
+
   return (
-    <div className="space-y-5">
-      <SocioPageHeader
-        title={t("greeting", { name: firstName })}
-        subtitle={t("bookingsSubtitle")}
-        badge={
-          membership?.estado === "vigente" ? (
-            <Badge variant="success" className="shrink-0 mt-1">
-              {tm("vigente")}
-            </Badge>
-          ) : membership?.estado === "vencida" ? (
-            <Badge variant="destructive" className="shrink-0 mt-1">
-              {tm("vencida")}
-            </Badge>
-          ) : null
-        }
-      />
-
-      {showBanner && (
-        <MembershipBanner
-          type={
-            profile.estado_cuenta === "pendiente_pago" ? "pending" : "expired"
-          }
-          expiryDate={membership?.fecha_fin}
+    <AthleteHomeDashboard
+      firstName={firstName}
+      locale={locale}
+      gymTimezone={boxConfig.timezone}
+      boxSlug={boxConfig.slug}
+      showBanner={showBanner}
+      bannerType={bannerType}
+      membershipExpiry={membership?.fecha_fin}
+      nextBooking={nextBooking}
+      membershipCard={
+        <AthleteMembershipCard
+          profile={profile}
+          membership={membership}
           locale={locale}
         />
-      )}
-
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="reservas"
-        title={t("bookingsSubtitle")}
-        description={t("bookingsSubtitle")}
-      >
-      <WeeklyCalendar
-        clases={clases}
-        reservas={reservas ?? []}
-        profileId={profile.id}
-        canBook={reserveCheck.ok}
-        locale={locale}
-        gymTimezone={boxConfig.timezone}
-        classScores={classScores}
-        athleteLevel={athleteLevel}
-        athronSummary={athronSummary}
-      />
-      </FeatureGate>
-
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="historial_completo"
-        title={t("classHistory")}
-        description={t("classHistoryDesc")}
-      >
-        <SocioClassHistory
-          items={classHistory}
-          locale={locale}
-          gymTimezone={boxConfig.timezone}
-          title={t("classHistory")}
-          description={t("classHistoryDesc")}
-          emptyMessage={t("noClassHistory")}
-          summary={t("classHistorySummary", { attended, noShow })}
-          scoresByClaseId={myScoresMap}
-          profileId={profile.id}
-        />
-      </FeatureGate>
-    </div>
+      }
+      athronSummary={athronSummary}
+      entitlements={entitlements}
+      canBook={reserveCheck.ok}
+      clases={clases}
+      reservas={reservas ?? []}
+      profileId={profile.id}
+      classScores={classScores}
+      athleteLevel={athleteLevel}
+      classHistory={classHistory}
+      historySummary={{ attended, noShow }}
+      scoresByClaseId={myScoresMap}
+    />
   );
 }

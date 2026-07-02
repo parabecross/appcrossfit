@@ -118,15 +118,3 @@ export async function getKpis(boxId?: string) {
 
   return { activos, vencidos, pendientes, total: socios?.length ?? 0 };
 }
-
-export async function getCoaches(boxId?: string): Promise<Profile[]> {
-  const resolvedBoxId = await resolveQueryBoxId(boxId);
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("box_id", resolvedBoxId)
-    .in("rol", ["admin", "coach", "box_admin"])
-    .order("nombre_completo");
-  return data ?? [];
-}

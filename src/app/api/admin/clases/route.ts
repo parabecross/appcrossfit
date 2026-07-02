@@ -6,6 +6,7 @@ import {
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
+import { validateCoachIdForBox } from "@/lib/queries/coaches";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -73,6 +74,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
   }
 
+  const coachCheck = await validateCoachIdForBox(coach_id, ctx.boxId);
+  if (!coachCheck.ok) {
+    return NextResponse.json({ error: coachCheck.error }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from("clases")
     .insert({
@@ -81,7 +87,7 @@ export async function POST(request: NextRequest) {
       hora_inicio,
       hora_fin,
       cupo_maximo: cupo_maximo ?? 20,
-      coach_id: coach_id || null,
+      coach_id: coachCheck.coachId,
       entrenamiento: entrenamiento?.trim() || null,
       estado: "programada",
     })
@@ -120,6 +126,11 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
   }
 
+  const coachCheck = await validateCoachIdForBox(coach_id, ctx.boxId);
+  if (!coachCheck.ok) {
+    return NextResponse.json({ error: coachCheck.error }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from("clases")
     .update({
@@ -128,7 +139,7 @@ export async function PATCH(request: NextRequest) {
       hora_inicio,
       hora_fin,
       cupo_maximo: cupo_maximo ?? 20,
-      coach_id: coach_id || null,
+      coach_id: coachCheck.coachId,
       entrenamiento: entrenamiento?.trim() || null,
     })
     .eq("id", id)

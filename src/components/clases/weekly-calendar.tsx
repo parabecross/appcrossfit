@@ -53,6 +53,7 @@ interface WeeklyCalendarProps {
   classScores?: ClaseScoreWithProfile[];
   athleteLevel?: AthleticLevel | null;
   athronSummary?: UserAthronSummary | null;
+  hideRankingWidget?: boolean;
 }
 
 export function WeeklyCalendar({
@@ -73,6 +74,7 @@ export function WeeklyCalendar({
   gymTimezone,
   classScores = [],
   athronSummary,
+  hideRankingWidget = false,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -499,7 +501,7 @@ export function WeeklyCalendar({
         </div>
       )}
 
-      {!isAdmin && athronSummary && (
+      {!isAdmin && athronSummary && !hideRankingWidget && (
         <AthronPointsWidget
           monthPoints={athronSummary.month_points}
           todayPoints={athronSummary.today_points}

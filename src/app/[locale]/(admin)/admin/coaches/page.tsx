@@ -14,7 +14,7 @@ export default async function AdminCoachesPage({
   const profile = await requireAdmin(locale);
   const t = await getTranslations("admin");
   const entitlements = await getBoxEntitlements(profile.box_id!);
-  const coaches = await getCoachesWithEmail();
+  const coaches = await getCoachesWithEmail(profile.box_id!);
 
   return (
     <FeatureGate

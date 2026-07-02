@@ -18,8 +18,7 @@ export function CurrentPlanCard({
   labels: {
     currentPlan: string;
     promotionalActive: string;
-    daysRemaining: string;
-    daysRemainingUrgent: string;
+    formatDaysRemainingUrgent: (days: number) => string;
     promotionalEnded: string;
     fullAccess: string;
     perMonth: string;
@@ -39,45 +38,42 @@ export function CurrentPlanCard({
   return (
     <section
       className={cn(
-        "rounded-2xl border p-4 md:p-5",
+        "rounded-xl border px-4 py-3",
         isPromo
-          ? "border-orange-500/25 bg-gradient-to-r from-orange-500/[0.1] via-orange-500/[0.04] to-transparent"
+          ? "border-orange-500/20 bg-gradient-to-r from-orange-500/[0.08] to-transparent"
           : "border-white/10 bg-white/[0.02]"
       )}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
               isPromo ? "bg-orange-500/15 text-orange-400" : "bg-white/5 text-orange-400/80"
             )}
           >
             {code === "elite" ? (
-              <Crown className="h-5 w-5" />
+              <Crown className="h-4 w-4" />
             ) : (
-              <Sparkles className="h-5 w-5" />
+              <Sparkles className="h-4 w-4" />
             )}
           </div>
-          <div className="min-w-0 space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-400/90">
-              {labels.currentPlan}
-            </p>
-            <p className="text-lg font-black leading-tight truncate">
+          <div className="min-w-0">
+            <p className="text-sm font-black leading-tight truncate">
               {subscription.displayPlanName}
             </p>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[10px] border-white/10",
+                  "text-[9px] h-5 border-white/10",
                   isPromo && "border-orange-500/30 text-orange-200/90"
                 )}
               >
-                {subscription.statusLabel}
+                {isPromo ? labels.promotionalActive : subscription.statusLabel}
               </Badge>
               {!isPromo && subscription.status === "active" && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground">
                   ${subscription.priceMxn.toLocaleString("es-MX")} {labels.perMonth}
                 </span>
               )}
@@ -86,59 +82,45 @@ export function CurrentPlanCard({
         </div>
 
         {isPromo && days !== null && (
-          <div
-            className={cn(
-              "flex items-center gap-3 rounded-xl border px-4 py-3 shrink-0",
-              urgent
-                ? "border-orange-500/40 bg-orange-500/10"
-                : "border-white/10 bg-white/[0.03]"
-            )}
-          >
-            <div className="text-right">
-              <p
-                className={cn(
-                  "text-3xl font-black tabular-nums leading-none",
-                  urgent ? "text-orange-300" : "text-foreground"
-                )}
-              >
-                {days}
-              </p>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">
-                {labels.daysLabel}
-              </p>
-            </div>
+          <div className="text-right shrink-0">
+            <p
+              className={cn(
+                "text-2xl font-black tabular-nums leading-none",
+                urgent ? "text-orange-300" : "text-foreground"
+              )}
+            >
+              {days}
+            </p>
+            <p className="text-[9px] uppercase tracking-wide text-muted-foreground mt-0.5">
+              {labels.daysLabel}
+            </p>
           </div>
-        )}
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-white/5 text-sm text-muted-foreground">
-        {isPromo && (
-          <p className={cn(urgent && "text-orange-200/90 font-medium")}>
-            {urgent
-              ? labels.daysRemainingUrgent.replace("{days}", String(days))
-              : labels.fullAccess}
-          </p>
-        )}
-
-        {!isPromo && subscription.status === "active" && (
-          <p>{limits}</p>
         )}
 
         {subscription.status === "expired" && (
-          <div className="flex items-start gap-2 text-orange-200/90">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <p>{labels.promotionalEnded}</p>
-          </div>
-        )}
-
-        {!isPromo && subscription.status === "active" && (
-          <p className="text-xs mt-2 text-muted-foreground/80">
-            {subscription.athleteUsed}
-            {subscription.athleteLimit != null ? ` / ${subscription.athleteLimit}` : ""}{" "}
-            {labels.activeAthletes}
-          </p>
+          <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
         )}
       </div>
+
+      {isPromo && urgent && (
+        <p className="text-xs text-orange-200/90 mt-2 pt-2 border-t border-white/5">
+          {labels.formatDaysRemainingUrgent(days ?? 0)}
+        </p>
+      )}
+
+      {!isPromo && subscription.status === "active" && (
+        <p className="text-[10px] text-muted-foreground/80 mt-2 pt-2 border-t border-white/5">
+          {subscription.athleteUsed}
+          {subscription.athleteLimit != null ? ` / ${subscription.athleteLimit}` : ""}{" "}
+          {labels.activeAthletes} · {limits}
+        </p>
+      )}
+
+      {subscription.status === "expired" && (
+        <p className="text-xs text-orange-200/90 mt-2 pt-2 border-t border-white/5">
+          {labels.promotionalEnded}
+        </p>
+      )}
     </section>
   );
 }

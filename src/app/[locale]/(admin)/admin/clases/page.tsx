@@ -4,7 +4,10 @@ import { getBoxConfig } from "@/lib/box/config";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { canUseFeature } from "@/lib/entitlements/permissions";
 import { getClasesByDateRange } from "@/lib/queries/clases";
-import { getCoaches } from "@/lib/queries/memberships";
+import {
+  getAssignableCoachesForBox,
+  isAssignableCoach,
+} from "@/lib/queries/coaches";
 import { getWeekDates, toDateString } from "@/lib/clases/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { AdminClasesClient } from "@/components/admin/clases-admin";
@@ -41,7 +44,12 @@ export default async function AdminClasesPage({
     );
   }
 
-  const boxConfig = await getBoxConfig(profile.box_id);
+  if (!profile.box_id) {
+    throw new Error("Sin box asignado");
+  }
+
+  const boxId = profile.box_id;
+  const boxConfig = await getBoxConfig(boxId);
   const week = getWeekDates();
   const from = toDateString(week[0]);
   const rangeEnd = new Date(week[6]);
@@ -53,8 +61,11 @@ export default async function AdminClasesPage({
     clases = clases.filter((c) => c.coach_id === profile.id);
   }
 
-  const coaches =
-    isAdminLikeRole(profile.rol) ? await getCoaches() : [profile];
+  const coaches = isAdminLikeRole(profile.rol)
+    ? await getAssignableCoachesForBox(boxId)
+    : isAssignableCoach(profile)
+      ? [profile]
+      : [];
 
   const supabase = await createClient();
   const { data: reservas } = await supabase

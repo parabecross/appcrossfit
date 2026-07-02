@@ -60,17 +60,17 @@ export function DashboardQuickActions({
   if (visible.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
       {visible.map(({ href, label, icon: Icon }) => (
         <Link
           key={label}
           href={href}
-          className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 transition-all hover:border-orange-500/30 hover:bg-orange-500/5"
+          className="group flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2.5 transition-all hover:bg-orange-500/5"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400 group-hover:bg-orange-500/25">
-            <Icon className="h-4 w-4" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500/12 text-orange-400 group-hover:bg-orange-500/20">
+            <Icon className="h-3.5 w-3.5" />
           </div>
-          <span className="text-sm font-semibold leading-tight">{label}</span>
+          <span className="text-xs font-semibold leading-tight">{label}</span>
         </Link>
       ))}
     </div>

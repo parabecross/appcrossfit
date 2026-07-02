@@ -15,6 +15,7 @@ export function SocioClassHistory({
   summary,
   scoresByClaseId,
   profileId,
+  compact = false,
 }: {
   items: AthleteClassHistoryItem[];
   locale: string;
@@ -25,9 +26,11 @@ export function SocioClassHistory({
   summary?: string;
   scoresByClaseId?: Map<string, ClaseScore>;
   profileId: string;
+  compact?: boolean;
 }) {
   return (
-    <Card>
+    <Card className={compact ? "border-0 bg-transparent shadow-none" : undefined}>
+      {!compact && (
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>
@@ -39,7 +42,8 @@ export function SocioClassHistory({
           ) : null}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      )}
+      <CardContent className={compact ? "p-0" : undefined}>
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         ) : (

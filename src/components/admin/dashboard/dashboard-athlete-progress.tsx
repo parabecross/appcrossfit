@@ -6,19 +6,17 @@ export function DashboardAthleteProgress({
   recentSkills,
   topConsistent,
   labels,
-  exerciseLabel,
-  skillLabel,
+  embedded = false,
 }: {
   recentPrs: Array<{
-    ejercicio: string;
     valor: number;
     unidad: string;
     nombre: string;
+    exerciseDisplay: string;
   }>;
   recentSkills: Array<{
-    skill: string;
-    estado: string;
     nombre: string;
+    skillDisplay: string;
   }>;
   topConsistent: Array<{ name: string; frequency: number }>;
   labels: {
@@ -29,8 +27,7 @@ export function DashboardAthleteProgress({
     empty: string;
     perWeek: string;
   };
-  exerciseLabel: (key: string) => string;
-  skillLabel: (key: string) => string;
+  embedded?: boolean;
 }) {
   const hasData =
     recentPrs.length > 0 ||
@@ -38,8 +35,14 @@ export function DashboardAthleteProgress({
     topConsistent.length > 0;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
-      <p className="text-sm font-bold">{labels.title}</p>
+    <div
+      className={
+        embedded
+          ? "space-y-3"
+          : "rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4"
+      }
+    >
+      {!embedded && <p className="text-sm font-bold">{labels.title}</p>}
 
       {!hasData ? (
         <p className="text-sm text-muted-foreground">{labels.empty}</p>
@@ -52,12 +55,12 @@ export function DashboardAthleteProgress({
             <div className="space-y-2">
               {recentPrs.slice(0, 4).map((p) => (
                 <div
-                  key={`${p.nombre}-${p.ejercicio}-${p.valor}`}
+                  key={`${p.nombre}-${p.exerciseDisplay}-${p.valor}`}
                   className="text-sm rounded-lg border border-white/5 px-3 py-2"
                 >
                   <p className="font-medium truncate">{p.nombre}</p>
                   <p className="text-xs text-orange-300 mt-0.5">
-                    {exerciseLabel(p.ejercicio)} ·{" "}
+                    {p.exerciseDisplay} ·{" "}
                     {formatPrValue(p.valor, p.unidad as PrUnidad)}
                   </p>
                 </div>
@@ -75,12 +78,12 @@ export function DashboardAthleteProgress({
             <div className="space-y-2">
               {recentSkills.slice(0, 4).map((s) => (
                 <div
-                  key={`${s.nombre}-${s.skill}`}
+                  key={`${s.nombre}-${s.skillDisplay}`}
                   className="text-sm rounded-lg border border-white/5 px-3 py-2"
                 >
                   <p className="font-medium truncate">{s.nombre}</p>
                   <p className="text-xs text-orange-300 mt-0.5">
-                    {skillLabel(s.skill)}
+                    {s.skillDisplay}
                   </p>
                 </div>
               ))}

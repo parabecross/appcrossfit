@@ -267,6 +267,50 @@
     "classHistorySummary": "{attended} asistencias · {noShow} faltas",
     "noClassHistory": "Aún no tienes clases en tu historial."
   },
+  "socioHome": {
+    "greeting": "Hola, {name}",
+    "tagline": "Tu entrenamiento de hoy, en un vistazo.",
+    "quickActionsTitle": "Acciones rápidas",
+    "nextClass": {
+      "label": "Tu próxima clase",
+      "confirmed": "Reservada",
+      "emptyTitle": "Sin clase reservada",
+      "emptyDesc": "Reserva tu lugar y llega listo para entrenar.",
+      "bookNow": "Reservar clase",
+      "cancel": "Cancelar reserva",
+      "viewSchedule": "Ver horario",
+      "cancelTooLate": "Cancelación disponible hasta {hours} h antes de la clase."
+    },
+    "membership": {
+      "label": "Tu membresía",
+      "expires": "Vence",
+      "none": "Sin membresía activa",
+      "pendingPayment": "Pendiente de pago",
+      "daysLeft": "{days, plural, one {Queda # día} other {Quedan # días}}"
+    },
+    "ranking": {
+      "title": "Tu ranking del mes",
+      "unavailable": "Ranking no disponible en tu plan.",
+      "rankPosition": "#{rank} este mes",
+      "rankPending": "Suma puntos y sube en el ranking",
+      "monthPoints": "{points} pts este mes",
+      "streak": "{days} días de racha"
+    },
+    "quickActions": {
+      "book": "Reservar clase",
+      "schedule": "Ver horario",
+      "ranking": "Ver ranking",
+      "progress": "Ver progreso"
+    },
+    "sections": {
+      "bookingTitle": "Reservar clase",
+      "bookingSubtitle": "Calendario de clases disponibles",
+      "historyTitle": "Historial resumido",
+      "historySubtitle": "{attended} asistencias · {noShow} faltas",
+      "expand": "Ver más",
+      "collapse": "Ocultar"
+    }
+  },
   "scores": {
     "logScore": "Apunta tu score",
     "editScore": "Editar tu score",
@@ -454,7 +498,16 @@
   "adminDashboard": {
     "header": {
       "poweredBy": "Operado con",
-      "platformTagline": "Train. Track. Progress."
+      "platformTagline": "Train. Track. Progress.",
+      "controlPanel": "Panel de control · Hoy"
+    },
+    "todayHero": {
+      "title": "Hoy en tu box",
+      "reservationsToday": "Reservas hoy",
+      "attendanceToday": "Asistencias hoy",
+      "classesToday": "Clases hoy",
+      "membershipsAttention": "Membresías por atender",
+      "membershipsHint": "{expired} vencidas · {expiring} por vencer"
     },
     "executive": {
       "title": "Resumen ejecutivo",
@@ -499,6 +552,8 @@
     "upcomingClasses": {
       "title": "Próximas clases",
       "empty": "No hay clases programadas para hoy.",
+      "createClass": "Crear clase",
+      "viewCalendar": "Ver calendario completo",
       "cupo": "Cupo",
       "status": {
         "available": "Disponible",
@@ -515,11 +570,14 @@
       "inactiveDays": "Hace {days} días sin asistir",
       "noWeekBooking": "Sin reserva esta semana",
       "lowOccupancy": "Clases con baja ocupación hoy",
-      "empty": "Todo en orden. No hay alertas pendientes."
+      "pendingPayment": "Pendientes de pago",
+      "empty": "Todo en orden. No hay alertas pendientes.",
+      "emptyPremium": "Todo en orden por ahora."
     },
     "today": {
       "title": "Actividad reciente",
       "subtitle": "Últimos 7 días · abre cada día para ver el detalle",
+      "viewAll": "Ver actividad completa",
       "todayLabel": "Hoy",
       "yesterdayLabel": "Ayer",
       "eventCount": "{count, plural, one {# evento} other {# eventos}}",
@@ -548,7 +606,17 @@
       "deltaSame": "Igual que la semana pasada"
     },
     "charts": {
-      "sectionTitle": "Tendencias"
+      "sectionTitle": "Tendencias",
+      "previewTitle": "Vista rápida de estadísticas",
+      "expand": "Toca para ver gráficas de tendencia",
+      "collapse": "Ocultar gráficas",
+      "viewExecutive": "Ver dashboard ejecutivo"
+    },
+    "performance": {
+      "title": "Rendimiento del box",
+      "tabWeekly": "Resumen semanal",
+      "tabProgress": "Progreso de atletas",
+      "viewStats": "Ver estadísticas completas"
     },
     "athleteProgress": {
       "title": "Progreso de atletas",

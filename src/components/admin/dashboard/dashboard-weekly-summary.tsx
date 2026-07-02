@@ -46,62 +46,52 @@ function SummaryRow({
 export function DashboardWeeklySummary({
   data,
   labels,
+  embedded = false,
 }: {
   data: WeeklySummaryData;
   labels: {
     title: string;
     subtitle: string;
     attendance: string;
-    attendanceVsLast: string;
+    attendanceDetail: string;
     topClass: string;
-    topClassBookings: string;
+    topClassBookingsDetail?: string;
     prs: string;
     goals: string;
     memberships: string;
     noTopClass: string;
-    deltaUp: string;
-    deltaDown: string;
-    deltaSame: string;
   };
+  embedded?: boolean;
 }) {
-  const deltaLabel =
-    data.attendanceDelta > 0
-      ? labels.deltaUp.replace("{delta}", String(data.attendanceDelta))
-      : data.attendanceDelta < 0
-        ? labels.deltaDown.replace(
-            "{delta}",
-            String(Math.abs(data.attendanceDelta))
-          )
-        : labels.deltaSame;
-
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 md:p-6 space-y-4">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-400/90">
-          {labels.title}
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">{labels.subtitle}</p>
-      </div>
+    <section
+      className={cn(
+        embedded
+          ? "space-y-3"
+          : "rounded-2xl border border-white/10 bg-white/[0.02] p-5 md:p-6 space-y-4"
+      )}
+    >
+      {!embedded && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-400/90">
+            {labels.title}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">{labels.subtitle}</p>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryRow
           icon={TrendingUp}
           label={labels.attendance}
           value={String(data.attendanceThisWeek)}
-          detail={`${labels.attendanceVsLast.replace("{last}", String(data.attendanceLastWeek))} · ${deltaLabel}`}
+          detail={labels.attendanceDetail}
           accent="orange"
         />
         <SummaryRow
           icon={CalendarCheck}
           label={labels.topClass}
           value={data.topClassName ?? labels.noTopClass}
-          detail={
-            data.topClassBookings > 0
-              ? labels.topClassBookings.replace(
-                  "{count}",
-                  String(data.topClassBookings)
-                )
-              : undefined
-          }
+          detail={labels.topClassBookingsDetail}
         />
         <SummaryRow
           icon={Dumbbell}

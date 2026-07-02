@@ -2,19 +2,18 @@ import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { getAdminDashboardData } from "@/lib/queries/admin-dashboard";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { canUseFeature } from "@/lib/entitlements/permissions";
 import { toSubscriptionSummary } from "@/lib/queries/subscriptions";
 import { CurrentPlanCard } from "@/components/plans/current-plan-card";
 import { FeatureGate } from "@/components/plans/feature-gate";
-import { DemandChart, TrendChart } from "@/components/stats/charts";
-import { DashboardExecutiveSummary } from "@/components/admin/dashboard/dashboard-executive-summary";
-import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
-import { DashboardBoxStatus } from "@/components/admin/dashboard/dashboard-box-status";
-import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
-import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-priority-alerts";
-import { DashboardTodayTimeline } from "@/components/admin/dashboard/dashboard-today-timeline";
-import { DashboardAthleteProgress } from "@/components/admin/dashboard/dashboard-athlete-progress";
-import { DashboardWeeklySummary } from "@/components/admin/dashboard/dashboard-weekly-summary";
 import { DashboardBoxHeader } from "@/components/admin/dashboard/dashboard-box-header";
+import { DashboardTodayHero } from "@/components/admin/dashboard/dashboard-today-hero";
+import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
+import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-priority-alerts";
+import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
+import { DashboardRecentActivityCompact } from "@/components/admin/dashboard/dashboard-recent-activity-compact";
+import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
+import { DashboardStatsPreview } from "@/components/admin/dashboard/dashboard-stats-preview";
 
 export default async function AdminDashboardPage({
   params,
@@ -33,15 +32,39 @@ export default async function AdminDashboardPage({
     getBoxEntitlements(profile.box_id!),
   ]);
   const subscription = toSubscriptionSummary(entitlements);
+  const advancedAlerts = canUseFeature(entitlements, "alertas_avanzadas");
+
+  const membershipExpired = data.membershipAlerts.vencidas.length;
+  const membershipExpiring = data.membershipAlerts.porVencer.length;
+
+  const ws = data.weeklySummary;
+  const weeklyDeltaLabel =
+    ws.attendanceDelta > 0
+      ? td("weekly.deltaUp", { delta: ws.attendanceDelta })
+      : ws.attendanceDelta < 0
+        ? td("weekly.deltaDown", { delta: Math.abs(ws.attendanceDelta) })
+        : td("weekly.deltaSame");
+
+  const progressPrs = data.recentPrs.map((p) => ({
+    nombre: p.nombre,
+    valor: p.valor,
+    unidad: p.unidad,
+    exerciseDisplay: tp(`exercises.${p.ejercicio}`),
+  }));
+
+  const progressSkills = data.recentSkills.map((s) => ({
+    nombre: s.nombre,
+    skillDisplay: tp(`skills.${s.skill}`),
+  }));
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-8 pb-10 max-w-6xl">
       <DashboardBoxHeader
         boxName={data.boxName}
         today={data.today}
         locale={locale}
         labels={{
-          pageTitle: t("dashboard"),
+          controlPanel: td("header.controlPanel"),
           poweredBy: td("header.poweredBy"),
           platformTagline: td("header.platformTagline"),
         }}
@@ -52,8 +75,8 @@ export default async function AdminDashboardPage({
         labels={{
           currentPlan: td("planCard.currentPlan"),
           promotionalActive: td("planCard.promotionalActive"),
-          daysRemaining: td("planCard.daysRemaining"),
-          daysRemainingUrgent: td("planCard.daysRemainingUrgent"),
+          formatDaysRemainingUrgent: (days) =>
+            td("planCard.daysRemainingUrgent", { days }),
           promotionalEnded: td("planCard.promotionalEnded"),
           fullAccess: td("planCard.fullAccess"),
           perMonth: td("planCard.perMonth"),
@@ -71,207 +94,175 @@ export default async function AdminDashboardPage({
         title={t("dashboard")}
         description={td("header.platformTagline")}
       >
-      <section className="space-y-3">
-        <p className="text-sm font-bold">{td("quickActions.title")}</p>
-        <DashboardQuickActions
-          entitlements={entitlements}
-          labels={{
-            newClass: td("quickActions.newClass"),
-            newAthlete: td("quickActions.newAthlete"),
-            newCoach: td("quickActions.newCoach"),
-            assignMembership: td("quickActions.assignMembership"),
-          }}
-        />
-      </section>
+        <div className="space-y-8">
+          <DashboardTodayHero
+            data={{
+              reservationsToday: data.executive.reservationsToday,
+              attendanceToday: data.executive.attendanceToday,
+              classesToday: data.executive.classesToday,
+              expiredMemberships: membershipExpired,
+              expiringMemberships: membershipExpiring,
+            }}
+            labels={{
+              title: td("todayHero.title"),
+              reservationsToday: td("todayHero.reservationsToday"),
+              attendanceToday: td("todayHero.attendanceToday"),
+              classesToday: td("todayHero.classesToday"),
+              membershipsAttention: td("todayHero.membershipsAttention"),
+              membershipsHint: td("todayHero.membershipsHint", {
+                expired: membershipExpired,
+                expiring: membershipExpiring,
+              }),
+            }}
+          />
 
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="dashboard_ejecutivo"
-        title={td("executive.title")}
-        description={td("executive.title")}
-      >
-      <DashboardExecutiveSummary
-        data={data.executive}
-        labels={{
-          title: td("executive.title"),
-          classesToday: td("executive.classesToday"),
-          reservationsToday: td("executive.reservationsToday"),
-          attendanceToday: td("executive.attendanceToday"),
-          avgOccupancy: td("executive.avgOccupancy"),
-          expiringSoon: td("executive.expiringSoon"),
-          pendingPayment: td("executive.pendingPayment"),
-          recentPrs: td("executive.recentPrs"),
-          inactiveAthletes: td("executive.inactiveAthletes"),
-        }}
-      />
-      </FeatureGate>
+          <section className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {td("quickActions.title")}
+            </p>
+            <DashboardQuickActions
+              entitlements={entitlements}
+              labels={{
+                newClass: td("quickActions.newClass"),
+                newAthlete: td("quickActions.newAthlete"),
+                newCoach: td("quickActions.newCoach"),
+                assignMembership: td("quickActions.assignMembership"),
+              }}
+            />
+          </section>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+          <DashboardPriorityAlerts
+            membershipAlerts={data.membershipAlerts}
+            inactiveAthletesHigh={data.inactiveAthletesHigh}
+            athletesWithoutWeekBooking={data.athletesWithoutWeekBooking}
+            lowOccupancyClasses={data.lowOccupancyClasses}
+            pendingPayment={data.executive.pendingPayment}
+            locale={locale}
+            boxName={data.boxName}
+            advancedEnabled={advancedAlerts}
+            labels={{
+              title: td("alerts.title"),
+              priorityHigh: td("alerts.priorityHigh"),
+              priorityMedium: td("alerts.priorityMedium"),
+              priorityLow: td("alerts.priorityLow"),
+              expired: t("expired"),
+              expiring: t("expiringSoon"),
+              inactive: td("alerts.inactive"),
+              noWeekBooking: td("alerts.noWeekBooking"),
+              lowOccupancy: td("alerts.lowOccupancy"),
+              pendingPayment: td("alerts.pendingPayment"),
+              empty: td("alerts.empty"),
+              emptyPremium: td("alerts.emptyPremium"),
+            }}
+            formatInactiveDays={(days) =>
+              td("alerts.inactiveDays", { days })
+            }
+          />
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <FeatureGate
+              entitlements={entitlements}
+              featureKey="clases"
+              title={td("upcomingClasses.title")}
+              description={td("upcomingClasses.empty")}
+            >
+              <DashboardUpcomingClasses
+                classes={data.todayClasses}
+                labels={{
+                  title: td("upcomingClasses.title"),
+                  empty: td("upcomingClasses.empty"),
+                  createClass: td("upcomingClasses.createClass"),
+                  viewCalendar: td("upcomingClasses.viewCalendar"),
+                  cupo: td("upcomingClasses.cupo"),
+                  status: {
+                    available: td("upcomingClasses.status.available"),
+                    almost_full: td("upcomingClasses.status.almostFull"),
+                    full: td("upcomingClasses.status.full"),
+                  },
+                }}
+              />
+            </FeatureGate>
+
+            <DashboardRecentActivityCompact
+              events={data.recentActivity}
+              labels={{
+                title: td("today.title"),
+                empty: td("today.empty"),
+                viewAll: td("today.viewAll"),
+                types: {
+                  reserva: td("today.types.reserva"),
+                  asistencia: td("today.types.asistencia"),
+                  pr: td("today.types.pr"),
+                  skill: td("today.types.skill"),
+                  membresia: td("today.types.membresia"),
+                },
+              }}
+            />
+          </div>
+
+          {(canUseFeature(entitlements, "resumen_semanal") ||
+            canUseFeature(entitlements, "progreso_atleta")) && (
+            <DashboardPerformanceSection
+              entitlements={entitlements}
+              weeklyData={data.weeklySummary}
+              weeklyLabels={{
+                title: td("weekly.title"),
+                subtitle: td("weekly.subtitle"),
+                attendance: td("weekly.attendance"),
+                attendanceDetail: `${td("weekly.attendanceVsLast", { last: ws.attendanceLastWeek })} · ${weeklyDeltaLabel}`,
+                topClass: td("weekly.topClass"),
+                topClassBookingsDetail:
+                  ws.topClassBookings > 0
+                    ? td("weekly.topClassBookings", {
+                        count: ws.topClassBookings,
+                      })
+                    : undefined,
+                prs: td("weekly.prs"),
+                goals: td("weekly.goals"),
+                memberships: td("weekly.memberships"),
+                noTopClass: td("weekly.noTopClass"),
+              }}
+              recentPrs={progressPrs}
+              recentSkills={progressSkills}
+              topConsistent={data.topConsistentAthletes}
+              progressLabels={{
+                title: td("athleteProgress.title"),
+                recentPrs: td("athleteProgress.recentPrs"),
+                recentSkills: td("athleteProgress.recentSkills"),
+                topConsistent: td("athleteProgress.topConsistent"),
+                empty: td("athleteProgress.empty"),
+                perWeek: ts("frequencyUnit"),
+              }}
+              labels={{
+                title: td("performance.title"),
+                tabWeekly: td("performance.tabWeekly"),
+                tabProgress: td("performance.tabProgress"),
+                viewStats: td("performance.viewStats"),
+              }}
+            />
+          )}
+
           <FeatureGate
             entitlements={entitlements}
-            featureKey="alertas_avanzadas"
-            title={td("alerts.title")}
-            description={td("alerts.title")}
+            featureKey="estadisticas_avanzadas"
+            title={td("charts.previewTitle")}
+            description={td("charts.expand")}
           >
-            <DashboardPriorityAlerts
-              membershipAlerts={data.membershipAlerts}
-              inactiveAthletesHigh={data.inactiveAthletesHigh}
-              athletesWithoutWeekBooking={data.athletesWithoutWeekBooking}
-              lowOccupancyClasses={data.lowOccupancyClasses}
+            <DashboardStatsPreview
+              trend={data.charts.trend}
+              demand={data.charts.demand}
               locale={locale}
-              boxName={data.boxName}
               labels={{
-                title: td("alerts.title"),
-                priorityHigh: td("alerts.priorityHigh"),
-                priorityMedium: td("alerts.priorityMedium"),
-                priorityLow: td("alerts.priorityLow"),
-                expired: t("expired"),
-                expiring: t("expiringSoon"),
-                inactive: td("alerts.inactive"),
-                noWeekBooking: td("alerts.noWeekBooking"),
-                lowOccupancy: td("alerts.lowOccupancy"),
-                empty: td("alerts.empty"),
+                title: td("charts.previewTitle"),
+                trend: ts("trend"),
+                demand: ts("demand"),
+                viewExecutive: td("charts.viewExecutive"),
+                expand: td("charts.expand"),
+                collapse: td("charts.collapse"),
               }}
-              formatInactiveDays={(days) =>
-                td("alerts.inactiveDays", { days })
-              }
             />
           </FeatureGate>
         </div>
-        <div className="lg:col-span-2">
-          <DashboardBoxStatus
-            data={data.boxStatus}
-            labels={{
-              title: td("boxStatus.title"),
-              subtitle: td("boxStatus.subtitle"),
-              activeMembers: t("activeMembers"),
-              totalMembers: td("boxStatus.totalMembers"),
-              expired: t("expiredMembers"),
-              expiringSoon: t("expiringSoon"),
-              occupancy: td("boxStatus.occupancy"),
-              attendanceToday: td("executive.attendanceToday"),
-              attendanceRate: td("boxStatus.attendanceRate"),
-              noData: td("boxStatus.noData"),
-            }}
-          />
-        </div>
-      </div>
-
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="clases"
-        title={td("upcomingClasses.title")}
-        description={td("upcomingClasses.empty")}
-      >
-      <DashboardUpcomingClasses
-        classes={data.todayClasses}
-        labels={{
-          title: td("upcomingClasses.title"),
-          empty: td("upcomingClasses.empty"),
-          cupo: td("upcomingClasses.cupo"),
-          status: {
-            available: td("upcomingClasses.status.available"),
-            almost_full: td("upcomingClasses.status.almostFull"),
-            full: td("upcomingClasses.status.full"),
-          },
-        }}
-      />
-      </FeatureGate>
-
-      <DashboardTodayTimeline
-        events={data.recentActivity}
-        today={data.today}
-        locale={locale}
-        labels={{
-          title: td("today.title"),
-          subtitle: td("today.subtitle"),
-          empty: td("today.empty"),
-          today: td("today.todayLabel"),
-          yesterday: td("today.yesterdayLabel"),
-          types: {
-            reserva: td("today.types.reserva"),
-            asistencia: td("today.types.asistencia"),
-            pr: td("today.types.pr"),
-            skill: td("today.types.skill"),
-            membresia: td("today.types.membresia"),
-          },
-        }}
-      />
-
-      {(data.recentPrs.length > 0 || data.recentSkills.length > 0) && (
-        <FeatureGate
-          entitlements={entitlements}
-          featureKey="progreso_atleta"
-          title={td("athleteProgress.title")}
-          description={td("athleteProgress.empty")}
-        >
-        <DashboardAthleteProgress
-          recentPrs={data.recentPrs}
-          recentSkills={data.recentSkills}
-          topConsistent={data.topConsistentAthletes}
-          labels={{
-            title: td("athleteProgress.title"),
-            recentPrs: td("athleteProgress.recentPrs"),
-            recentSkills: td("athleteProgress.recentSkills"),
-            topConsistent: td("athleteProgress.topConsistent"),
-            empty: td("athleteProgress.empty"),
-            perWeek: ts("frequencyUnit"),
-          }}
-          exerciseLabel={(key) => tp(`exercises.${key}`)}
-          skillLabel={(key) => tp(`skills.${key}`)}
-        />
-        </FeatureGate>
-      )}
-
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="resumen_semanal"
-        title={td("weekly.title")}
-        description={td("weekly.subtitle")}
-      >
-      <DashboardWeeklySummary
-        data={data.weeklySummary}
-        labels={{
-          title: td("weekly.title"),
-          subtitle: td("weekly.subtitle"),
-          attendance: td("weekly.attendance"),
-          attendanceVsLast: td("weekly.attendanceVsLast"),
-          topClass: td("weekly.topClass"),
-          topClassBookings: td("weekly.topClassBookings"),
-          prs: td("weekly.prs"),
-          goals: td("weekly.goals"),
-          memberships: td("weekly.memberships"),
-          noTopClass: td("weekly.noTopClass"),
-          deltaUp: td("weekly.deltaUp"),
-          deltaDown: td("weekly.deltaDown"),
-          deltaSame: td("weekly.deltaSame"),
-        }}
-      />
-      </FeatureGate>
-
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="estadisticas_avanzadas"
-        title={td("charts.sectionTitle")}
-        description={td("charts.sectionTitle")}
-      >
-      <section className="space-y-4">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          {td("charts.sectionTitle")}
-        </p>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5">
-            <p className="text-sm font-semibold mb-3">{ts("trend")}</p>
-            <TrendChart data={data.charts.trend} locale={locale} />
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5">
-            <p className="text-sm font-semibold mb-3">{ts("demand")}</p>
-            <DemandChart data={data.charts.demand} />
-          </div>
-        </div>
-      </section>
-      </FeatureGate>
       </FeatureGate>
     </div>
   );

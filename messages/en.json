@@ -267,6 +267,50 @@
     "classHistorySummary": "{attended} attended · {noShow} no-shows",
     "noClassHistory": "No classes in your history yet."
   },
+  "socioHome": {
+    "greeting": "Hi, {name}",
+    "tagline": "Your training today, at a glance.",
+    "quickActionsTitle": "Quick actions",
+    "nextClass": {
+      "label": "Your next class",
+      "confirmed": "Booked",
+      "emptyTitle": "No class booked",
+      "emptyDesc": "Reserve your spot and show up ready to train.",
+      "bookNow": "Book a class",
+      "cancel": "Cancel booking",
+      "viewSchedule": "View schedule",
+      "cancelTooLate": "Cancellation available up to {hours} h before class."
+    },
+    "membership": {
+      "label": "Your membership",
+      "expires": "Expires",
+      "none": "No active membership",
+      "pendingPayment": "Pending payment",
+      "daysLeft": "{days, plural, one {# day left} other {# days left}}"
+    },
+    "ranking": {
+      "title": "Your monthly ranking",
+      "unavailable": "Ranking not available on your plan.",
+      "rankPosition": "#{rank} this month",
+      "rankPending": "Earn points and climb the leaderboard",
+      "monthPoints": "{points} pts this month",
+      "streak": "{days}-day streak"
+    },
+    "quickActions": {
+      "book": "Book class",
+      "schedule": "View schedule",
+      "ranking": "View ranking",
+      "progress": "View progress"
+    },
+    "sections": {
+      "bookingTitle": "Book a class",
+      "bookingSubtitle": "Available class calendar",
+      "historyTitle": "Recent history",
+      "historySubtitle": "{attended} attended · {noShow} no-shows",
+      "expand": "Show more",
+      "collapse": "Hide"
+    }
+  },
   "scores": {
     "logScore": "Log your score",
     "editScore": "Edit your score",
@@ -454,7 +498,16 @@
   "adminDashboard": {
     "header": {
       "poweredBy": "Powered by",
-      "platformTagline": "Train. Track. Progress."
+      "platformTagline": "Train. Track. Progress.",
+      "controlPanel": "Control panel · Today"
+    },
+    "todayHero": {
+      "title": "Today at your box",
+      "reservationsToday": "Bookings today",
+      "attendanceToday": "Attendance today",
+      "classesToday": "Classes today",
+      "membershipsAttention": "Memberships to review",
+      "membershipsHint": "{expired} expired · {expiring} expiring"
     },
     "executive": {
       "title": "Executive summary",
@@ -499,6 +552,8 @@
     "upcomingClasses": {
       "title": "Upcoming classes",
       "empty": "No classes scheduled for today.",
+      "createClass": "Create class",
+      "viewCalendar": "View full calendar",
       "cupo": "Spots",
       "status": {
         "available": "Available",
@@ -515,11 +570,14 @@
       "inactiveDays": "{days} days without attending",
       "noWeekBooking": "No booking this week",
       "lowOccupancy": "Low occupancy classes today",
-      "empty": "All good. No pending alerts."
+      "pendingPayment": "Pending payment",
+      "empty": "All good. No pending alerts.",
+      "emptyPremium": "All good for now."
     },
     "today": {
       "title": "Recent activity",
       "subtitle": "Last 7 days · expand each day for details",
+      "viewAll": "View full activity",
       "todayLabel": "Today",
       "yesterdayLabel": "Yesterday",
       "eventCount": "{count, plural, one {# event} other {# events}}",
@@ -548,7 +606,17 @@
       "deltaSame": "Same as last week"
     },
     "charts": {
-      "sectionTitle": "Trends"
+      "sectionTitle": "Trends",
+      "previewTitle": "Quick stats view",
+      "expand": "Tap to view trend charts",
+      "collapse": "Hide charts",
+      "viewExecutive": "View executive dashboard"
+    },
+    "performance": {
+      "title": "Box performance",
+      "tabWeekly": "Weekly summary",
+      "tabProgress": "Athlete progress",
+      "viewStats": "View full statistics"
     },
     "athleteProgress": {
       "title": "Athlete progress",
