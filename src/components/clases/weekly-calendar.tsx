@@ -39,10 +39,12 @@ import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { countReservasForClase } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
+import type { Dispatch, SetStateAction } from "react";
 
 interface WeeklyCalendarProps {
   clases: Clase[];
   reservas: Reserva[];
+  onReservationsChange?: Dispatch<SetStateAction<Reserva[]>>;
   profileId: string;
   canBook: boolean;
   locale: string;
@@ -68,6 +70,7 @@ interface WeeklyCalendarProps {
 export function WeeklyCalendar({
   clases,
   reservas,
+  onReservationsChange,
   profileId,
   canBook,
   locale,
@@ -109,6 +112,10 @@ export function WeeklyCalendar({
   useEffect(() => {
     setLocalReservas(reservas);
   }, [reservas]);
+
+  useEffect(() => {
+    onReservationsChange?.(localReservas);
+  }, [localReservas, onReservationsChange]);
 
   useEffect(() => {
     if (daysWithClasses.length === 0) return;

@@ -13,7 +13,6 @@ import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranki
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { todayInTimezone } from "@/lib/dates/date-only";
 import { canReserve } from "@/lib/membresias/helpers";
-import { findNextBookedClass } from "@/lib/reservas/next-booking";
 import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { AthleteHomeDashboard } from "@/components/socio/home/athlete-home-dashboard";
@@ -61,13 +60,6 @@ export default async function MisReservasPage({
   const attended = classHistory.filter((r) => r.estado === "asistio").length;
   const noShow = classHistory.filter((r) => r.estado === "no_asistio").length;
 
-  const nextBooking = findNextBookedClass(
-    clases,
-    reservas ?? [],
-    profile.id,
-    boxConfig.timezone
-  );
-
   const bannerType =
     profile.estado_cuenta === "pendiente_pago"
       ? ("pending" as const)
@@ -83,7 +75,6 @@ export default async function MisReservasPage({
       showBanner={showBanner}
       bannerType={bannerType}
       membershipExpiry={membership?.fecha_fin}
-      nextBooking={nextBooking}
       membershipCard={
         <AthleteMembershipCard
           profile={profile}

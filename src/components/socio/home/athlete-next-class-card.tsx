@@ -11,17 +11,20 @@ import { canCancelReservation } from "@/lib/clases/helpers";
 import { countReservasForClase } from "@/lib/reservas/helpers";
 import { formatShortDay, formatTime } from "@/lib/utils";
 import type { Clase, Reserva } from "@/types/database";
+import type { Dispatch, SetStateAction } from "react";
 
 export function AthleteNextClassCard({
   booking,
   locale,
   gymTimezone,
   reservas,
+  onReservationsChange,
 }: {
   booking: { clase: Clase; reserva: Reserva };
   locale: string;
   gymTimezone?: string;
   reservas: Reserva[];
+  onReservationsChange?: Dispatch<SetStateAction<Reserva[]>>;
 }) {
   const t = useTranslations("socioHome");
   const tc = useTranslations("common");
@@ -40,6 +43,8 @@ export function AthleteNextClassCard({
   const handleCancel = async () => {
     setLoading(true);
     setError(null);
+    const previous = reservas;
+    onReservationsChange?.((prev) => prev.filter((r) => r.id !== reserva.id));
     const res = await fetch("/api/reservas", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -48,6 +53,7 @@ export function AthleteNextClassCard({
     const payload = await res.json();
     setLoading(false);
     if (!res.ok) {
+      onReservationsChange?.(previous);
       setError(payload.error ?? tc("error"));
       return;
     }

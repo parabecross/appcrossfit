@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { SocioClassHistory } from "@/components/clases/socio-class-history";
@@ -9,7 +10,7 @@ import { AthleteExpandableSection } from "@/components/socio/home/athlete-expand
 import { FeatureGate } from "@/components/plans/feature-gate";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
 import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
-import type { NextBookedClass } from "@/lib/reservas/next-booking";
+import { findNextBookedClass } from "@/lib/reservas/next-booking";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
 import type { AthleticLevel, Clase, ClaseScore, Reserva } from "@/types/database";
 import type { ReactNode } from "react";
@@ -21,7 +22,6 @@ export function AthleteHomeDashboard({
   showBanner,
   bannerType,
   membershipExpiry,
-  nextBooking,
   membershipCard,
   entitlements,
   canBook,
@@ -40,7 +40,6 @@ export function AthleteHomeDashboard({
   showBanner: boolean;
   bannerType: "pending" | "expired" | null;
   membershipExpiry?: string;
-  nextBooking: NextBookedClass | null;
   membershipCard: ReactNode;
   entitlements: BoxEntitlements;
   canBook: boolean;
@@ -55,6 +54,16 @@ export function AthleteHomeDashboard({
 }) {
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
+  const [localReservas, setLocalReservas] = useState(reservas);
+
+  useEffect(() => {
+    setLocalReservas(reservas);
+  }, [reservas]);
+
+  const localNextBooking = useMemo(
+    () => findNextBookedClass(clases, localReservas, profileId, gymTimezone),
+    [clases, localReservas, profileId, gymTimezone]
+  );
 
   return (
     <div className="space-y-6 pb-2">
@@ -85,19 +94,20 @@ export function AthleteHomeDashboard({
           <div className="px-4 pt-4 pb-3 border-b border-white/5">
             <p className="text-sm font-bold">{t("sections.bookingTitle")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {nextBooking
+              {localNextBooking
                 ? t("sections.bookingSubtitleBooked")
                 : t("sections.bookingSubtitle")}
             </p>
           </div>
 
-          {nextBooking && (
+          {localNextBooking && (
             <div className="px-4 py-3 border-b border-white/5">
               <AthleteNextClassCard
-                booking={nextBooking}
+                booking={localNextBooking}
                 locale={locale}
                 gymTimezone={gymTimezone}
-                reservas={reservas}
+                reservas={localReservas}
+                onReservationsChange={setLocalReservas}
               />
             </div>
           )}
@@ -105,7 +115,7 @@ export function AthleteHomeDashboard({
           <div className="p-4">
             <WeeklyCalendar
               clases={clases}
-              reservas={reservas}
+              reservas={localReservas}
               profileId={profileId}
               canBook={canBook}
               locale={locale}
@@ -113,6 +123,7 @@ export function AthleteHomeDashboard({
               classScores={classScores}
               athleteLevel={athleteLevel}
               hideRankingWidget
+              onReservationsChange={setLocalReservas}
             />
           </div>
         </section>
