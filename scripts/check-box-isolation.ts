@@ -59,6 +59,9 @@ type BoxFixture = {
 const checks: Check[] = [];
 const createdClaseIds: string[] = [];
 const createdPlanIds: string[] = [];
+const createdCrossBoxReservaIds: string[] = [];
+
+// Futuro: cobertura INSERT cross-box para clases, planes, membresias, etc.
 
 function addCheck(label: string, pass: boolean, detail: string) {
   checks.push({ label, pass, detail });
@@ -203,6 +206,7 @@ async function ensureClase(
       hora_inicio: "10:00",
       hora_fin: "11:00",
       cupo_maximo: 12,
+      box_id: boxId,
       coach_id: coachProfileId,
       estado: "programada",
     })
@@ -407,6 +411,37 @@ async function runNegativeSuite(
   await client.auth.signOut();
 }
 
+async function runSocioCrossBoxInsertSuite(
+  socioEmail: string,
+  own: BoxFixture,
+  other: BoxFixture,
+  prefix: string
+) {
+  const client = await signInClient(socioEmail);
+
+  const { data: inserted, error: insertErr } = await client
+    .from("reservas")
+    .insert({
+      clase_id: other.claseId,
+      usuario_id: own.socioProfileId,
+      estado: "confirmada",
+    })
+    .select("id");
+
+  const leakedIds = (inserted ?? []).map((r) => r.id);
+  if (leakedIds.length > 0) {
+    createdCrossBoxReservaIds.push(...leakedIds);
+  }
+
+  addCheck(
+    `${prefix} reservas INSERT clase other box`,
+    !!insertErr || leakedIds.length === 0,
+    insertErr?.message ?? `rows=${leakedIds.length}`
+  );
+
+  await client.auth.signOut();
+}
+
 async function runPositiveSuite(
   adminEmail: string,
   own: BoxFixture,
@@ -545,6 +580,11 @@ async function setupBox(
 
 async function cleanup() {
   console.log("\n🧹 Cleanup test users and data…");
+
+  if (createdCrossBoxReservaIds.length > 0) {
+    await service.from("reservas").delete().in("id", createdCrossBoxReservaIds);
+  }
+
   const emails = Object.values(EMAILS);
   const authByEmail = await listAuthUsersByEmail();
   const authIds = emails
@@ -635,6 +675,12 @@ async function main() {
 
     console.log("\n--- Negative: admin_b → Box A ---\n");
     await runNegativeSuite(EMAILS.adminB, boxA, "admin_b→A");
+
+    console.log("\n--- Negative INSERT: socio_a → clase Box B ---\n");
+    await runSocioCrossBoxInsertSuite(EMAILS.socioA, boxA, boxB, "socio_a→B");
+
+    console.log("\n--- Negative INSERT: socio_b → clase Box A ---\n");
+    await runSocioCrossBoxInsertSuite(EMAILS.socioB, boxB, boxA, "socio_b→A");
 
     console.log("\n--- Positive: admin_a → Box A ---\n");
     await runPositiveSuite(EMAILS.adminA, boxA, "admin_a→A");

@@ -1,8 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  getBoxStaffProfileIds,
-  resolveQueryBoxId,
-} from "@/lib/queries/box-scope";
+import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 
 export async function getClasesByDateRange(
   from: string,
@@ -10,16 +7,13 @@ export async function getClasesByDateRange(
   boxId?: string
 ) {
   const resolvedBoxId = await resolveQueryBoxId(boxId);
-  const staffIds = await getBoxStaffProfileIds(resolvedBoxId);
-  if (staffIds.length === 0) return [];
-
   const supabase = await createClient();
   const { data: clases } = await supabase
     .from("clases")
     .select("*")
+    .eq("box_id", resolvedBoxId)
     .gte("fecha", from)
     .lte("fecha", to)
-    .in("coach_id", staffIds)
     .order("fecha")
     .order("hora_inicio");
 

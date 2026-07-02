@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       hora_inicio,
       hora_fin,
       cupo_maximo: cupo_maximo ?? 20,
+      box_id: ctx.boxId,
       coach_id: coachCheck.coachId,
       entrenamiento: entrenamiento?.trim() || null,
       estado: "programada",
@@ -143,11 +144,16 @@ export async function PATCH(request: NextRequest) {
       entrenamiento: entrenamiento?.trim() || null,
     })
     .eq("id", id)
+    .eq("box_id", ctx.boxId)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true, clase: data });
@@ -165,10 +171,20 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Falta id de la clase" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("clases").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("clases")
+    .delete()
+    .eq("id", id)
+    .eq("box_id", ctx.boxId)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });

@@ -23,8 +23,17 @@ async function requireSocioReservas() {
     .eq("user_id", user.id)
     .single();
 
-  if (!profile || profile.rol !== "socio" || !profile.box_id) {
+  if (!profile || profile.rol !== "socio") {
     return { error: NextResponse.json({ error: "Acceso denegado" }, { status: 403 }) };
+  }
+
+  if (!profile.box_id) {
+    return {
+      error: NextResponse.json(
+        { error: "Perfil sin box asignado" },
+        { status: 403 }
+      ),
+    };
   }
 
   try {
@@ -52,6 +61,17 @@ export async function POST(request: NextRequest) {
 
   if (!clase_id) {
     return NextResponse.json({ error: "Falta clase_id" }, { status: 400 });
+  }
+
+  const { data: clase } = await supabase
+    .from("clases")
+    .select("id")
+    .eq("id", clase_id)
+    .eq("box_id", profile!.box_id)
+    .maybeSingle();
+
+  if (!clase) {
+    return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
   }
 
   const { data, error } = await supabase

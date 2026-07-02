@@ -121,7 +121,7 @@ export async function getAthronRankingForBox(params: {
       admin
         .from("reservas")
         .select(
-          "usuario_id, clase:clases!inner(fecha, coach:profiles!clases_coach_id_fkey(box_id))"
+          "usuario_id, clase:clases!inner(fecha, box_id)"
         )
         .eq("estado", "asistio"),
     ]);
@@ -137,9 +137,9 @@ export async function getAthronRankingForBox(params: {
   for (const r of asistioReservas ?? []) {
     const clase = r.clase as unknown as {
       fecha: string;
-      coach: { box_id: string };
+      box_id: string | null;
     } | null;
-    if (!clase || clase.coach.box_id !== box.id) continue;
+    if (!clase || clase.box_id !== box.id) continue;
     const list = attendanceDatesByUser.get(r.usuario_id) ?? [];
     list.push(clase.fecha);
     attendanceDatesByUser.set(r.usuario_id, list);
@@ -366,7 +366,7 @@ export async function getUserAthronSummary(params: {
       admin
         .from("reservas")
         .select(
-          "usuario_id, clase:clases!inner(fecha, coach:profiles!clases_coach_id_fkey(box_id))"
+          "usuario_id, clase:clases!inner(fecha, box_id)"
         )
         .eq("usuario_id", params.usuarioId)
         .eq("estado", "asistio"),
@@ -382,9 +382,9 @@ export async function getUserAthronSummary(params: {
   for (const r of asistioReservas ?? []) {
     const clase = r.clase as unknown as {
       fecha: string;
-      coach: { box_id: string };
+      box_id: string | null;
     } | null;
-    if (!clase || clase.coach.box_id !== params.boxId) continue;
+    if (!clase || clase.box_id !== params.boxId) continue;
     dates.push(clase.fecha);
   }
   const streak = computeAttendanceStreak(Array.from(new Set(dates)), today);

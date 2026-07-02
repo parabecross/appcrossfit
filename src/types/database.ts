@@ -132,6 +132,7 @@ export interface Clase {
   hora_inicio: string;
   hora_fin: string;
   cupo_maximo: number;
+  box_id: string | null;
   coach_id: string | null;
   entrenamiento: string | null;
   estado: ClaseEstado;

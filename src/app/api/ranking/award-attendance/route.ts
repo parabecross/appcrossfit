@@ -48,9 +48,7 @@ export async function POST(request: Request) {
 
     const { data: reservaCtx } = await supabase
       .from("reservas")
-      .select(
-        "id, clase:clases!inner(coach:profiles!clases_coach_id_fkey(box_id))"
-      )
+      .select("id, clase:clases!inner(box_id)")
       .eq("id", body.reservaId)
       .maybeSingle();
 
@@ -58,12 +56,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
     }
 
-    const clase = reservaCtx.clase as unknown as {
-      coach: { box_id: string } | null;
-    };
-    const coachBoxId = clase?.coach?.box_id;
+    const clase = reservaCtx.clase as unknown as { box_id: string | null };
+    const claseBoxId = clase?.box_id;
 
-    if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
+    if (!profile.box_id || !claseBoxId || claseBoxId !== profile.box_id) {
       return NextResponse.json(
         { error: "La reserva no pertenece a tu box" },
         { status: 403 }

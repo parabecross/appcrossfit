@@ -74,6 +74,7 @@ CREATE TABLE clases (
   hora_inicio  TIME NOT NULL,
   hora_fin     TIME NOT NULL,
   cupo_maximo  INT NOT NULL DEFAULT 12 CHECK (cupo_maximo > 0),
+  box_id       UUID REFERENCES boxes(id),
   coach_id     UUID REFERENCES profiles(id) ON DELETE SET NULL,
   entrenamiento TEXT,
   estado       clase_estado NOT NULL DEFAULT 'programada',
@@ -84,6 +85,7 @@ CREATE TABLE clases (
 
 CREATE INDEX idx_clases_fecha ON clases(fecha);
 CREATE INDEX idx_clases_coach ON clases(coach_id);
+CREATE INDEX idx_clases_box_id ON clases(box_id);
 
 -- ─── RESERVAS ────────────────────────────────────────────────────────────────
 

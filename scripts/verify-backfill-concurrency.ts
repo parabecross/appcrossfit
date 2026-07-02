@@ -74,22 +74,13 @@ async function snapshotEvents(boxId: string): Promise<EventSnapshot> {
 async function backfillSequential(boxId: string) {
   const client = supabase;
 
-  const { data: staff } = await client
-    .from("profiles")
-    .select("id")
-    .eq("box_id", boxId)
-    .in("rol", ["coach", "admin", "box_admin"]);
-
-  const staffIds = (staff ?? []).map((s) => s.id);
-  if (staffIds.length === 0) return { attendance: 0, wod: 0 };
-
   await client.from("ranking_point_events").delete().eq("box_id", boxId);
 
   const { data: asistioReservas } = await client
     .from("reservas")
-    .select("id, clase:clases!inner(coach_id)")
+    .select("id, clase:clases!inner(box_id)")
     .eq("estado", "asistio")
-    .in("clase.coach_id", staffIds);
+    .eq("clase.box_id", boxId);
 
   let attendance = 0;
   for (const r of asistioReservas ?? []) {
@@ -102,8 +93,8 @@ async function backfillSequential(boxId: string) {
 
   const { data: scores } = await client
     .from("clase_scores")
-    .select("clase_id, usuario_id, clase:clases!inner(coach_id)")
-    .in("clase.coach_id", staffIds);
+    .select("clase_id, usuario_id, clase:clases!inner(box_id)")
+    .eq("clase.box_id", boxId);
 
   let wod = 0;
   for (const s of scores ?? []) {

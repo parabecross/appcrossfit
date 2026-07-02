@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     const { data: claseCtx } = await supabase
       .from("clases")
-      .select("id, coach:profiles!clases_coach_id_fkey(box_id)")
+      .select("id, box_id")
       .eq("id", body.claseId)
       .maybeSingle();
 
@@ -66,9 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Clase no encontrada" }, { status: 404 });
     }
 
-    const coach = claseCtx.coach as unknown as { box_id: string } | null;
-    const coachBoxId = coach?.box_id;
-    if (!profile.box_id || !coachBoxId || coachBoxId !== profile.box_id) {
+    if (!profile.box_id || !claseCtx.box_id || claseCtx.box_id !== profile.box_id) {
       return NextResponse.json(
         { error: "La clase no pertenece a tu box" },
         { status: 403 }

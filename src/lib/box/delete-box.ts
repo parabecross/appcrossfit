@@ -15,13 +15,11 @@ async function deleteBoxScopedData(
 
   const claseIdSet = new Set<string>();
 
-  if (staffIds.length > 0) {
-    const { data } = await admin
-      .from("clases")
-      .select("id")
-      .in("coach_id", staffIds);
-    for (const c of data ?? []) claseIdSet.add(c.id);
-  }
+  const { data: boxClases } = await admin
+    .from("clases")
+    .select("id")
+    .eq("box_id", boxId);
+  for (const c of boxClases ?? []) claseIdSet.add(c.id);
 
   if (boxProfileIds.length > 0) {
     const { data: reservas } = await admin

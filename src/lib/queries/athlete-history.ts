@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getBoxStaffProfileIds } from "@/lib/queries/box-scope";
 import type { Clase, Reserva } from "@/types/database";
 
 export type AthleteClassHistoryItem = Reserva & {
@@ -10,9 +9,6 @@ export async function getAthleteClassHistory(
   usuarioId: string,
   boxId: string
 ): Promise<AthleteClassHistoryItem[]> {
-  const staffIds = await getBoxStaffProfileIds(boxId);
-  if (staffIds.length === 0) return [];
-
   const supabase = await createClient();
   const { data: reservas } = await supabase
     .from("reservas")
@@ -23,7 +19,7 @@ export async function getAthleteClassHistory(
 
   const items = (reservas ?? []).filter(
     (r): r is AthleteClassHistoryItem =>
-      !!r.clase && !!r.clase.coach_id && staffIds.includes(r.clase.coach_id)
+      !!r.clase && r.clase.box_id === boxId
   );
 
   if (items.length === 0) return [];

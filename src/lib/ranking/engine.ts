@@ -105,7 +105,7 @@ async function getAttendanceDates(
 ): Promise<string[]> {
   const { data: reservas } = await admin
     .from("reservas")
-    .select("clase:clases!inner(fecha, coach:profiles!clases_coach_id_fkey(box_id))")
+    .select("clase:clases!inner(fecha, box_id)")
     .eq("usuario_id", usuarioId)
     .eq("estado", "asistio");
 
@@ -115,9 +115,9 @@ async function getAttendanceDates(
         .filter((r) => {
           const clase = r.clase as unknown as {
             fecha: string;
-            coach: { box_id: string } | null;
+            box_id: string | null;
           } | null;
-          return clase?.coach?.box_id === boxId;
+          return clase?.box_id === boxId;
         })
         .map((r) => (r.clase as unknown as { fecha: string }).fecha)
     )
@@ -133,7 +133,7 @@ export async function awardAttendance(params: {
   const { data: reserva } = await admin
     .from("reservas")
     .select(
-      "id, usuario_id, estado, clase:clases!inner(id, fecha, coach:profiles!clases_coach_id_fkey(box_id))"
+      "id, usuario_id, estado, clase:clases!inner(id, fecha, box_id)"
     )
     .eq("id", params.reservaId)
     .single();
@@ -145,9 +145,11 @@ export async function awardAttendance(params: {
   const clase = reserva.clase as unknown as {
     id: string;
     fecha: string;
-    coach: { box_id: string };
+    box_id: string | null;
   };
-  const boxId = clase.coach.box_id;
+  if (!clase.box_id) return { awarded: false, events: [] };
+
+  const boxId = clase.box_id;
   const config = await getRankingConfig(boxId, admin);
   if (!config.enabled) return { awarded: false, events: [] };
 
@@ -250,13 +252,13 @@ export async function awardWodResult(params: {
 
   const { data: clase } = await admin
     .from("clases")
-    .select("id, nombre, fecha, coach:profiles!clases_coach_id_fkey(box_id)")
+    .select("id, nombre, fecha, box_id")
     .eq("id", params.claseId)
     .single();
 
-  if (!clase) return { awarded: false, events: [] };
+  if (!clase?.box_id) return { awarded: false, events: [] };
 
-  const boxId = (clase.coach as unknown as { box_id: string }).box_id;
+  const boxId = clase.box_id;
   const config = await getRankingConfig(boxId, admin);
   if (!config.enabled) return { awarded: false, events: [] };
 
@@ -320,6 +322,7 @@ export async function awardWodResult(params: {
   const { data: prevClases } = await admin
     .from("clases")
     .select("id, nombre, fecha")
+    .eq("box_id", boxId)
     .eq("nombre", clase.nombre)
     .lt("fecha", clase.fecha)
     .order("fecha", { ascending: false })
@@ -428,22 +431,13 @@ export async function backfillRankingForBox(
 ): Promise<{ attendance: number; wod: number }> {
   const client = admin ?? createAdminClient();
 
-  const { data: staff } = await client
-    .from("profiles")
-    .select("id")
-    .eq("box_id", boxId)
-    .in("rol", ["coach", "admin", "box_admin"]);
-
-  const staffIds = (staff ?? []).map((s) => s.id);
-  if (staffIds.length === 0) return { attendance: 0, wod: 0 };
-
   await client.from("ranking_point_events").delete().eq("box_id", boxId);
 
   const { data: asistioReservas } = await client
     .from("reservas")
-    .select("id, usuario_id, clase:clases!inner(coach_id, fecha)")
+    .select("id, usuario_id, clase:clases!inner(box_id, fecha)")
     .eq("estado", "asistio")
-    .in("clase.coach_id", staffIds);
+    .eq("clase.box_id", boxId);
 
   let attendance = 0;
   const reservaGroups = groupByUsuarioChronological(
@@ -465,8 +459,8 @@ export async function backfillRankingForBox(
 
   const { data: scores } = await client
     .from("clase_scores")
-    .select("clase_id, usuario_id, clase:clases!inner(coach_id, fecha)")
-    .in("clase.coach_id", staffIds);
+    .select("clase_id, usuario_id, clase:clases!inner(box_id, fecha)")
+    .eq("clase.box_id", boxId);
 
   let wod = 0;
   const scoreGroups = groupByUsuarioChronological(

@@ -57,13 +57,13 @@ async function enrichScoresWithLegacyLevel(
 
 async function findLatestDateWithScores(
   admin: AdminClient,
-  staffIds: string[],
+  boxId: string,
   onOrBefore: string
 ): Promise<string | null> {
   const { data: clases } = await admin
     .from("clases")
     .select("fecha, clase_scores!inner(sin_score)")
-    .in("coach_id", staffIds)
+    .eq("box_id", boxId)
     .eq("estado", "programada")
     .eq("clase_scores.sin_score", false)
     .lte("fecha", onOrBefore)
@@ -79,7 +79,7 @@ async function findLatestDateWithScores(
 
 async function loadRankingForDate(
   admin: AdminClient,
-  staffIds: string[],
+  boxId: string,
   date: string
 ): Promise<WodRankingBlock[]> {
   const { data: clases } = await admin
@@ -87,7 +87,7 @@ async function loadRankingForDate(
     .select("*")
     .eq("fecha", date)
     .eq("estado", "programada")
-    .in("coach_id", staffIds)
+    .eq("box_id", boxId)
     .order("hora_inicio");
 
   if (!clases?.length) return [];
@@ -136,13 +136,6 @@ export async function getDailyRankingForBox(
   const todayDate = todayInTimezone(box.timezone ?? APP_CONFIG.GYM_TIMEZONE);
   const requestedDate = fecha ?? todayDate;
 
-  const { data: staff } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("box_id", box.id)
-    .in("rol", ["coach", "admin", "box_admin"]);
-
-  const staffIds = (staff ?? []).map((s) => s.id);
   const boxInfo = {
     id: box.id,
     name: box.name,
@@ -150,28 +143,18 @@ export async function getDailyRankingForBox(
     logo_url: box.logo_url,
   };
 
-  if (staffIds.length === 0) {
-    return {
-      box: boxInfo,
-      date: requestedDate,
-      todayDate,
-      isToday: requestedDate === todayDate,
-      wods: [],
-    };
-  }
-
   let displayDate = requestedDate;
-  let wods = await loadRankingForDate(admin, staffIds, displayDate);
+  let wods = await loadRankingForDate(admin, box.id, displayDate);
 
   if (wods.length === 0 && !fecha) {
     const latest = await findLatestDateWithScores(
       admin,
-      staffIds,
+      box.id,
       todayDate
     );
     if (latest && latest !== displayDate) {
       displayDate = latest;
-      wods = await loadRankingForDate(admin, staffIds, displayDate);
+      wods = await loadRankingForDate(admin, box.id, displayDate);
     }
   }
 

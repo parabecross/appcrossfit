@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   getBoxProfileIds,
-  getBoxStaffProfileIds,
   resolveQueryBoxId,
 } from "@/lib/queries/box-scope";
 
@@ -10,45 +9,39 @@ export async function getStatsData(boxId?: string) {
   const resolvedBoxId = await resolveQueryBoxId(boxId);
   const supabase = await createClient();
 
-  const [profileIds, staffIds] = await Promise.all([
-    getBoxProfileIds(resolvedBoxId),
-    getBoxStaffProfileIds(resolvedBoxId),
-  ]);
+  const profileIds = await getBoxProfileIds(resolvedBoxId);
 
-  if (profileIds.length === 0 && staffIds.length === 0) {
-    return { reservas: [], clases: [] };
+  if (profileIds.length === 0) {
+    const { data: clases } = await supabase
+      .from("clases")
+      .select("*")
+      .eq("box_id", resolvedBoxId)
+      .gte("fecha", new Date(Date.now() - APP_CONFIG.TENDENCIA_SEMANAS * 7 * 86400000)
+        .toISOString()
+        .split("T")[0]);
+    return { reservas: [], clases: clases ?? [] };
   }
 
   const weeksAgo = new Date();
   weeksAgo.setDate(weeksAgo.getDate() - APP_CONFIG.TENDENCIA_SEMANAS * 7);
   const from = weeksAgo.toISOString().split("T")[0];
 
-  const reservasQuery = supabase
-    .from("reservas")
-    .select(
-      "*, clase:clases(*), profile:profiles!reservas_usuario_id_fkey(nombre_completo, id)"
-    )
-    .gte("created_at", from);
-
-  const clasesQuery = supabase
-    .from("clases")
-    .select("*")
-    .gte("fecha", from);
-
   const [{ data: reservas }, { data: clases }] = await Promise.all([
-    profileIds.length > 0
-      ? reservasQuery.in("usuario_id", profileIds)
-      : reservasQuery.in("usuario_id", ["00000000-0000-0000-0000-000000000000"]),
-    staffIds.length > 0
-      ? clasesQuery.in("coach_id", staffIds)
-      : clasesQuery.in("coach_id", ["00000000-0000-0000-0000-000000000000"]),
+    supabase
+      .from("reservas")
+      .select(
+        "*, clase:clases(*), profile:profiles!reservas_usuario_id_fkey(nombre_completo, id)"
+      )
+      .gte("created_at", from)
+      .in("usuario_id", profileIds),
+    supabase
+      .from("clases")
+      .select("*")
+      .eq("box_id", resolvedBoxId)
+      .gte("fecha", from),
   ]);
 
-  const filteredReservas =
-    profileIds.length > 0 ? (reservas ?? []) : [];
-  const filteredClases = staffIds.length > 0 ? (clases ?? []) : [];
-
-  return { reservas: filteredReservas, clases: filteredClases };
+  return { reservas: reservas ?? [], clases: clases ?? [] };
 }
 
 export function computeFrequencyByUserId(

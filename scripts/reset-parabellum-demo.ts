@@ -272,13 +272,11 @@ async function deleteAllBoxData(
 
   const claseIdSet = new Set<string>();
 
-  if (staffIds.length > 0) {
-    const { data } = await supabase
-      .from("clases")
-      .select("id")
-      .in("coach_id", staffIds);
-    for (const c of data ?? []) claseIdSet.add(c.id);
-  }
+  const { data: boxClases } = await supabase
+    .from("clases")
+    .select("id")
+    .eq("box_id", boxId);
+  for (const c of boxClases ?? []) claseIdSet.add(c.id);
 
   if (boxProfileIds.length > 0) {
     const { data: reservas } = await supabase
@@ -507,6 +505,7 @@ async function main() {
           hora_inicio: slot.start,
           hora_fin: slot.end,
           cupo_maximo: 16,
+          box_id: box.id,
           coach_id: slot.coachId,
           estado: "programada",
           entrenamiento: getSampleWorkout(wodName),

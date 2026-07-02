@@ -30,12 +30,11 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
     await Promise.all([
       admin.from("boxes").select("*").order("created_at", { ascending: false }),
       admin.from("profiles").select("id, box_id, rol, user_id"),
-      admin.from("clases").select("id, coach_id"),
+      admin.from("clases").select("id, box_id"),
     ]);
 
   if (!boxes?.length) return [];
 
-  const coachBoxMap = new Map<string, string>();
   const profileBoxMap = new Map<string, string>();
   const userIdsByBox = new Map<string, string[]>();
 
@@ -52,9 +51,6 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
     if (p.rol === "coach") {
       coachCounts.set(p.box_id, (coachCounts.get(p.box_id) ?? 0) + 1);
     }
-    if (["coach", "admin", "box_admin"].includes(p.rol)) {
-      coachBoxMap.set(p.id, p.box_id);
-    }
     const list = userIdsByBox.get(p.box_id) ?? [];
     list.push(p.user_id);
     userIdsByBox.set(p.box_id, list);
@@ -62,9 +58,7 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
 
   const classCountItems: Array<{ box_id: string }> = [];
   for (const c of clases ?? []) {
-    if (!c.coach_id) continue;
-    const boxId = coachBoxMap.get(c.coach_id);
-    if (boxId) classCountItems.push({ box_id: boxId });
+    if (c.box_id) classCountItems.push({ box_id: c.box_id });
   }
   const classCounts = countByBox(classCountItems);
 
