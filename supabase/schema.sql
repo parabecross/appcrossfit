@@ -561,6 +561,10 @@ CREATE POLICY "atleta_skill_hist_select"
   ON atleta_skill_historial FOR SELECT
   USING (usuario_id = get_my_profile_id() OR is_coach_or_admin());
 
+CREATE POLICY "atleta_skill_hist_delete_own"
+  ON atleta_skill_historial FOR DELETE
+  USING (usuario_id = get_my_profile_id());
+
 -- ─── STORAGE ─────────────────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public)

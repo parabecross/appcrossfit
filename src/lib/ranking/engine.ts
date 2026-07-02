@@ -503,6 +503,28 @@ export async function awardAchievement(params: {
   return { awarded: ok };
 }
 
+export async function revokeAchievement(params: {
+  usuarioId: string;
+  badgeKey: string;
+  admin?: AdminClient;
+}): Promise<{ revoked: boolean; eventsRemoved: number }> {
+  const admin = params.admin ?? createAdminClient();
+  const idempotencyKey = `achievement:${params.usuarioId}:${params.badgeKey}`;
+
+  const { data, error } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("idempotency_key", idempotencyKey)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+
+  return {
+    revoked: (data?.length ?? 0) > 0,
+    eventsRemoved: data?.length ?? 0,
+  };
+}
+
 export async function backfillRankingForBox(
   boxId: string,
   admin?: AdminClient

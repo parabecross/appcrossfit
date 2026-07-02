@@ -3,9 +3,8 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  Dumbbell,
   Plus,
-  Sparkles,
+  Trash2,
   TrendingUp,
   Trophy,
 } from "lucide-react";
@@ -48,10 +47,16 @@ import {
   secondsToTimeInput,
 } from "@/lib/progreso/helpers";
 import { getPrMotivationMessage } from "@/lib/progreso/motivation";
+import {
+  badgeKeysToRevokeAfterPrDelete,
+  isSkillAchieved,
+  skillBadgeKey,
+} from "@/lib/ranking/achievement-sync";
 import { cn, formatCompactDate } from "@/lib/utils";
 import { ProgressDashboard } from "@/components/socio/progress/progress-dashboard";
 import { ProgressGoals } from "@/components/socio/progress/progress-goals";
 import { ProgressBadgesPanel } from "@/components/socio/progress/progress-badges-panel";
+import { ProgressHistoryPanel } from "@/components/socio/progress/progress-history-panel";
 import type { AttendanceStats } from "@/lib/progreso/attendance";
 import type {
   AtletaObjetivo,
@@ -105,8 +110,30 @@ export function AthleteProgress({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AtletaPrMarca | null>(null);
 
   const latestMarcas = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
+
+  const syncRankingAchievement = async (
+    action: "award" | "revoke",
+    badgeKey: string
+  ) => {
+    const path =
+      action === "award"
+        ? "/api/ranking/award-achievement"
+        : "/api/ranking/revoke-achievement";
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuarioId: profileId,
+        badgeKey,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(t("rankingSyncFailed"));
+    }
+  };
 
   const exerciseDef = PR_EXERCISES.find((e) => e.key === selectedExercise)!;
 
@@ -221,16 +248,70 @@ export function AthleteProgress({
       setCelebration(
         `${getPrMotivationMessage(locale)}${delta ? ` (${delta})` : ""}`
       );
-      void fetch("/api/ranking/award-achievement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usuarioId: profileId,
-          badgeKey: marcas.length === 0 ? "primer_pr" : "benchmark",
-        }),
-      });
+      try {
+        await syncRankingAchievement(
+          "award",
+          marcas.length === 0 ? "primer_pr" : "benchmark"
+        );
+      } catch (syncError) {
+        setError(
+          syncError instanceof Error ? syncError.message : tc("error")
+        );
+      }
     }
 
+    router.refresh();
+  };
+
+  const deletePr = async (marca: AtletaPrMarca) => {
+    setLoading(true);
+    setError(null);
+    setCelebration(null);
+
+    const { error: deleteError } = await supabase
+      .from("atleta_pr_marcas")
+      .delete()
+      .eq("id", marca.id);
+
+    if (deleteError) {
+      setLoading(false);
+      setError(deleteError.message);
+      return;
+    }
+
+    const remaining = marcas.filter((m) => m.id !== marca.id);
+    setMarcas(remaining);
+    setDeleteTarget(null);
+
+    try {
+      for (const badgeKey of badgeKeysToRevokeAfterPrDelete(remaining)) {
+        await syncRankingAchievement("revoke", badgeKey);
+      }
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : tc("error"));
+    }
+
+    setLoading(false);
+    router.refresh();
+  };
+
+  const deleteSkillHistory = async (entry: AtletaSkillHistorial) => {
+    setLoading(true);
+    setError(null);
+
+    const { error: deleteError } = await supabase
+      .from("atleta_skill_historial")
+      .delete()
+      .eq("id", entry.id);
+
+    if (deleteError) {
+      setLoading(false);
+      setError(deleteError.message);
+      return;
+    }
+
+    setSkillHistorial((prev) => prev.filter((h) => h.id !== entry.id));
+    setLoading(false);
     router.refresh();
   };
 
@@ -239,6 +320,7 @@ export function AthleteProgress({
     setError(null);
 
     const existing = skills.find((s) => s.skill === skillKey);
+    const previousEstado = existing?.estado ?? "en_proceso";
 
     if (existing) {
       const { data, error: updateError } = await supabase
@@ -248,8 +330,8 @@ export function AthleteProgress({
         .select("*")
         .single();
 
-      setLoading(false);
       if (updateError || !data) {
+        setLoading(false);
         setError(updateError?.message ?? tc("error"));
         return;
       }
@@ -268,8 +350,8 @@ export function AthleteProgress({
         .select("*")
         .single();
 
-      setLoading(false);
       if (insertError || !data) {
+        setLoading(false);
         setError(insertError?.message ?? tc("error"));
         return;
       }
@@ -286,17 +368,21 @@ export function AthleteProgress({
 
     if (hist) setSkillHistorial(hist as AtletaSkillHistorial[]);
 
-    if (estado === "logrado" || estado === "dominado") {
-      void fetch("/api/ranking/award-achievement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usuarioId: profileId,
-          badgeKey: `skill_${skillKey}`,
-        }),
-      });
+    const badge = skillBadgeKey(skillKey);
+    const wasAchieved = isSkillAchieved(previousEstado);
+    const nowAchieved = isSkillAchieved(estado);
+
+    try {
+      if (wasAchieved && !nowAchieved) {
+        await syncRankingAchievement("revoke", badge);
+      } else if (!wasAchieved && nowAchieved) {
+        await syncRankingAchievement("award", badge);
+      }
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : tc("error"));
     }
 
+    setLoading(false);
     router.refresh();
   };
 
@@ -423,20 +509,32 @@ export function AthleteProgress({
                               {formatRecordTipoLabel(latest, t)}
                             </Badge>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 text-primary shrink-0"
-                            onClick={() =>
-                              openPrDialog(
-                                latest.ejercicio,
-                                tipo,
-                                latest.rm_reps ?? undefined
-                              )
-                            }
-                          >
-                            {tc("edit")}
-                          </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-primary"
+                              onClick={() =>
+                                openPrDialog(
+                                  latest.ejercicio,
+                                  tipo,
+                                  latest.rm_reps ?? undefined
+                                )
+                              }
+                            >
+                              {tc("edit")}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-red-400 hover:text-red-300"
+                              onClick={() => setDeleteTarget(latest)}
+                              disabled={loading}
+                              aria-label={t("deleteRecord")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-1">
@@ -512,61 +610,51 @@ export function AthleteProgress({
       )}
 
       {tab === "history" && (
-        <div className="space-y-3">
-          {marcas.length === 0 && skillHistorial.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              {t("noHistory")}
-            </p>
-          ) : (
-            <>
-              {marcas.slice(0, 15).map((m) => (
-                <div
-                  key={m.id}
-                  className="flex gap-3 rounded-xl border border-white/5 bg-card/50 px-4 py-3"
-                >
-                  <Dumbbell className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {t(`exercises.${m.ejercicio}`)} ·{" "}
-                      {formatPrValue(m.valor, m.unidad)} ·{" "}
-                      {formatRecordTipoLabel(m, t)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground tabular-nums">
-                      {formatCompactDate(m.fecha, locale)}
-                    </p>
-                    {m.notas && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {m.notas}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {skillHistorial.slice(0, 10).map((h) => (
-                <div
-                  key={h.id}
-                  className="flex gap-3 rounded-xl border border-white/5 bg-card/50 px-4 py-3"
-                >
-                  <Sparkles className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {(() => {
-                        const sk = skills.find((s) => s.id === h.skill_id);
-                        return sk ? t(`skills.${sk.skill}`) : t("skillUpdate");
-                      })()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {h.estado_anterior
-                        ? `${t(`skillStatus.${h.estado_anterior}`)} → ${t(`skillStatus.${h.estado_nuevo}`)}`
-                        : t(`skillStatus.${h.estado_nuevo}`)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
+        <ProgressHistoryPanel
+          marcas={marcas}
+          skills={skills}
+          skillHistorial={skillHistorial}
+          locale={locale}
+          loading={loading}
+          onDeletePr={deletePr}
+          onDeleteSkillHistory={deleteSkillHistory}
+        />
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("deleteRecordTitle")}</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t("deleteRecordConfirm", {
+                  record: `${t(`exercises.${deleteTarget.ejercicio}`)} · ${formatPrValue(deleteTarget.valor, deleteTarget.unidad)}`,
+                })}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={loading}
+                >
+                  {tc("cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => void deletePr(deleteTarget)}
+                  disabled={loading}
+                >
+                  {loading ? tc("loading") : tc("delete")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={prOpen} onOpenChange={setPrOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
