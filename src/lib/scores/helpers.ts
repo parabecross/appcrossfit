@@ -23,6 +23,24 @@ export function parseTimeToSeconds(input: string): number | null {
   return Number.isNaN(asNumber) ? null : asNumber;
 }
 
+/** Parsea "8+12" → valor comparable (más rondas gana; empate por reps). */
+export function parseRondasNumeric(input: string): number | null {
+  const trimmed = input.trim();
+  const plusMatch = trimmed.match(/^(\d+)\s*\+\s*(\d+)$/);
+  if (plusMatch) {
+    const rounds = parseInt(plusMatch[1], 10);
+    const reps = parseInt(plusMatch[2], 10);
+    if (Number.isNaN(rounds) || Number.isNaN(reps) || reps >= 100) return null;
+    return rounds * 100 + reps;
+  }
+  const roundsOnly = trimmed.match(/^(\d+)$/);
+  if (roundsOnly) {
+    const rounds = parseInt(roundsOnly[1], 10);
+    return Number.isNaN(rounds) ? null : rounds * 100;
+  }
+  return null;
+}
+
 export function parseScoreNumeric(
   tipo: ClaseScoreTipo,
   display: string
@@ -33,9 +51,10 @@ export function parseScoreNumeric(
   switch (tipo) {
     case "tiempo":
       return parseTimeToSeconds(trimmed);
+    case "rondas":
+      return parseRondasNumeric(trimmed);
     case "peso":
     case "reps":
-    case "rondas":
     case "cals": {
       const match = trimmed.match(/[\d]+(?:[.,]\d+)?/);
       if (!match) return null;
@@ -135,6 +154,50 @@ export type RankingRow = {
   nombre: string;
   isMe: boolean;
 };
+
+export const WOD_SCORE_TIPO_ORDER: ClaseScoreTipo[] = [
+  "tiempo",
+  "peso",
+  "reps",
+  "rondas",
+  "cals",
+  "otro",
+];
+
+/** Solo compite contra atletas que registraron el mismo tipo de resultado. */
+export function filterScoresSameTipo<T extends Pick<ClaseScore, "score_tipo">>(
+  scores: T[],
+  tipo: ClaseScoreTipo
+): T[] {
+  return scores.filter((s) => s.score_tipo === tipo);
+}
+
+export function groupRankableScoresByTipo(
+  scores: ClaseScore[]
+): Partial<Record<ClaseScoreTipo, ClaseScore[]>> {
+  const grouped: Partial<Record<ClaseScoreTipo, ClaseScore[]>> = {};
+  for (const s of scores) {
+    if (!canRankScore(s)) continue;
+    const list = grouped[s.score_tipo] ?? [];
+    list.push(s);
+    grouped[s.score_tipo] = list;
+  }
+  return grouped;
+}
+
+export function buildWodRankForAthlete(
+  scores: ScoreWithLevel[],
+  athleteLevel: RankingLevel | null | undefined,
+  athleteUserId: string,
+  athleteScoreTipo: ClaseScoreTipo
+): RankingRow | null {
+  const atLevel = filterScoresByLevel(scores, athleteLevel);
+  const sameTipo = filterScoresSameTipo(atLevel, athleteScoreTipo).filter(
+    canRankScore
+  );
+  const ranking = buildClassRanking(sameTipo, athleteUserId);
+  return ranking.find((r) => r.score.usuario_id === athleteUserId) ?? null;
+}
 
 export function buildClassRanking(
   scores: (ClaseScore & { profile?: { nombre_completo: string } | null })[],

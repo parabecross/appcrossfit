@@ -363,6 +363,7 @@
     "athletesCount": "{count, plural, =1 {1 athlete} other {# athletes}}",
     "rankingRespect": "Rankings are grouped by each athlete's Legacy Athlete Card level: Beginner, Intermediate, Advanced, or RX. RX/Scaled on each result is the WOD weight modality, not their category.",
     "rankingCategoryNote": "You only see athletes in your Legacy category. RX/Scaled is the weight you used in the WOD.",
+    "rankingByScoreType": "Each result type has its own ranking (calories, time, rounds, etc.).",
     "legacyCategory": "Legacy category",
     "wodWeights": "WOD weights",
     "you": "you",
@@ -1004,12 +1005,21 @@
       "evolution": "evol.",
       "achievement": "badge"
     },
+    "breakdownScoreType": {
+      "tiempo": "By time",
+      "peso": "By weight",
+      "reps": "Repetitions",
+      "rondas": "Rounds",
+      "cals": "Calories",
+      "otro": "Other"
+    },
     "breakdownDetail": {
       "attendance": "Coach-confirmed attendance",
       "streak": "Attendance streak bonus",
       "streakDays": "{days}-day attendance streak",
       "wod": "WOD position points",
       "wodRank": "#{rank} in {className}",
+      "wodRankResult": "#{rank} · {resultType}: {result} · {className}",
       "wodClass": "class",
       "rxBonus": "+{points} RX bonus",
       "achievement": "Achievement: {badge}",

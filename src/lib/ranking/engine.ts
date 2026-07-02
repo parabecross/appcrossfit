@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAttendanceStreak } from "@/lib/progreso/attendance";
 import {
-  buildRankingByCategory,
   canRankScore,
+  buildWodRankForAthlete,
   type RankingLevel,
 } from "@/lib/scores/helpers";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
@@ -431,7 +431,6 @@ export async function awardWodResult(params: {
     (rawScores ?? []) as ClaseScoreWithProfile[]
   );
 
-  const categories = buildRankingByCategory(enriched);
   const { data: perfil } = await admin
     .from("atleta_perfil_deportivo")
     .select("nivel_deportivo")
@@ -439,12 +438,12 @@ export async function awardWodResult(params: {
     .maybeSingle();
 
   const level = (perfil?.nivel_deportivo as RankingLevel | null) ?? null;
-  const bucket =
-    level && level in categories
-      ? categories[level as RankingLevel]
-      : categories.uncategorized;
-
-  const myRow = bucket.find((r) => r.score.usuario_id === params.usuarioId);
+  const myRow = buildWodRankForAthlete(
+    enriched,
+    level,
+    params.usuarioId,
+    score.score_tipo
+  );
   if (!myRow) return { awarded: false, events: [] };
 
   const month_key = monthKeyFromDate(clase.fecha);
@@ -465,6 +464,7 @@ export async function awardWodResult(params: {
     metadata: {
       rank: myRow.rank,
       score_display: score.score_display,
+      score_tipo: score.score_tipo,
       rx: score.rx,
       position_points: positionPts,
       rx_bonus: rxBonus,
@@ -510,13 +510,11 @@ export async function awardWodResult(params: {
       admin,
       (lastClassScores ?? []) as ClaseScoreWithProfile[]
     );
-    const lastCats = buildRankingByCategory(lastEnriched);
-    const lastBucket =
-      level && level in lastCats
-        ? lastCats[level as RankingLevel]
-        : lastCats.uncategorized;
-    const lastRow = lastBucket.find(
-      (r) => r.score.usuario_id === params.usuarioId
+    const lastRow = buildWodRankForAthlete(
+      lastEnriched,
+      level,
+      params.usuarioId,
+      score.score_tipo
     );
     previousRank = lastRow?.rank ?? null;
   }

@@ -362,7 +362,7 @@
     "dailyRanking": "Ranking del WOD",
     "athletesCount": "{count, plural, =1 {1 atleta} other {# atletas}}",
     "rankingRespect": "El ranking agrupa por el nivel de tu Athlete Card (Legacy): Beginner, Intermediate, Advanced o RX. RX/Scaled en cada resultado indica los pesos del WOD, no tu categoría.",
-    "rankingCategoryNote": "Solo ves atletas de tu categoría Legacy. RX/Scaled es el peso que usaste en el WOD.",
+    "rankingByScoreType": "Cada tipo de resultado tiene su propio ranking (calorías, tiempo, rondas, etc.).",
     "legacyCategory": "Categoría Legacy",
     "wodWeights": "Pesos WOD",
     "you": "tú",
@@ -1004,12 +1004,21 @@
       "evolution": "evol.",
       "achievement": "logro"
     },
+    "breakdownScoreType": {
+      "tiempo": "Por tiempo",
+      "peso": "Por peso",
+      "reps": "Repeticiones",
+      "rondas": "Rondas",
+      "cals": "Calorías",
+      "otro": "Otro"
+    },
     "breakdownDetail": {
       "attendance": "Asistencia confirmada por el coach",
       "streak": "Bonus por racha de asistencia",
       "streakDays": "Racha de {days} días consecutivos",
       "wod": "Puntos por posición en el WOD",
       "wodRank": "#{rank} en {className}",
+      "wodRankResult": "#{rank} · {resultType}: {result} · {className}",
       "wodClass": "clase",
       "rxBonus": "+{points} bonus RX",
       "achievement": "Logro: {badge}",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildClassRanking,
+  buildWodRankForAthlete,
   canRankScore,
   parseScoreNumeric,
   parseTimeToSeconds,
@@ -24,6 +25,55 @@ describe("parseScoreNumeric", () => {
 
   it("returns null for empty tiempo", () => {
     expect(parseScoreNumeric("tiempo", "")).toBeNull();
+  });
+
+  it("parses rondas with plus sign", () => {
+    expect(parseScoreNumeric("rondas", "8+12")).toBe(812);
+    expect(parseScoreNumeric("rondas", "9+5")).toBe(905);
+  });
+
+  it("parses rondas rounds only", () => {
+    expect(parseScoreNumeric("rondas", "8")).toBe(800);
+  });
+});
+
+describe("buildWodRankForAthlete", () => {
+  it("ranks only athletes with the same score type", () => {
+    const scores = [
+      {
+        id: "1",
+        usuario_id: "u1",
+        score_tipo: "cals",
+        valor_numerico: 200,
+        sin_score: false,
+        nivel_deportivo: "beginner",
+        profile: { nombre_completo: "Miguel" },
+      },
+      {
+        id: "2",
+        usuario_id: "u2",
+        score_tipo: "peso",
+        valor_numerico: 225,
+        sin_score: false,
+        nivel_deportivo: "beginner",
+        profile: { nombre_completo: "Sofia" },
+      },
+      {
+        id: "3",
+        usuario_id: "u3",
+        score_tipo: "cals",
+        valor_numerico: 180,
+        sin_score: false,
+        nivel_deportivo: "beginner",
+        profile: { nombre_completo: "Lucia" },
+      },
+    ] as never[];
+
+    const miguel = buildWodRankForAthlete(scores, "beginner", "u1", "cals");
+    expect(miguel?.rank).toBe(1);
+
+    const lucia = buildWodRankForAthlete(scores, "beginner", "u3", "cals");
+    expect(lucia?.rank).toBe(2);
   });
 });
 

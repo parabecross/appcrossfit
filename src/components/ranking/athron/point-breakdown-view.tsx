@@ -139,15 +139,30 @@ function formatDetailLabel(
     }
     case "wod_position": {
       const rank = meta.rank;
+      const scoreDisplay =
+        typeof meta.score_display === "string" ? meta.score_display : null;
+      const scoreTipo =
+        typeof meta.score_tipo === "string" ? meta.score_tipo : null;
       const claseNombre =
         typeof meta.clase_nombre === "string" ? meta.clase_nombre : null;
+      const resultType =
+        scoreTipo && t.has(`breakdownScoreType.${scoreTipo}` as never)
+          ? t(`breakdownScoreType.${scoreTipo}` as never)
+          : null;
       const base =
-        typeof rank === "number"
-          ? t("breakdownDetail.wodRank", {
+        typeof rank === "number" && resultType && scoreDisplay
+          ? t("breakdownDetail.wodRankResult", {
               rank,
+              resultType,
+              result: scoreDisplay,
               className: claseNombre ?? t("breakdownDetail.wodClass"),
             })
-          : t("breakdownDetail.wod");
+          : typeof rank === "number"
+            ? t("breakdownDetail.wodRank", {
+                rank,
+                className: claseNombre ?? t("breakdownDetail.wodClass"),
+              })
+            : t("breakdownDetail.wod");
       const rxBonus =
         typeof meta.rx_bonus === "number" && meta.rx_bonus > 0
           ? t("breakdownDetail.rxBonus", { points: meta.rx_bonus })

@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import {
   buildClassRanking,
   filterScoresByLevel,
+  groupRankableScoresByTipo,
+  scoreTypeHasRxScaled,
+  WOD_SCORE_TIPO_ORDER,
   type RankingLevel,
 } from "@/lib/scores/helpers";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
@@ -36,13 +39,14 @@ export function ClassRankingBoard({
 
   if (categoryScores.length === 0) return null;
 
-  const ranking = buildClassRanking(categoryScores, myProfileId);
+  const byTipo = groupRankableScoresByTipo(categoryScores);
+  const tipoGroups = WOD_SCORE_TIPO_ORDER.filter((tipo) => byTipo[tipo]?.length);
   const levelLabel = athleteLevel
     ? tl(`levels.${athleteLevel}`)
     : t("uncategorized");
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-card/40 p-4 space-y-3">
+    <div className="rounded-2xl border border-white/10 bg-card/40 p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Medal className="h-4 w-4 text-orange-400" />
         <div>
@@ -54,59 +58,72 @@ export function ClassRankingBoard({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">{t("rankingCategoryNote")}</p>
+      <p className="text-xs text-muted-foreground">{t("rankingByScoreType")}</p>
 
-      <div className="space-y-2">
-        {ranking.map((row) => {
-          const isMe = row.score.usuario_id === myProfileId;
-          const medal =
-            row.rank === 1
-              ? "text-yellow-400"
-              : row.rank === 2
-                ? "text-slate-300"
-                : row.rank === 3
-                  ? "text-amber-600"
-                  : "text-muted-foreground";
+      {tipoGroups.map((tipo) => {
+        const tipoScores = byTipo[tipo]!;
+        const ranking = buildClassRanking(tipoScores, myProfileId);
 
-          return (
-            <div
-              key={row.score.id}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm",
-                isMe
-                  ? "bg-orange-500/10 border border-orange-500/25"
-                  : "bg-secondary/30"
-              )}
-            >
-              <span
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs",
-                  row.rank <= 3 ? medal : "text-muted-foreground bg-white/5"
-                )}
-              >
-                {row.rank}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold truncate">
-                  {row.nombre}
-                  {isMe && (
-                    <span className="ml-1.5 text-xs font-normal text-orange-400">
-                      ({t("you")})
+        return (
+          <div key={tipo} className="space-y-2">
+            <p className="text-xs font-semibold text-orange-300/90 uppercase tracking-wide">
+              {t(`typesFriendly.${tipo}`)} ({ranking.length})
+            </p>
+            <div className="space-y-2">
+              {ranking.map((row) => {
+                const isMe = row.score.usuario_id === myProfileId;
+                const medal =
+                  row.rank === 1
+                    ? "text-yellow-400"
+                    : row.rank === 2
+                      ? "text-slate-300"
+                      : row.rank === 3
+                        ? "text-amber-600"
+                        : "text-muted-foreground";
+
+                return (
+                  <div
+                    key={row.score.id}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm",
+                      isMe
+                        ? "bg-orange-500/10 border border-orange-500/25"
+                        : "bg-secondary/30"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs",
+                        row.rank <= 3 ? medal : "text-muted-foreground bg-white/5"
+                      )}
+                    >
+                      {row.rank}
                     </span>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("wodWeights")}: {row.score.rx ? "RX" : t("scaled")} ·{" "}
-                  {t(`types.${row.score.score_tipo}`)}
-                </p>
-              </div>
-              <p className="shrink-0 font-bold text-orange-300 tabular-nums">
-                {row.score.score_display}
-              </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold truncate">
+                        {row.nombre}
+                        {isMe && (
+                          <span className="ml-1.5 text-xs font-normal text-orange-400">
+                            ({t("you")})
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {scoreTypeHasRxScaled(row.score.score_tipo)
+                          ? `${t("wodWeights")}: ${row.score.rx ? "RX" : t("scaled")}`
+                          : t(`typesFriendly.${row.score.score_tipo}`)}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-bold text-orange-300 tabular-nums">
+                      {row.score.score_display}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

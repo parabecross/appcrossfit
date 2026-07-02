@@ -32,6 +32,13 @@ const SCORE_TYPES: ClaseScoreTipo[] = [
 
 type ScoreMode = ClaseScoreTipo | "sin_score";
 
+function inputModeForScoreTipo(
+  tipo: ClaseScoreTipo
+): "text" | "decimal" {
+  if (tipo === "tiempo" || tipo === "rondas") return "text";
+  return "decimal";
+}
+
 const TYPE_ICONS: Record<ClaseScoreTipo, typeof Timer> = {
   tiempo: Timer,
   peso: Dumbbell,
@@ -381,7 +388,10 @@ export function ScoreEntryForm({
                 onChange={(e) => setDisplay(e.target.value)}
                 placeholder={placeholderFor(tipo)}
                 className="h-14 rounded-xl text-xl font-bold text-center tracking-wide"
-                inputMode={tipo === "tiempo" ? "text" : "numeric"}
+                inputMode={inputModeForScoreTipo(tipo)}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
               />
               <p className="text-sm text-center text-muted-foreground">
                 {exampleFor(tipo)}
