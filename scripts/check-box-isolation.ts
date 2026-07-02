@@ -17,6 +17,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 import { resolve } from "path";
 import { createScriptSupabaseClient } from "./lib/supabase-script-client";
+import {
+  ISOLATION_TEST_BOX_NAMES,
+  ISOLATION_TEST_BOX_SLUGS,
+  ISOLATION_TEST_EMAILS,
+  ISOLATION_TEST_PASSWORD,
+} from "./lib/isolation-test-constants";
+import { teardownIsolationTestBoxes } from "./lib/teardown-isolation-test-boxes";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -31,15 +38,10 @@ if (!url || !anonKey || !serviceKey) {
   process.exit(1);
 }
 
-const TEST_PASSWORD = "TestIsolation2024!";
-const EMAILS = {
-  adminA: "test-isolation-admin-a@athron.test",
-  socioA: "test-isolation-socio-a@athron.test",
-  adminB: "test-isolation-admin-b@athron.test",
-  socioB: "test-isolation-socio-b@athron.test",
-} as const;
+const TEST_PASSWORD = ISOLATION_TEST_PASSWORD;
+const EMAILS = ISOLATION_TEST_EMAILS;
 
-const BOX_SLUGS = { a: "test-box-a", b: "test-box-b" } as const;
+const BOX_SLUGS = ISOLATION_TEST_BOX_SLUGS;
 
 const service = createScriptSupabaseClient(url, serviceKey);
 
@@ -585,63 +587,16 @@ async function cleanup() {
     await service.from("reservas").delete().in("id", createdCrossBoxReservaIds);
   }
 
-  const emails = Object.values(EMAILS);
-  const authByEmail = await listAuthUsersByEmail();
-  const authIds = emails
-    .map((e) => authByEmail.get(e.toLowerCase()))
-    .filter(Boolean) as string[];
-
-  const { data: profiles } = await service
-    .from("profiles")
-    .select("id")
-    .in(
-      "user_id",
-      authIds.length ? authIds : ["00000000-0000-0000-0000-000000000000"]
-    );
-
-  const profileIds = (profiles ?? []).map((p) => p.id);
-
-  if (profileIds.length > 0) {
-    await service
-      .from("atleta_pr_marcas")
-      .delete()
-      .in("usuario_id", profileIds);
-    await service.from("membresias").delete().in("usuario_id", profileIds);
-    await service.from("reservas").delete().in("usuario_id", profileIds);
-    await service.from("clases").delete().in("coach_id", profileIds);
-  }
-
   for (const claseId of createdClaseIds) {
     await service.from("reservas").delete().eq("clase_id", claseId);
     await service.from("clases").delete().eq("id", claseId);
   }
 
-  const boxA = await service
-    .from("boxes")
-    .select("id")
-    .eq("slug", BOX_SLUGS.a)
-    .maybeSingle();
-  const boxB = await service
-    .from("boxes")
-    .select("id")
-    .eq("slug", BOX_SLUGS.b)
-    .maybeSingle();
-  const boxIds = [boxA.data?.id, boxB.data?.id].filter(Boolean) as string[];
-
-  if (boxIds.length > 0) {
-    await service.from("planes").delete().in("box_id", boxIds);
-    await service.from("box_feature_overrides").delete().in("box_id", boxIds);
-    await service.from("box_subscriptions").delete().in("box_id", boxIds);
-    const { error: delA } = await service.from("boxes").delete().eq("slug", BOX_SLUGS.a);
-    const { error: delB } = await service.from("boxes").delete().eq("slug", BOX_SLUGS.b);
-    if (delA) console.warn(`  ⚠ delete box A: ${delA.message}`);
-    if (delB) console.warn(`  ⚠ delete box B: ${delB.message}`);
+  if (createdPlanIds.length > 0) {
+    await service.from("planes").delete().in("id", createdPlanIds);
   }
 
-  for (const authId of authIds) {
-    const { error } = await service.auth.admin.deleteUser(authId);
-    if (error) console.warn(`  ⚠ delete ${authId}: ${error.message}`);
-  }
+  await teardownIsolationTestBoxes(service);
 
   console.log("✓ Cleanup done (test boxes removed)\n");
 }
@@ -655,7 +610,7 @@ async function main() {
   try {
     boxA = await setupBox(
       BOX_SLUGS.a,
-      "Test Box A",
+      ISOLATION_TEST_BOX_NAMES.a,
       EMAILS.adminA,
       EMAILS.socioA,
       "Admin A",
@@ -663,7 +618,7 @@ async function main() {
     );
     boxB = await setupBox(
       BOX_SLUGS.b,
-      "Test Box B",
+      ISOLATION_TEST_BOX_NAMES.b,
       EMAILS.adminB,
       EMAILS.socioB,
       "Admin B",

@@ -1,6 +1,7 @@
-# CI: lint + build en todo push/PR; check-isolation solo en push y PRs del mismo repo.
-# El job check-box-isolation usa SUPABASE_SERVICE_ROLE_KEY contra la BD real — no corre
-# en PRs desde forks externos, donde GitHub no expone secrets del repo base de forma segura.
+# CI: lint + build en todo push/PR.
+# check-box-isolation SOLO corre si configuras secrets de una BD de prueba dedicada
+# (SUPABASE_ISOLATION_TEST_*). Nunca uses la URL de producción — ese job creaba
+# Test Box A / Test Box B en cada push a main.
 
 name: CI
 
@@ -35,9 +36,14 @@ jobs:
   check-box-isolation:
     needs: lint-and-build
     if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository)
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository)
+      ) &&
+      secrets.SUPABASE_ISOLATION_TEST_URL != '' &&
+      secrets.SUPABASE_ISOLATION_TEST_ANON_KEY != '' &&
+      secrets.SUPABASE_ISOLATION_TEST_SERVICE_ROLE_KEY != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,36 +57,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate Supabase secrets
-        env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          missing=0
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "::error::Missing GitHub Actions secret: NEXT_PUBLIC_SUPABASE_URL"
-            missing=1
-          fi
-          if [ -z "$SUPABASE_ANON" ]; then
-            echo "::error::Missing GitHub Actions secret: NEXT_PUBLIC_SUPABASE_ANON_KEY"
-            missing=1
-          fi
-          if [ -z "$SUPABASE_SERVICE" ]; then
-            echo "::error::Missing GitHub Actions secret: SUPABASE_SERVICE_ROLE_KEY"
-            missing=1
-          fi
-          if [ "$missing" -ne 0 ]; then
-            echo "Configure los 3 secrets en Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-
-      - name: Write .env.local for check-isolation
+      - name: Write .env.local for check-isolation (BD de prueba, no producción)
         run: |
           {
-            echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"
-            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
-            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_ISOLATION_TEST_URL }}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ISOLATION_TEST_ANON_KEY }}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_ISOLATION_TEST_SERVICE_ROLE_KEY }}"
           } > .env.local
 
       - name: Run box isolation check

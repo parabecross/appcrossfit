@@ -51,11 +51,19 @@ cp .env.example .env.local
 | 12 | `supabase/patch-reservas-realtime.sql` |
 | 13 | `supabase/CONSOLIDADO-rls-multitenant.sql` |
 
-Verificar aislamiento multi-tenant:
+Verificar aislamiento multi-tenant (solo contra BD de prueba, **no producción**):
 
 ```bash
 npm run check-isolation   # debe dar 24/24
 ```
+
+Si aparecen **Test Box A / Test Box B** en producción, bórralos y evita que vuelvan:
+
+```bash
+ATHRON_QA_CONFIRM=true npm run teardown-isolation-boxes
+```
+
+El CI ya **no** crea esos boxes en producción. Para volver a correr el check en GitHub Actions, configura secrets dedicados: `SUPABASE_ISOLATION_TEST_URL`, `SUPABASE_ISOLATION_TEST_ANON_KEY`, `SUPABASE_ISOLATION_TEST_SERVICE_ROLE_KEY` (proyecto Supabase separado).
 
 ### Box demo de ejemplo
 
@@ -89,7 +97,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Qué hace |
 |-----|----------|
 | **lint-and-build** | lint + build |
-| **check-box-isolation** | 24 checks RLS (requiere secrets Supabase) |
+| **check-box-isolation** | 24 checks RLS (solo si hay secrets `SUPABASE_ISOLATION_TEST_*`; no usa prod) |
 
 Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
