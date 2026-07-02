@@ -4,6 +4,7 @@ import {
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
+import { ACTIVE_RESERVA_ESTADOS } from "@/lib/reservas/helpers";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
     .select("*")
     .eq("clase_id", clase_id)
     .eq("usuario_id", profile!.id)
-    .in("estado", ["confirmada", "asistio"])
+    .in("estado", [...ACTIVE_RESERVA_ESTADOS])
     .maybeSingle();
 
   if (existing) {
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
         .select("*")
         .eq("clase_id", clase_id)
         .eq("usuario_id", profile!.id)
-        .in("estado", ["confirmada", "asistio"])
+        .in("estado", [...ACTIVE_RESERVA_ESTADOS])
         .maybeSingle();
 
       if (existingActive) {

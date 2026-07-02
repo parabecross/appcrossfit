@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { isActiveReserva } from "@/lib/reservas/helpers";
 import {
   getBoxProfileIds,
   resolveQueryBoxId,
@@ -147,9 +148,7 @@ export function computeOccupancyStats(
     .slice(0, 20)
     .map((c) => {
       const count = reservas.filter(
-        (r) =>
-          r.clase_id === c.id &&
-          ["confirmada", "asistio"].includes(r.estado)
+        (r) => r.clase_id === c.id && isActiveReserva(r.estado)
       ).length;
       const dia = new Date(c.fecha).toLocaleDateString(dateLocale, {
         weekday: "short",

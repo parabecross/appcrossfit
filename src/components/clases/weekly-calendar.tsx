@@ -36,7 +36,7 @@ import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
 import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
 import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
-import { countReservasForClase, isOptimisticReservaId, occupiedForSocioClass } from "@/lib/reservas/helpers";
+import { countReservasForClase, isActiveReserva, isOptimisticReservaId, occupiedForSocioClass } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -172,7 +172,7 @@ export function WeeklyCalendar({
       (r) =>
         r.clase_id === claseId &&
         r.usuario_id === profileId &&
-        ["confirmada", "asistio"].includes(r.estado)
+        isActiveReserva(r.estado)
     );
 
   const occupiedForSocio = (claseId: string, baseOccupied: number) =>

@@ -104,7 +104,7 @@ CREATE INDEX idx_reservas_usuario ON reservas(usuario_id);
 -- Una reserva activa por usuario/clase (permite re-reservar tras cancelar)
 CREATE UNIQUE INDEX idx_reservas_activa
   ON reservas(clase_id, usuario_id)
-  WHERE estado IN ('confirmada', 'asistio');
+  WHERE estado IN ('confirmada', 'asistio', 'no_asistio');
 
 -- ─── PROGRESO ATLETA ─────────────────────────────────────────────────────────
 
@@ -288,7 +288,7 @@ DECLARE
   v_cupo_max INT;
   v_ocupado INT;
 BEGIN
-  IF NEW.estado NOT IN ('confirmada', 'asistio') THEN
+  IF NEW.estado NOT IN ('confirmada', 'asistio', 'no_asistio') THEN
     RETURN NEW;
   END IF;
 
@@ -304,7 +304,7 @@ BEGIN
   SELECT COUNT(*) INTO v_ocupado
   FROM reservas
   WHERE clase_id = NEW.clase_id
-    AND estado IN ('confirmada', 'asistio')
+    AND estado IN ('confirmada', 'asistio', 'no_asistio')
     AND id IS DISTINCT FROM NEW.id;
 
   IF v_ocupado >= v_cupo_max THEN
@@ -425,7 +425,7 @@ SELECT
   COALESCE(pr.nombre_completo, 'Sin coach') AS coach_nombre,
   (
     SELECT COUNT(*)::INT FROM reservas r
-    WHERE r.clase_id = c.id AND r.estado IN ('confirmada', 'asistio')
+    WHERE r.clase_id = c.id AND r.estado IN ('confirmada', 'asistio', 'no_asistio')
   ) AS cupo_ocupado
 FROM clases c
 LEFT JOIN profiles pr ON pr.id = c.coach_id;

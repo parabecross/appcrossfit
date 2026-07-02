@@ -38,7 +38,7 @@ function hasSocioBooking(
     (r) =>
       r.clase_id === claseId &&
       r.usuario_id === profileId &&
-      (r.estado === "confirmada" || r.estado === "asistio")
+      isActiveReserva(r.estado)
   );
 }
 

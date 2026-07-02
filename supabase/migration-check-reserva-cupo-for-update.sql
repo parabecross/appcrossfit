@@ -19,7 +19,7 @@ DECLARE
   v_cupo_max INT;
   v_ocupado INT;
 BEGIN
-  IF NEW.estado NOT IN ('confirmada', 'asistio') THEN
+  IF NEW.estado NOT IN ('confirmada', 'asistio', 'no_asistio') THEN
     RETURN NEW;
   END IF;
 
@@ -35,7 +35,7 @@ BEGIN
   SELECT COUNT(*) INTO v_ocupado
   FROM reservas
   WHERE clase_id = NEW.clase_id
-    AND estado IN ('confirmada', 'asistio')
+    AND estado IN ('confirmada', 'asistio', 'no_asistio')
     AND id IS DISTINCT FROM NEW.id;
 
   IF v_ocupado >= v_cupo_max THEN

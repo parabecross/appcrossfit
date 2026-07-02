@@ -13,7 +13,7 @@ AS $$
     COUNT(*)::INT AS ocupado
   FROM reservas r
   WHERE r.clase_id = ANY(p_clase_ids)
-    AND r.estado IN ('confirmada', 'asistio')
+    AND r.estado IN ('confirmada', 'asistio', 'no_asistio')
   GROUP BY r.clase_id;
 $$;
 
