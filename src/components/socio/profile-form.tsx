@@ -227,7 +227,7 @@ export function ProfileForm({
         </div>
       </div>
 
-      <div className="md:hidden fixed bottom-20 left-0 right-0 z-30 px-4 safe-bottom">
+      <div className="md:hidden fixed bottom-24 left-0 right-0 z-30 px-4 safe-bottom">
         <div className="rounded-2xl border border-white/10 bg-card/95 backdrop-blur-md p-3 shadow-xl">
           <Button
             onClick={save}

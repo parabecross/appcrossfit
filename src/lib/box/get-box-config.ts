@@ -1,10 +1,11 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { getProfile } from "@/lib/auth/get-profile";
 import type { BoxConfig } from "@/lib/box/config";
 import { getDefaultBoxConfig } from "@/lib/box/config";
 
-export async function getBoxConfig(boxId: string | null | undefined): Promise<BoxConfig> {
+export const getBoxConfig = cache(async (boxId: string | null | undefined): Promise<BoxConfig> => {
   if (!boxId) return getDefaultBoxConfig();
 
   const supabase = await createClient();
@@ -24,7 +25,7 @@ export async function getBoxConfig(boxId: string | null | undefined): Promise<Bo
     logoUrl: data.logo_url,
     platformBrand: APP_CONFIG.BRAND_NAME,
   };
-}
+});
 
 export async function getBoxConfigForSession(): Promise<BoxConfig> {
   const profile = await getProfile();

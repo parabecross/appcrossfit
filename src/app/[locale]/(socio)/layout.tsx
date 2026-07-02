@@ -9,7 +9,6 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { todayInTimezone } from "@/lib/dates/date-only";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +23,6 @@ export default async function SocioLayout({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const today = todayInTimezone(boxConfig.timezone);
-
-  const supabase = await createClient();
-  await supabase.auth.getUser();
 
   return (
     <div className="flex min-h-screen mobile-page w-full overflow-x-hidden">

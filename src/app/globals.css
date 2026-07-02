@@ -62,7 +62,7 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .mobile-page {
-    @apply pb-24 md:pb-0;
+    @apply pb-28 md:pb-0;
   }
   .input-date-compact {
     @apply block h-11 w-full min-w-0 rounded-xl border border-input bg-secondary/50 px-3 text-sm text-foreground;

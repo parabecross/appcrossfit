@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/types/database";
 import { redirect } from "next/navigation";
 import { canAccessAdminArea, isAdminLikeRole } from "@/lib/auth/roles";
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,7 +20,7 @@ export async function getProfile(): Promise<Profile | null> {
     .single();
 
   return data;
-}
+});
 
 export async function requireAuth(locale: string) {
   const profile = await getProfile();
