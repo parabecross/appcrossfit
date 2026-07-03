@@ -170,6 +170,8 @@
     "achieved": "Achieved",
     "inProgress": "In progress",
     "notMarked": "Not marked",
+    "unmarkedSkillsCount": "{count} skills not marked",
+    "mobileSummary": "{goals} goals · {skills} skills · {prs} PR",
     "athletesFound": "athletes found",
     "emptyTitle": "No athletes to show",
     "emptyDescription": "Once members are registered in this box, they will appear here.",
