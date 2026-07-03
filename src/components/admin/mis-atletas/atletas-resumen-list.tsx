@@ -28,7 +28,7 @@ export type AtletaResumenRow = {
   membresia: MembresiaWithPlan | null;
   skills: AtletaSkillsSummary;
   marcas: AtletaMarcasSummary;
-  activeGoal: AtletaObjetivo | null;
+  activeGoals: AtletaObjetivo[];
 };
 
 function socioStatusLabel(
@@ -120,7 +120,7 @@ export function AtletasResumenList({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map(({ profile, membresia, skills, marcas, activeGoal }) => {
+          {filtered.map(({ profile, membresia, skills, marcas, activeGoals }) => {
             const status = getSocioDisplayStatus(
               profile,
               membresia,
@@ -181,15 +181,22 @@ export function AtletasResumenList({
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       {t("coachGoal")}
                     </p>
-                    {activeGoal ? (
-                      <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 space-y-1">
-                        <p className="text-sm leading-relaxed">{activeGoal.nombre}</p>
-                        {activeGoal.fecha_objetivo && (
-                          <p className="text-[11px] text-muted-foreground tabular-nums">
-                            {formatDate(activeGoal.fecha_objetivo, locale)}
-                          </p>
-                        )}
-                      </div>
+                    {activeGoals.length > 0 ? (
+                      <ul className="space-y-2">
+                        {activeGoals.map((goal) => (
+                          <li
+                            key={goal.id}
+                            className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 space-y-1"
+                          >
+                            <p className="text-sm leading-relaxed">{goal.nombre}</p>
+                            {goal.fecha_objetivo && (
+                              <p className="text-[11px] text-muted-foreground tabular-nums">
+                                {formatDate(goal.fecha_objetivo, locale)}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     ) : (
                       <p className="text-sm text-muted-foreground">{t("noCoachGoal")}</p>
                     )}

@@ -64,7 +64,7 @@ export default async function MisAtletasPage({
     membresia: memMap.get(socio.id) ?? null,
     skills: skillsMap.get(socio.id) ?? EMPTY_SKILLS,
     marcas: marcasMap.get(socio.id) ?? EMPTY_MARCAS,
-    activeGoal: objetivosMap.get(socio.id) ?? null,
+    activeGoals: objetivosMap.get(socio.id) ?? [],
   }));
 
   return (

@@ -24,6 +24,7 @@ import {
   Power,
   Trash2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MENU_WIDTH = 180;
 
@@ -146,6 +147,7 @@ function BoxRowActions({
   menuOpen,
   onOpenMenu,
   labels,
+  compact = false,
 }: {
   box: BoxWithStats;
   loading: boolean;
@@ -155,15 +157,23 @@ function BoxRowActions({
     viewDetail: string;
     actions: string;
   };
+  compact?: boolean;
 }) {
   const detailBase = `/admin-athron/boxes/${box.id}`;
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      <Button size="sm" variant="default" className="h-8 gap-1.5 shrink-0" asChild>
+    <div className={cn("flex items-center gap-1.5", compact ? "shrink-0" : "justify-end")}>
+      <Button
+        size="sm"
+        variant="default"
+        className={cn("h-8 gap-1.5 shrink-0", compact && "px-2.5")}
+        asChild
+      >
         <Link href={detailBase}>
           <ExternalLink className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{labels.viewDetail}</span>
+          <span className={compact ? "sr-only" : "hidden sm:inline"}>
+            {labels.viewDetail}
+          </span>
         </Link>
       </Button>
 
@@ -185,6 +195,69 @@ function BoxRowActions({
         <MoreVertical className="h-4 w-4" />
       </Button>
     </div>
+  );
+}
+
+function BoxMobileCard({
+  box,
+  loading,
+  menuOpen,
+  onOpenMenu,
+  labels,
+  t,
+}: {
+  box: BoxWithStats;
+  loading: boolean;
+  menuOpen: boolean;
+  onOpenMenu: (box: BoxWithStats, button: HTMLButtonElement) => void;
+  labels: {
+    viewDetail: string;
+    actions: string;
+  };
+  t: (key: string) => string;
+}) {
+  return (
+    <article className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-base leading-tight">{box.name}</h3>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Badge variant={statusVariant(box.status)}>
+              {t(`status_${box.status}`)}
+            </Badge>
+            {box.subscription?.statusLabelSuperAdmin ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] font-normal whitespace-normal text-left leading-snug"
+              >
+                {box.subscription.statusLabelSuperAdmin}
+              </Badge>
+            ) : null}
+          </div>
+        </div>
+        <BoxRowActions
+          box={box}
+          loading={loading}
+          menuOpen={menuOpen}
+          onOpenMenu={onOpenMenu}
+          labels={labels}
+          compact
+        />
+      </div>
+
+      <dl className="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <dt className="text-muted-foreground mb-0.5">{t("saasPlan")}</dt>
+          <dd className="font-medium leading-snug">
+            {box.subscription?.displayPlanName ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground mb-0.5">{t("athletesUsageLimit")}</dt>
+          <dd className="font-medium tabular-nums">{athletesUsage(box)}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }
 
@@ -321,8 +394,25 @@ export function AthronBoxesTable({
         <p className="text-sm text-red-400">{error}</p>
       )}
 
-      <div className="rounded-xl border border-white/10 overflow-visible">
-        <table className="w-full text-sm">
+      <div className="md:hidden space-y-3">
+        {boxes.map((box) => (
+          <BoxMobileCard
+            key={box.id}
+            box={box}
+            loading={loadingId === box.id}
+            menuOpen={menuAnchor?.box.id === box.id}
+            onOpenMenu={openMenu}
+            labels={{
+              viewDetail: actionLabels.viewDetail,
+              actions: actionLabels.actions,
+            }}
+            t={t}
+          />
+        ))}
+      </div>
+
+      <div className="hidden md:block rounded-xl border border-white/10 overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/5 text-left text-muted-foreground">
               <th className="px-4 py-3 font-medium">{t("boxName")}</th>

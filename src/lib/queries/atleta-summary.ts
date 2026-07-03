@@ -100,8 +100,8 @@ export async function getAtletaSkillsAndMarcasSummaryMap(
 
 export async function getActiveObjetivosMapForUsuarios(
   usuarioIds: string[]
-): Promise<Map<string, AtletaObjetivo>> {
-  const map = new Map<string, AtletaObjetivo>();
+): Promise<Map<string, AtletaObjetivo[]>> {
+  const map = new Map<string, AtletaObjetivo[]>();
   if (usuarioIds.length === 0) return map;
 
   const supabase = await createClient();
@@ -110,12 +110,12 @@ export async function getActiveObjetivosMapForUsuarios(
     .select("*")
     .in("usuario_id", usuarioIds)
     .eq("estado", "en_proceso")
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   for (const row of (data ?? []) as AtletaObjetivo[]) {
-    if (!map.has(row.usuario_id)) {
-      map.set(row.usuario_id, row);
-    }
+    const list = map.get(row.usuario_id) ?? [];
+    list.push(row);
+    map.set(row.usuario_id, list);
   }
   return map;
 }
