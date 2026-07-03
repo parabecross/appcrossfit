@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -15,13 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { formatCompactDate } from "@/lib/utils";
@@ -47,30 +39,17 @@ export function ProgressGoals({
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: "",
-    progreso_pct: "0",
     fecha_objetivo: "",
-    notas: "",
   });
 
   const resetForm = () => {
-    setForm({
-      nombre: "",
-      progreso_pct: "0",
-      fecha_objetivo: "",
-      notas: "",
-    });
+    setForm({ nombre: "", fecha_objetivo: "" });
     setError(null);
   };
 
   const saveGoal = async () => {
     if (!form.nombre.trim()) {
       setError(t("nameRequired"));
-      return;
-    }
-
-    const pct = parseInt(form.progreso_pct, 10);
-    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
-      setError(t("invalidProgress"));
       return;
     }
 
@@ -82,9 +61,9 @@ export function ProgressGoals({
       .insert({
         usuario_id: profileId,
         nombre: form.nombre.trim(),
-        progreso_pct: pct,
+        progreso_pct: 0,
         fecha_objetivo: form.fecha_objetivo || null,
-        notas: form.notas.trim() || null,
+        notas: null,
         estado: "en_proceso",
       })
       .select("*")
@@ -103,14 +82,11 @@ export function ProgressGoals({
     router.refresh();
   };
 
-  const updateGoal = async (
-    id: string,
-    patch: Partial<Pick<AtletaObjetivo, "estado" | "progreso_pct">>
-  ) => {
+  const markComplete = async (id: string) => {
     setLoading(true);
     const { data, error: updateError } = await supabase
       .from("atleta_objetivos")
-      .update(patch)
+      .update({ estado: "completado" })
       .eq("id", id)
       .select("*")
       .single();
@@ -177,10 +153,14 @@ export function ProgressGoals({
             className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-3"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{goal.nombre}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  {t("coachHelpLabel")}
+                </p>
+                <p className="text-sm leading-relaxed">{goal.nombre}</p>
                 {goal.fecha_objetivo && (
-                  <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">
+                  <p className="text-[11px] text-muted-foreground tabular-nums mt-2">
+                    {t("targetDate")}:{" "}
                     {formatCompactDate(goal.fecha_objetivo, locale)}
                   </p>
                 )}
@@ -198,57 +178,21 @@ export function ProgressGoals({
               </Badge>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{t("progress")}</span>
-                <span className="tabular-nums font-semibold text-foreground">
-                  {goal.progreso_pct}%
-                </span>
-              </div>
-              <Progress value={goal.progreso_pct} className="h-2" />
-            </div>
-
             {goal.notas && (
               <p className="text-xs text-muted-foreground">{goal.notas}</p>
             )}
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Select
-                value={String(goal.progreso_pct)}
-                onValueChange={(v) =>
-                  updateGoal(goal.id, { progreso_pct: parseInt(v, 10) })
-                }
-                disabled={loading || goal.estado === "completado"}
+            {goal.estado === "en_proceso" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-xl text-xs"
+                disabled={loading}
+                onClick={() => void markComplete(goal.id)}
               >
-                <SelectTrigger className="h-9 w-[120px] rounded-xl text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[0, 25, 50, 75, 100].map((pct) => (
-                    <SelectItem key={pct} value={String(pct)}>
-                      {pct}%
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {goal.estado === "en_proceso" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 rounded-xl text-xs"
-                  disabled={loading}
-                  onClick={() =>
-                    updateGoal(goal.id, {
-                      estado: "completado",
-                      progreso_pct: 100,
-                    })
-                  }
-                >
-                  {t("markComplete")}
-                </Button>
-              )}
-            </div>
+                {t("markComplete")}
+              </Button>
+            )}
           </div>
         ))}
       </div>
@@ -284,19 +228,9 @@ function GoalDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  form: {
-    nombre: string;
-    progreso_pct: string;
-    fecha_objetivo: string;
-    notas: string;
-  };
+  form: { nombre: string; fecha_objetivo: string };
   setForm: React.Dispatch<
-    React.SetStateAction<{
-      nombre: string;
-      progreso_pct: string;
-      fecha_objetivo: string;
-      notas: string;
-    }>
+    React.SetStateAction<{ nombre: string; fecha_objetivo: string }>
   >;
   onSave: () => void;
   loading: boolean;
@@ -313,44 +247,22 @@ function GoalDialog({
         <div className="space-y-4">
           <div>
             <Label>{t("name")}</Label>
-            <Input
+            <Textarea
+              rows={3}
               placeholder={t("namePlaceholder")}
               value={form.nombre}
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>{t("progress")}</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={form.progreso_pct}
-                onChange={(e) =>
-                  setForm({ ...form, progreso_pct: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>{t("targetDate")}</Label>
-              <Input
-                type="date"
-                value={form.fecha_objetivo}
-                onChange={(e) =>
-                  setForm({ ...form, fecha_objetivo: e.target.value })
-                }
-                className="input-date-compact [color-scheme:dark]"
-              />
-            </div>
-          </div>
           <div>
-            <Label>{t("notes")}</Label>
-            <Textarea
-              rows={2}
-              placeholder={t("notesPlaceholder")}
-              value={form.notas}
-              onChange={(e) => setForm({ ...form, notas: e.target.value })}
+            <Label>{t("targetDate")}</Label>
+            <Input
+              type="date"
+              value={form.fecha_objetivo}
+              onChange={(e) =>
+                setForm({ ...form, fecha_objetivo: e.target.value })
+              }
+              className="input-date-compact [color-scheme:dark]"
             />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}

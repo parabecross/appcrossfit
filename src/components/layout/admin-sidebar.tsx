@@ -22,6 +22,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 
 const coachLinks = [
   { href: "/admin/clases", icon: Calendar, key: "classes" },
+  { href: "/admin/mis-atletas", icon: Users, key: "athletes" },
   { href: "/admin/mi-perfil", icon: User, key: "profile" },
 ] as const;
 

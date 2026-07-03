@@ -29,6 +29,7 @@ import {
 
 const coachTabs = [
   { href: "/admin/clases", icon: Calendar, key: "classes" },
+  { href: "/admin/mis-atletas", icon: Users, key: "athletes" },
   { href: "/admin/mi-perfil", icon: User, key: "profile" },
 ] as const;
 
@@ -47,6 +48,7 @@ const adminMoreLinks = [
 
 function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boolean) {
   if (pathname.includes("/clases")) return t("classes");
+  if (pathname.includes("/mis-atletas")) return t("athletes");
   if (pathname.includes("/mi-perfil")) return t("profile");
   if (pathname.includes("/dashboard")) return t("dashboard");
   if (pathname.includes("/usuarios")) return t("users");

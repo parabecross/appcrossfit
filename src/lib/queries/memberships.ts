@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoxConfig } from "@/lib/box/config";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
@@ -61,6 +62,53 @@ export async function getMembresiasMapForUsuarios(usuarioIds: string[]) {
 
   const map = new Map<string, MembresiaWithPlan>();
   for (const m of data ?? []) {
+    if (!map.has(m.usuario_id)) {
+      map.set(
+        m.usuario_id,
+        normalizeMembresiaRow(m as Parameters<typeof normalizeMembresiaRow>[0])
+      );
+    }
+  }
+  return map;
+}
+
+/**
+ * Membresías de socios del box (service role).
+ * Coaches no pasan RLS de membresias_select (solo is_admin()); la página mis-atletas
+ * ya validó auth y que los IDs son socios del mismo box_id.
+ */
+export async function getMembresiasMapForUsuariosInBox(
+  usuarioIds: string[],
+  boxId: string
+) {
+  if (usuarioIds.length === 0) {
+    return new Map<string, MembresiaWithPlan>();
+  }
+
+  const admin = createAdminClient();
+
+  const { data: allowedProfiles } = await admin
+    .from("profiles")
+    .select("id")
+    .in("id", usuarioIds)
+    .eq("box_id", boxId)
+    .eq("rol", "socio");
+
+  const allowedIds = new Set((allowedProfiles ?? []).map((p) => p.id));
+  if (allowedIds.size === 0) {
+    return new Map<string, MembresiaWithPlan>();
+  }
+
+  const { data } = await admin
+    .from("membresias")
+    .select(MEMBRESIA_SELECT)
+    .in("usuario_id", [...allowedIds])
+    .in("estado", ["vigente", "vencida"])
+    .order("fecha_fin", { ascending: false });
+
+  const map = new Map<string, MembresiaWithPlan>();
+  for (const m of data ?? []) {
+    if (!allowedIds.has(m.usuario_id)) continue;
     if (!map.has(m.usuario_id)) {
       map.set(
         m.usuario_id,

@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -33,7 +32,6 @@ import { useRouter } from "@/i18n/routing";
 import {
   PR_EXERCISES,
   SKILL_KEYS,
-  SKILL_PROGRESS,
 } from "@/lib/progreso/constants";
 import {
   comparePrDelta,
@@ -315,12 +313,47 @@ export function AthleteProgress({
     router.refresh();
   };
 
-  const updateSkill = async (skillKey: string, estado: SkillEstado) => {
+  const updateSkill = async (skillKey: string, value: SkillEstado | "none") => {
     setLoading(true);
     setError(null);
 
     const existing = skills.find((s) => s.skill === skillKey);
-    const previousEstado = existing?.estado ?? "en_proceso";
+
+    if (value === "none") {
+      if (!existing) {
+        setLoading(false);
+        return;
+      }
+
+      const previousEstado = existing.estado;
+      const { error: deleteError } = await supabase
+        .from("atleta_skills")
+        .delete()
+        .eq("id", existing.id);
+
+      if (deleteError) {
+        setLoading(false);
+        setError(deleteError.message);
+        return;
+      }
+
+      setSkills((prev) => prev.filter((s) => s.id !== existing.id));
+
+      try {
+        if (isSkillAchieved(previousEstado)) {
+          await syncRankingAchievement("revoke", skillBadgeKey(skillKey));
+        }
+      } catch (syncError) {
+        setError(syncError instanceof Error ? syncError.message : tc("error"));
+      }
+
+      setLoading(false);
+      router.refresh();
+      return;
+    }
+
+    const estado = value;
+    const wasAchieved = existing ? isSkillAchieved(existing.estado) : false;
 
     if (existing) {
       const { data, error: updateError } = await supabase
@@ -369,7 +402,6 @@ export function AthleteProgress({
     if (hist) setSkillHistorial(hist as AtletaSkillHistorial[]);
 
     const badge = skillBadgeKey(skillKey);
-    const wasAchieved = isSkillAchieved(previousEstado);
     const nowAchieved = isSkillAchieved(estado);
 
     try {
@@ -386,14 +418,8 @@ export function AthleteProgress({
     router.refresh();
   };
 
-  const skillState = (key: string): SkillEstado => {
-    return skills.find((s) => s.skill === key)?.estado ?? "en_proceso";
-  };
-
-  const skillBadgeVariant = (estado: SkillEstado) => {
-    if (estado === "dominado") return "success" as const;
-    if (estado === "logrado") return "warning" as const;
-    return "secondary" as const;
+  const skillState = (key: string): SkillEstado | null => {
+    return skills.find((s) => s.skill === key)?.estado ?? null;
   };
 
   return (
@@ -561,44 +587,70 @@ export function AthleteProgress({
       )}
 
       {tab === "skills" && (
-        <div className="space-y-3">
-          {SKILL_KEYS.map((key) => {
-            const estado = skillState(key);
-            return (
-              <Card key={key} className="border-white/5 rounded-2xl">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">{t(`skills.${key}`)}</p>
-                    <Badge variant={skillBadgeVariant(estado)}>
-                      {t(`skillStatus.${estado}`)}
-                    </Badge>
-                  </div>
-                  <Progress value={SKILL_PROGRESS[estado]} className="h-2" />
-                  <Select
-                    value={estado}
-                    onValueChange={(v) => updateSkill(key, v as SkillEstado)}
-                    disabled={loading}
+        <Card className="border-white/5 rounded-2xl overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{t("skillsPanelTitle")}</CardTitle>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t("skillsPanelHint")}
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {SKILL_KEYS.map((key) => {
+                const estado = skillState(key);
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5"
                   >
-                    <SelectTrigger className="h-10 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en_proceso">
-                        {t("skillStatus.en_proceso")}
-                      </SelectItem>
-                      <SelectItem value="logrado">
-                        {t("skillStatus.logrado")}
-                      </SelectItem>
-                      <SelectItem value="dominado">
-                        {t("skillStatus.dominado")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    <p className="min-w-0 flex-1 text-sm font-medium leading-tight">
+                      {t(`skills.${key}`)}
+                    </p>
+                    <Select
+                      value={estado ?? "none"}
+                      onValueChange={(v) =>
+                        void updateSkill(
+                          key,
+                          v === "none" ? "none" : (v as SkillEstado)
+                        )
+                      }
+                      disabled={loading}
+                    >
+                      <SelectTrigger
+                        className={cn(
+                          "h-8 w-[7.25rem] shrink-0 rounded-lg border-white/10 px-2 text-xs",
+                          estado === "dominado" &&
+                            "border-green-500/30 text-green-400",
+                          estado === "logrado" &&
+                            "border-orange-500/30 text-orange-300",
+                          estado === "en_proceso" &&
+                            "border-sky-500/30 text-sky-400",
+                          !estado && "text-muted-foreground"
+                        )}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">
+                          {t("skillStatus.none")}
+                        </SelectItem>
+                        <SelectItem value="en_proceso">
+                          {t("skillStatus.en_proceso")}
+                        </SelectItem>
+                        <SelectItem value="logrado">
+                          {t("skillStatus.logrado")}
+                        </SelectItem>
+                        <SelectItem value="dominado">
+                          {t("skillStatus.dominado")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === "goals" && (

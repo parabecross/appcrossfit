@@ -153,7 +153,28 @@
     "membership": "My membership",
     "myProgress": "My progress",
     "legacy": "Legacy",
-    "ranking": "Ranking"
+    "ranking": "Ranking",
+    "athletes": "My athletes"
+  },
+  "myAthletes": {
+    "title": "My athletes",
+    "subtitle": "Track your box members with their skills, PR/RM records, and membership status.",
+    "searchPlaceholder": "Search athlete by name...",
+    "membershipStatus": "Membership status",
+    "skills": "Skills",
+    "prsRm": "PR & RM",
+    "noSkills": "No skills registered yet",
+    "noPrs": "No PR/RM yet",
+    "noMembership": "No membership",
+    "dominated": "Dominated",
+    "achieved": "Achieved",
+    "inProgress": "In progress",
+    "notMarked": "Not marked",
+    "athletesFound": "athletes found",
+    "emptyTitle": "No athletes to show",
+    "emptyDescription": "Once members are registered in this box, they will appear here.",
+    "coachGoal": "Goal with coach",
+    "noCoachGoal": "No active goal"
   },
   "legacy": {
     "title": "Your Legacy",
@@ -771,7 +792,7 @@
       "skillsHint": "Skills achieved or mastered",
       "activeGoal": "Active goal",
       "noActiveGoal": "No active goal",
-      "goalProgress": "{pct}% progress",
+      "coachGoalActive": "Your coach can see it in My athletes",
       "badges": "Badges",
       "badgesValue": "{unlocked}/{total}",
       "badgesHint": "Unlocked achievements",
@@ -807,15 +828,12 @@
     },
     "goals": {
       "add": "New goal",
-      "empty": "Create your first personal goal to stay focused.",
-      "name": "Goal name",
-      "namePlaceholder": "E.g. First Pull Up, Snatch 100 kg, Murph RX",
-      "nameRequired": "Enter a goal name",
-      "invalidProgress": "Progress must be between 0 and 100",
-      "progress": "Progress",
+      "empty": "Tell your coach what you want to improve — they can see it.",
+      "name": "What do you want your coach to help you improve?",
+      "namePlaceholder": "E.g. Shoulder mobility, first pull-up, body composition...",
+      "nameRequired": "Write what you want your coach to help you with",
+      "coachHelpLabel": "Request for your coach",
       "targetDate": "Target date",
-      "notes": "Notes",
-      "notesPlaceholder": "Details, training plan, competition...",
       "markComplete": "Mark complete",
       "status": {
         "en_proceso": "In progress",
@@ -884,7 +902,10 @@
       "goals": "Goals",
       "history": "History"
     },
+    "skillsPanelTitle": "Your skills",
+    "skillsPanelHint": "All skills start unmarked. Choose in progress, achieved, or mastered when ready — your coach sees updates instantly.",
     "skillStatus": {
+      "none": "Not marked",
       "en_proceso": "In progress",
       "logrado": "Achieved",
       "dominado": "Mastered"

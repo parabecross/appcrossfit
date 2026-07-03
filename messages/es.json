@@ -153,7 +153,28 @@
     "membership": "Mi membresía",
     "myProgress": "Mi progreso",
     "legacy": "Legacy",
-    "ranking": "Ranking"
+    "ranking": "Ranking",
+    "athletes": "Mis atletas"
+  },
+  "myAthletes": {
+    "title": "Mis atletas",
+    "subtitle": "Da seguimiento a los socios de tu box con sus skills, PR/RM y estado de membresía.",
+    "searchPlaceholder": "Buscar atleta por nombre...",
+    "membershipStatus": "Estado de membresía",
+    "skills": "Skills",
+    "prsRm": "PR y RM",
+    "noSkills": "Sin skills registradas",
+    "noPrs": "Sin PR/RM aún",
+    "noMembership": "Sin membresía",
+    "dominated": "Dominadas",
+    "achieved": "Logradas",
+    "inProgress": "En proceso",
+    "notMarked": "Sin marcar",
+    "athletesFound": "atletas encontrados",
+    "emptyTitle": "No hay atletas para mostrar",
+    "emptyDescription": "Cuando existan socios registrados en este box, aparecerán aquí.",
+    "coachGoal": "Objetivo con el coach",
+    "noCoachGoal": "Sin objetivo activo"
   },
   "legacy": {
     "title": "Tu Legacy",
@@ -770,7 +791,7 @@
       "skillsHint": "Skills logradas o dominadas",
       "activeGoal": "Objetivo activo",
       "noActiveGoal": "Sin objetivo activo",
-      "goalProgress": "{pct}% de avance",
+      "coachGoalActive": "Tu coach puede verlo en Mis atletas",
       "badges": "Insignias",
       "badgesValue": "{unlocked}/{total}",
       "badgesHint": "Logros desbloqueados",
@@ -806,15 +827,12 @@
     },
     "goals": {
       "add": "Nuevo objetivo",
-      "empty": "Crea tu primer objetivo personal para mantener el foco.",
-      "name": "Nombre del objetivo",
-      "namePlaceholder": "Ej: Primer Pull Up, Snatch 100 kg, Murph RX",
-      "nameRequired": "Ingresa un nombre para el objetivo",
-      "invalidProgress": "El avance debe estar entre 0 y 100",
-      "progress": "Avance",
+      "empty": "Cuéntale a tu coach en qué quieres mejorar y él podrá verlo.",
+      "name": "¿En qué quieres que tu coach te ayude a mejorar?",
+      "namePlaceholder": "Ej: Mejorar movilidad de hombros, conseguir mi primer pull-up, bajar grasa corporal...",
+      "nameRequired": "Escribe en qué quieres que tu coach te ayude",
+      "coachHelpLabel": "Pedido a tu coach",
       "targetDate": "Fecha objetivo",
-      "notes": "Notas",
-      "notesPlaceholder": "Detalles, plan de entrenamiento, competencia...",
       "markComplete": "Marcar completado",
       "status": {
         "en_proceso": "En proceso",
@@ -883,7 +901,10 @@
       "goals": "Objetivos",
       "history": "Historial"
     },
+    "skillsPanelTitle": "Tus skills",
+    "skillsPanelHint": "Por defecto todas están sin marcar. Elige en proceso, logrado o dominado cuando quieras; tu coach lo verá al instante.",
     "skillStatus": {
+      "none": "Sin marcar",
       "en_proceso": "En proceso",
       "logrado": "Logrado",
       "dominado": "Dominado"

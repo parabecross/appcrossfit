@@ -120,11 +120,7 @@ export function ProgressDashboard({
         icon={Target}
         label={t("dashboard.activeGoal")}
         value={activeGoal?.nombre ?? t("dashboard.noActiveGoal")}
-        hint={
-          activeGoal
-            ? t("dashboard.goalProgress", { pct: activeGoal.progreso_pct })
-            : undefined
-        }
+        hint={activeGoal ? t("dashboard.coachGoalActive") : undefined}
         accent="red"
       />
       <ProgressStatCard
