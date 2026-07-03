@@ -3,15 +3,40 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+function isOptionalTableError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("does not exist") ||
+    lower.includes("schema cache") ||
+    lower.includes("could not find the table")
+  );
+}
+
+async function deleteOptionalByBoxId(
+  admin: AdminClient,
+  table: string,
+  boxId: string
+): Promise<string | null> {
+  const { error } = await admin.from(table).delete().eq("box_id", boxId);
+  if (error && !isOptionalTableError(error.message)) {
+    return `${table}: ${error.message}`;
+  }
+  return null;
+}
+
 async function deleteBoxScopedData(
   admin: AdminClient,
   boxId: string,
-  staffIds: string[],
   boxProfileIds: string[]
 ) {
   await admin.from("ranking_point_events").delete().eq("box_id", boxId);
   await admin.from("ranking_monthly_awards").delete().eq("box_id", boxId);
   await admin.from("ranking_config").delete().eq("box_id", boxId);
+
+  for (const table of ["box_feature_overrides", "box_subscriptions"] as const) {
+    const err = await deleteOptionalByBoxId(admin, table, boxId);
+    if (err) throw new Error(err);
+  }
 
   const claseIdSet = new Set<string>();
 
@@ -44,6 +69,14 @@ async function deleteBoxScopedData(
     await admin.from("atleta_skills").delete().in("usuario_id", boxProfileIds);
     await admin.from("atleta_objetivos").delete().in("usuario_id", boxProfileIds);
     await admin.from("atleta_perfil_deportivo").delete().in("usuario_id", boxProfileIds);
+
+    const { error: skillHistErr } = await admin
+      .from("atleta_skill_historial")
+      .delete()
+      .in("usuario_id", boxProfileIds);
+    if (skillHistErr && !isOptionalTableError(skillHistErr.message)) {
+      throw new Error(skillHistErr.message);
+    }
   }
 
   await admin.from("audit_log").delete().eq("box_id", boxId);
@@ -60,6 +93,24 @@ async function deleteUserAvatars(
     const paths = files.map((f) => `${userId}/${f.name}`);
     await admin.storage.from("avatars").remove(paths);
   }
+}
+
+function formatAuthDeleteError(error: unknown): string {
+  if (error && typeof error === "object") {
+    const authError = error as {
+      message?: string;
+      code?: string;
+      status?: number;
+    };
+    if (authError.message) return authError.message;
+    if (authError.code) return authError.code;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Error desconocido al eliminar usuario auth";
+    }
+  }
+  return String(error);
 }
 
 export type DeleteBoxResult =
@@ -82,7 +133,8 @@ export async function deleteBoxPermanently(
     return { ok: false, error: "Box no encontrado" };
   }
 
-  if (box.slug !== confirmSlug.trim()) {
+  const normalizedConfirm = confirmSlug.trim().toLowerCase();
+  if (box.slug.toLowerCase() !== normalizedConfirm) {
     return { ok: false, error: "El slug de confirmación no coincide" };
   }
 
@@ -113,44 +165,48 @@ export async function deleteBoxPermanently(
   }
 
   const boxProfileIds = (profiles ?? []).map((p) => p.id);
-  const staffIds = (profiles ?? [])
-    .filter((p) => ["admin", "coach", "box_admin"].includes(p.rol))
-    .map((p) => p.id);
   const userIds = Array.from(new Set((profiles ?? []).map((p) => p.user_id)));
 
-  await deleteBoxScopedData(admin, boxId, staffIds, boxProfileIds);
+  try {
+    await deleteBoxScopedData(admin, boxId, boxProfileIds);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Error al borrar datos del box",
+    };
+  }
 
   await deleteUserAvatars(admin, userIds);
+
+  const { error: ownerErr } = await admin
+    .from("boxes")
+    .update({ owner_user_id: null })
+    .eq("id", boxId);
+
+  if (ownerErr) {
+    return { ok: false, error: ownerErr.message };
+  }
+
+  if (boxProfileIds.length > 0) {
+    const { error: profilesErr } = await admin
+      .from("profiles")
+      .delete()
+      .in("id", boxProfileIds);
+
+    if (profilesErr) {
+      return { ok: false, error: profilesErr.message };
+    }
+  }
 
   for (const userId of userIds) {
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) {
       return {
         ok: false,
-        error: `Error al eliminar usuario auth: ${error.message}`,
+        error: `Error al eliminar usuario auth: ${formatAuthDeleteError(error)}`,
       };
     }
   }
-
-  const { count: remainingProfiles } = await admin
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("box_id", boxId);
-
-  if (remainingProfiles && remainingProfiles > 0) {
-    const { error: profilesErr } = await admin
-      .from("profiles")
-      .delete()
-      .eq("box_id", boxId);
-    if (profilesErr) {
-      return { ok: false, error: profilesErr.message };
-    }
-  }
-
-  await admin
-    .from("boxes")
-    .update({ owner_user_id: null })
-    .eq("id", boxId);
 
   const { error: boxDeleteErr } = await admin
     .from("boxes")
