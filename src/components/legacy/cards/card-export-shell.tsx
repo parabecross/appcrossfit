@@ -71,7 +71,8 @@ export function CardBrandingFooter({
           src={boxLogoUrl}
           alt=""
           loading="eager"
-          decoding="async"
+          decoding="sync"
+          fetchPriority="high"
           className="rounded-full object-cover"
           style={{ width: 40, height: 40 }}
           {...(!isLocalAvatarUrl(boxLogoUrl)

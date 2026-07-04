@@ -24,7 +24,11 @@ import {
   legacyFilename,
   sharePng,
 } from "@/lib/legacy/export-card";
-import { resolveImageDataUrl } from "@/lib/legacy/embed-export-images";
+import {
+  preloadImage,
+  waitForFontsReady,
+  waitForPaintFrames,
+} from "@/lib/legacy/preload-image";
 import type { AthleticLevel, LegacyCardFormat } from "@/lib/legacy/types";
 import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
 import { createClient } from "@/lib/supabase/client";
@@ -110,6 +114,7 @@ export function LegacyClient({
   const [format, setFormat] = useState<LegacyCardFormat>("story");
   const [loading, setLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [exportReady, setExportReady] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resolvedPhotoUrl, setResolvedPhotoUrl] = useState<string | null>(
@@ -120,34 +125,56 @@ export function LegacyClient({
   );
 
   useEffect(() => {
-    if (embeddedPhotoUrl) {
-      setResolvedPhotoUrl(embeddedPhotoUrl);
-      return;
-    }
-    const url = profile.foto_url?.trim();
-    if (!url || url.startsWith("data:")) {
-      setResolvedPhotoUrl(url ?? null);
-      return;
-    }
-    void resolveImageDataUrl(url)
-      .then((dataUrl) => setResolvedPhotoUrl(dataUrl))
-      .catch(() => setResolvedPhotoUrl(url));
-  }, [embeddedPhotoUrl, profile.foto_url]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (embeddedLogoUrl) {
-      setResolvedLogoUrl(embeddedLogoUrl);
-      return;
+    async function prepareAssets() {
+      setExportReady(false);
+      setError(null);
+
+      await waitForFontsReady();
+
+      const photoSrc = embeddedPhotoUrl ?? profile.foto_url?.trim() ?? null;
+      if (photoSrc) {
+        const photoResult = await preloadImage(photoSrc);
+        if (cancelled) return;
+        if (!photoResult.ok) {
+          setError(t("errors.photoExportFailed"));
+          setExportReady(false);
+          return;
+        }
+        setResolvedPhotoUrl(photoResult.url);
+      } else {
+        setResolvedPhotoUrl(null);
+      }
+
+      const logoSrc = embeddedLogoUrl ?? boxLogoUrl?.trim() ?? null;
+      if (logoSrc) {
+        const logoResult = await preloadImage(logoSrc);
+        if (cancelled) return;
+        if (logoResult.ok) {
+          setResolvedLogoUrl(logoResult.url);
+        }
+      } else {
+        setResolvedLogoUrl(boxLogoUrl);
+      }
+
+      await waitForPaintFrames(2);
+      if (!cancelled) {
+        setExportReady(true);
+      }
     }
-    const url = boxLogoUrl?.trim();
-    if (!url || url.startsWith("data:")) {
-      setResolvedLogoUrl(url ?? null);
-      return;
-    }
-    void resolveImageDataUrl(url)
-      .then((dataUrl) => setResolvedLogoUrl(dataUrl))
-      .catch(() => setResolvedLogoUrl(url));
-  }, [embeddedLogoUrl, boxLogoUrl]);
+
+    void prepareAssets();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    embeddedPhotoUrl,
+    embeddedLogoUrl,
+    profile.foto_url,
+    boxLogoUrl,
+    t,
+  ]);
 
   const [form, setForm] = useState({
     fecha_nacimiento: perfilDeportivo?.fecha_nacimiento ?? "",
@@ -287,6 +314,8 @@ export function LegacyClient({
 
   const runExport = useCallback(
     async (targetFormat: LegacyCardFormat) => {
+      if (!exportReady) return;
+
       setLoading(true);
       setError(null);
       setMessage(null);
@@ -296,9 +325,8 @@ export function LegacyClient({
       });
 
       try {
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
+        await waitForFontsReady();
+        await waitForPaintFrames(2);
 
         const node =
           targetFormat === "story"
@@ -306,29 +334,10 @@ export function LegacyClient({
             : targetFormat === "post"
               ? postExportRef.current
               : squareExportRef.current;
-        if (!node) return;
-
-        if (profile.foto_url) {
-          let photoDataUrl = resolvedPhotoUrl;
-          if (!photoDataUrl || !photoDataUrl.startsWith("data:")) {
-            photoDataUrl = await resolveImageDataUrl(profile.foto_url);
-          }
-          if (!photoDataUrl?.startsWith("data:")) {
-            setError(t("errors.photoExportFailed"));
-            return;
-          }
-          setResolvedPhotoUrl(photoDataUrl);
-          const photoEl = node.querySelector(
-            "[data-legacy-photo]"
-          ) as HTMLElement | null;
-          if (photoEl) {
-            photoEl.style.backgroundImage = `url("${photoDataUrl.replace(/"/g, '\\"')}")`;
-          }
+        if (!node) {
+          setError(t("errors.photoExportFailed"));
+          return;
         }
-
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
 
         const dataUrl = await exportCardToPng(node, targetFormat);
         const filename = legacyFilename(profile.nombre_completo, targetFormat);
@@ -341,13 +350,20 @@ export function LegacyClient({
           result === "shared" ? t("shareSuccess") : t("downloadSuccess")
         );
       } catch (e) {
-        setError(e instanceof Error ? e.message : tc("error"));
+        const code = e instanceof Error ? e.message : "";
+        setError(
+          code === "PHOTO_CORS" || code === "PHOTO_NOT_READY" || code === "EMPTY_EXPORT" || code === "EMPTY_BLOB"
+            ? t("errors.photoExportFailed")
+            : e instanceof Error
+              ? e.message
+              : tc("error")
+        );
       } finally {
         setCapturing(false);
         setLoading(false);
       }
     },
-    [profile.foto_url, profile.nombre_completo, resolvedPhotoUrl, t, tc]
+    [exportReady, profile.nombre_completo, t, tc]
   );
 
   const [scale, setScale] = useState(0.28);
@@ -570,11 +586,13 @@ export function LegacyClient({
             <Button
               variant="default"
               className="w-full h-12 text-base font-semibold"
-              disabled={loading}
+              disabled={loading || !exportReady}
               onClick={() => void runExport(format)}
             >
               <Share2 className="h-4 w-4 mr-2 shrink-0" />
-              {t("actions.share")}
+              {!exportReady && profile.foto_url
+                ? tc("loading")
+                : t("actions.share")}
             </Button>
           </div>
         </section>
@@ -590,7 +608,7 @@ export function LegacyClient({
         className={cn(
           capturing
             ? "fixed left-1/2 top-1/2 z-[101] -translate-x-1/2 -translate-y-1/2"
-            : "pointer-events-none fixed left-0 top-0 -z-50 h-0 w-0 overflow-hidden opacity-0"
+            : "pointer-events-none fixed left-[-10000px] top-0 z-[-1] opacity-0"
         )}
         aria-hidden={!capturing}
       >
