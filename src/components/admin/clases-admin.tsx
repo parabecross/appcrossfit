@@ -872,14 +872,9 @@ export function AdminClasesClient({
         adminCoachFilter={adminCoachFilter}
       />
 
-      {/* Mobile: slide-up attendance when class selected */}
-      <div
-        className={cn(
-          "md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-card shadow-2xl transition-transform duration-300 safe-bottom pb-20",
-          selectedClase ? "translate-y-0" : "translate-y-full pointer-events-none"
-        )}
-      >
-        {selectedClaseData && (
+      {/* Mobile: slide-up attendance when class selected (omit when closed so it cannot block bottom nav taps) */}
+      {selectedClase && selectedClaseData && (
+        <div className="md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-card shadow-2xl transition-transform duration-300 safe-bottom pb-20">
           <div className="p-4 space-y-4">
             <div className="mx-auto h-1 w-10 rounded-full bg-white/20" />
             <div className="flex items-start justify-between gap-3">
@@ -902,8 +897,8 @@ export function AdminClasesClient({
             </div>
             <AttendanceList />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Desktop: attendance */}
       <Card className="hidden md:block border-white/5 bg-white/[0.02]">
