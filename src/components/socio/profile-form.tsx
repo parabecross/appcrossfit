@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAvatarForUser } from "@/lib/avatars/upload";
+import { uploadBoxLogoViaApi } from "@/lib/box/upload-logo";
 import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { useRouter } from "@/i18n/routing";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
@@ -19,11 +20,13 @@ export function ProfileForm({
   email,
   variant = "default",
   subtitle,
+  boxLogoUrl = null,
 }: {
   profile: Profile;
   email?: string | null;
-  variant?: "default" | "coach";
+  variant?: "default" | "coach" | "box_owner";
   subtitle?: string;
+  boxLogoUrl?: string | null;
 }) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
@@ -58,6 +61,10 @@ export function ProfileForm({
     setPhoto(file);
   };
 
+  const isBoxOwner = variant === "box_owner";
+  const isCoach = variant === "coach";
+  const isAthlete = variant === "default";
+
   const save = async () => {
     setLoading(true);
     setError(null);
@@ -65,22 +72,31 @@ export function ProfileForm({
     let foto_url = profile.foto_url;
 
     if (photo) {
-      const result = await uploadAvatarForUser(
-        supabase,
-        profile.user_id,
-        photo
-      );
-      if (result.error) {
-        setError(result.error);
-        setLoading(false);
-        return;
+      if (isBoxOwner) {
+        const result = await uploadBoxLogoViaApi(photo);
+        if (result.error) {
+          setError(result.error);
+          setLoading(false);
+          return;
+        }
+      } else {
+        const result = await uploadAvatarForUser(
+          supabase,
+          profile.user_id,
+          photo
+        );
+        if (result.error) {
+          setError(result.error);
+          setLoading(false);
+          return;
+        }
+        foto_url = result.url;
       }
-      foto_url = result.url;
     }
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ ...form, foto_url })
+      .update(isBoxOwner ? form : { ...form, foto_url })
       .eq("id", profile.id);
 
     if (updateError) {
@@ -95,7 +111,10 @@ export function ProfileForm({
   };
 
   const pageSubtitle =
-    subtitle ?? (variant === "default" ? ts("profileSubtitle") : undefined);
+    subtitle ??
+    (isAthlete ? ts("profileSubtitle") : undefined);
+
+  const photoPreview = isBoxOwner ? boxLogoUrl : profile.foto_url;
 
   return (
     <div className="space-y-5 pb-24 md:pb-0">
@@ -106,11 +125,21 @@ export function ProfileForm({
 
       <div className="rounded-2xl border border-white/10 bg-card/50 p-4 md:p-6 space-y-4">
         <div>
-          <Label htmlFor="profile-photo">{t("photo")}</Label>
+          <Label htmlFor="profile-photo">
+            {isBoxOwner ? ta("boxPhoto") : t("photo")}
+          </Label>
           <PhotoUploadInput
             id="profile-photo"
-            initialPreview={profile.foto_url}
+            initialPreview={photoPreview}
             onChange={handlePhotoChange}
+            copy={
+              isBoxOwner
+                ? {
+                    placeholder: ta("boxPhotoPlaceholder"),
+                    cropHint: ta("boxPhotoHint"),
+                  }
+                : undefined
+            }
           />
         </div>
         <div>
@@ -148,26 +177,33 @@ export function ProfileForm({
           />
         </div>
         <div>
-          <Label>{t("bio")}</Label>
+          <Label>{isBoxOwner ? ta("boxBio") : t("bio")}</Label>
           <Textarea
             className="rounded-xl min-h-[100px]"
             value={form.bio}
             placeholder={
-              variant === "coach"
+              isCoach
                 ? ta("coachBioPlaceholder")
-                : t("bioPlaceholder")
+                : isBoxOwner
+                  ? ta("boxBioPlaceholder")
+                  : t("bioPlaceholder")
             }
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
-            rows={variant === "coach" ? 4 : 3}
+            rows={isCoach || isBoxOwner ? 4 : 3}
           />
-          {variant === "coach" && (
+          {isCoach && (
             <p className="text-xs text-muted-foreground mt-1">
               {ta("coachBioHint")}
             </p>
           )}
+          {isBoxOwner && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {ta("boxBioHint")}
+            </p>
+          )}
         </div>
 
-        {variant === "default" && (
+        {isAthlete && (
           <p className="text-xs text-muted-foreground rounded-xl border border-white/10 bg-black/20 px-3 py-2.5">
             {ts("profileLegacyHint")}{" "}
             <Link

@@ -1,8 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
 import { getAdminDashboardHeavyData } from "@/lib/queries/admin-dashboard";
+import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { canUseFeature } from "@/lib/entitlements/permissions";
-import type { BoxEntitlements } from "@/lib/entitlements/types";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import { DashboardAdvancedPriorityAlerts } from "@/components/admin/dashboard/dashboard-advanced-priority-alerts";
 import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
@@ -10,13 +10,14 @@ import { DashboardChartsSection } from "@/components/admin/dashboard/dashboard-c
 
 export async function DashboardHeavySection({
   locale,
-  entitlements,
+  boxId,
 }: {
   locale: string;
-  entitlements: BoxEntitlements;
+  boxId: string;
 }) {
-  const [heavy, td, ts, tp] = await Promise.all([
+  const [heavy, entitlements, td, ts, tp] = await Promise.all([
     getAdminDashboardHeavyData(undefined, locale),
+    getBoxEntitlements(boxId),
     getTranslations("adminDashboard"),
     getTranslations("stats"),
     getTranslations("progress"),

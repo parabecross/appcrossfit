@@ -65,13 +65,52 @@ export async function getOwnBirthdayToday(
   }
 }
 
+export function computeBirthdayAlertsFromSocios(
+  socios: Array<{ id: string; nombre_completo: string }>,
+  perfiles: Array<{ usuario_id: string; fecha_nacimiento: string | null }>,
+  timeZone: string
+): BirthdayAlert[] {
+  const today = todayInTimezone(timeZone);
+
+  const fechaByUsuario = new Map<string, string>();
+  for (const row of perfiles) {
+    if (row.fecha_nacimiento) {
+      fechaByUsuario.set(row.usuario_id, row.fecha_nacimiento);
+    }
+  }
+
+  const alerts: BirthdayAlert[] = [];
+
+  for (const socio of socios) {
+    const fechaNacimiento = fechaByUsuario.get(socio.id);
+    if (!fechaNacimiento) continue;
+
+    const window = getBirthdayWindow(fechaNacimiento, today);
+    if (!window) continue;
+
+    alerts.push({
+      profileId: socio.id,
+      nombre: socio.nombre_completo,
+      window,
+      age: ageForBirthdayWindow(fechaNacimiento, window),
+    });
+  }
+
+  alerts.sort((a, b) => {
+    const byWindow = WINDOW_ORDER[a.window] - WINDOW_ORDER[b.window];
+    if (byWindow !== 0) return byWindow;
+    return a.nombre.localeCompare(b.nombre, "es");
+  });
+
+  return alerts;
+}
+
 export async function getBirthdayAlerts(
   boxId: string,
   timeZone: string
 ): Promise<BirthdayAlert[]> {
   try {
     const supabase = await createClient();
-    const today = todayInTimezone(timeZone);
 
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -99,37 +138,7 @@ export async function getBirthdayAlerts(
       return [];
     }
 
-    const fechaByUsuario = new Map<string, string>();
-    for (const row of perfiles ?? []) {
-      if (row.fecha_nacimiento) {
-        fechaByUsuario.set(row.usuario_id, row.fecha_nacimiento);
-      }
-    }
-
-    const alerts: BirthdayAlert[] = [];
-
-    for (const socio of socios) {
-      const fechaNacimiento = fechaByUsuario.get(socio.id);
-      if (!fechaNacimiento) continue;
-
-      const window = getBirthdayWindow(fechaNacimiento, today);
-      if (!window) continue;
-
-      alerts.push({
-        profileId: socio.id,
-        nombre: socio.nombre_completo,
-        window,
-        age: ageForBirthdayWindow(fechaNacimiento, window),
-      });
-    }
-
-    alerts.sort((a, b) => {
-      const byWindow = WINDOW_ORDER[a.window] - WINDOW_ORDER[b.window];
-      if (byWindow !== 0) return byWindow;
-      return a.nombre.localeCompare(b.nombre, "es");
-    });
-
-    return alerts;
+    return computeBirthdayAlertsFromSocios(socios, perfiles ?? [], timeZone);
   } catch (err) {
     console.error("getBirthdayAlerts:", err);
     return [];

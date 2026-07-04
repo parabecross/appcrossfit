@@ -44,6 +44,7 @@ const adminMoreLinks = [
   { href: "/admin/ranking", icon: Trophy, key: "ranking" },
   { href: "/admin/planes", icon: CreditCard, key: "plans" },
   { href: "/admin/estadisticas", icon: BarChart3, key: "stats" },
+  { href: "/admin/mi-perfil", icon: User, key: "profile" },
 ] as const;
 
 function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boolean) {

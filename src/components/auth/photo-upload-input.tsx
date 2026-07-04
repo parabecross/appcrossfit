@@ -16,6 +16,10 @@ interface PhotoUploadInputProps {
   onChange: (file: File | null) => void;
   initialPreview?: string | null;
   className?: string;
+  copy?: {
+    placeholder?: string;
+    cropHint?: string;
+  };
 }
 
 export function PhotoUploadInput({
@@ -23,6 +27,7 @@ export function PhotoUploadInput({
   onChange,
   initialPreview = null,
   className,
+  copy,
 }: PhotoUploadInputProps) {
   const t = useTranslations("auth");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -97,7 +102,9 @@ export function PhotoUploadInput({
         ) : (
           <div className="flex h-full min-h-[175px] flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
             <Camera className="h-9 w-9 opacity-70" />
-            <span className="text-xs leading-snug">{t("photoPlaceholder")}</span>
+            <span className="text-xs leading-snug">
+              {copy?.placeholder ?? t("photoPlaceholder")}
+            </span>
           </div>
         )}
       </div>
@@ -150,7 +157,7 @@ export function PhotoUploadInput({
         )}
         {!cropError && !fileName && !processing && (
           <p className="text-center text-xs text-muted-foreground">
-            {t("photoCropHint")}
+            {copy?.cropHint ?? t("photoCropHint")}
           </p>
         )}
       </div>

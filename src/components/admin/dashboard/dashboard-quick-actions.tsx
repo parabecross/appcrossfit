@@ -13,7 +13,7 @@ export function DashboardQuickActions({
   entitlements,
   labels,
 }: {
-  entitlements: BoxEntitlements;
+  entitlements?: BoxEntitlements;
   labels: {
     newClass: string;
     newAthlete: string;
@@ -53,9 +53,9 @@ export function DashboardQuickActions({
     },
   ];
 
-  const visible = actions.filter((action) =>
-    canUseFeature(entitlements, action.feature)
-  );
+  const visible = entitlements
+    ? actions.filter((action) => canUseFeature(entitlements, action.feature))
+    : actions;
 
   if (visible.length === 0) return null;
 

@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoxConfig } from "@/lib/box/config";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
-import type { AlertaMembresia, Membresia, Plan } from "@/types/database";
+import type { AlertaMembresia, Membresia, Plan, AccountStatus } from "@/types/database";
 
 const MEMBRESIA_SELECT =
   "id, usuario_id, plan_id, fecha_inicio, fecha_fin, estado, metodo_asignacion, notas, created_at, updated_at, plan:planes(id, nombre, tipo, duracion_dias, precio, activo, box_id, created_at)";
@@ -132,11 +132,25 @@ export async function getAlertasMembresia(boxId?: string) {
   if (!socios) return [];
 
   const memMap = await getMembresiasMapForUsuarios(socios.map((s) => s.id));
+  return computeAlertasMembresiaFromSocios(socios, memMap, boxConfig.timezone);
+}
+
+export function computeAlertasMembresiaFromSocios(
+  socios: Array<{
+    id: string;
+    nombre_completo: string;
+    telefono: string | null;
+    user_id: string;
+    estado_cuenta: AccountStatus;
+  }>,
+  memMap: Map<string, MembresiaWithPlan>,
+  timezone: string
+): AlertaMembresia[] {
   const alertas: AlertaMembresia[] = [];
 
   for (const s of socios) {
     const mem = memMap.get(s.id) ?? null;
-    const displayStatus = getSocioDisplayStatus(s, mem, boxConfig.timezone);
+    const displayStatus = getSocioDisplayStatus(s, mem, timezone);
 
     if (displayStatus === "vencida" || displayStatus === "sin_membresia") {
       alertas.push({
@@ -173,17 +187,25 @@ export async function getKpis(boxId?: string) {
     .eq("box_id", resolvedBoxId)
     .eq("rol", "socio");
 
-  let activos = 0;
-  let vencidos = 0;
-  let pendientes = 0;
-
   const memMap = await getMembresiasMapForUsuarios(
     (socios ?? []).map((s) => s.id)
   );
 
-  for (const s of socios ?? []) {
+  return computeKpisFromSocios(socios ?? [], memMap, boxConfig.timezone);
+}
+
+export function computeKpisFromSocios(
+  socios: Array<{ id: string; estado_cuenta: AccountStatus }>,
+  memMap: Map<string, MembresiaWithPlan>,
+  timezone: string
+) {
+  let activos = 0;
+  let vencidos = 0;
+  let pendientes = 0;
+
+  for (const s of socios) {
     const mem = memMap.get(s.id) ?? null;
-    const displayStatus = getSocioDisplayStatus(s, mem, boxConfig.timezone);
+    const displayStatus = getSocioDisplayStatus(s, mem, timezone);
 
     switch (displayStatus) {
       case "pendiente_pago":
@@ -198,5 +220,5 @@ export async function getKpis(boxId?: string) {
     }
   }
 
-  return { activos, vencidos, pendientes, total: socios?.length ?? 0 };
+  return { activos, vencidos, pendientes, total: socios.length };
 }

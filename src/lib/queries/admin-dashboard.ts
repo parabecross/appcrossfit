@@ -1,15 +1,20 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
 import {
   computeAverageOccupancy,
   partitionMembershipAlerts,
 } from "@/lib/admin/dashboard-helpers";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import {
-  getAlertasMembresia,
-  getKpis,
+  computeAlertasMembresiaFromSocios,
+  computeKpisFromSocios,
 } from "@/lib/queries/memberships";
-import { getBirthdayAlerts } from "@/lib/queries/birthdays";
+import { computeBirthdayAlertsFromSocios } from "@/lib/queries/birthdays";
+import {
+  loadBirthdayDeportivoForSocios,
+  loadBoxSociosMembershipSnapshot,
+  loadDashboardEssentialContext,
+  loadTodayReservas,
+} from "@/lib/queries/admin-dashboard-essential-loaders";
 import { loadDashboardContext } from "@/lib/queries/admin-dashboard-context";
 import {
   buildAdminDashboardHeavyData,
@@ -56,87 +61,92 @@ function mergeDashboardParts(
   };
 }
 
-export async function getAdminDashboardEssentialData(
-  boxId?: string
-): Promise<AdminDashboardEssentialData> {
-  const ctx = await loadDashboardContext(boxId);
-  const supabase = await createClient();
+export const getAdminDashboardEssentialData = cache(
+  async function getAdminDashboardEssentialData(
+    boxId?: string
+  ): Promise<AdminDashboardEssentialData> {
+    const ctx = await loadDashboardEssentialContext(boxId);
 
-  const [kpis, alertas, todayClasses, birthdayAlerts] = await Promise.all([
-    getKpis(ctx.resolvedBoxId),
-    getAlertasMembresia(ctx.resolvedBoxId),
-    getClasesByDateRange(ctx.today, ctx.today, ctx.resolvedBoxId),
-    getBirthdayAlerts(ctx.resolvedBoxId, ctx.boxConfig.timezone),
-  ]);
+    const [snapshot, todayClasses] = await Promise.all([
+      loadBoxSociosMembershipSnapshot(ctx.resolvedBoxId),
+      getClasesByDateRange(ctx.today, ctx.today, ctx.resolvedBoxId),
+    ]);
 
-  const todayClassIds = todayClasses.map((c) => c.id);
+    const socioIds = snapshot.socios.map((s) => s.id);
+    const todayClassIds = todayClasses.map((c) => c.id);
 
-  let todayReservas: Array<{
-    id: string;
-    clase_id: string;
-    usuario_id: string;
-    estado: string;
-    created_at: string;
-  }> = [];
+    const [birthdayPerfiles, todayReservas] = await Promise.all([
+      loadBirthdayDeportivoForSocios(socioIds),
+      loadTodayReservas(todayClassIds),
+    ]);
 
-  if (todayClassIds.length > 0) {
-    const { data } = await supabase
-      .from("reservas")
-      .select("id, clase_id, usuario_id, estado, created_at")
-      .in("clase_id", todayClassIds);
-    todayReservas = data ?? [];
+    const kpis = computeKpisFromSocios(
+      snapshot.socios,
+      snapshot.memMap,
+      ctx.timezone
+    );
+    const alertas = computeAlertasMembresiaFromSocios(
+      snapshot.socios,
+      snapshot.memMap,
+      ctx.timezone
+    );
+    const birthdayAlerts = computeBirthdayAlertsFromSocios(
+      snapshot.socios,
+      birthdayPerfiles,
+      ctx.timezone
+    );
+
+    const reservationsToday = todayReservas.filter((r) =>
+      ["confirmada", "asistio", "no_asistio"].includes(r.estado)
+    ).length;
+    const attendanceToday = todayReservas.filter(
+      (r) => r.estado === "asistio"
+    ).length;
+
+    const classesWithCupo = todayClasses.map((c) => ({
+      ...c,
+      cupo_ocupado: c.cupo_ocupado ?? 0,
+    })) as AdminDashboardTodayClass[];
+
+    const avgOccupancyToday = computeAverageOccupancy(classesWithCupo);
+    const membershipAlerts = partitionMembershipAlerts(alertas);
+
+    const lowOccupancyClasses = classesWithCupo.filter((c) => {
+      if (c.cupo_maximo <= 0) return false;
+      const pct = (c.cupo_ocupado / c.cupo_maximo) * 100;
+      return pct < 40 && pct >= 0;
+    });
+
+    return {
+      today: ctx.today,
+      boxName: ctx.boxName,
+      executive: {
+        classesToday: todayClasses.length,
+        reservationsToday,
+        attendanceToday,
+        avgOccupancyToday,
+        expiringSoon: membershipAlerts.porVencer.length,
+        pendingPayment: kpis.pendientes,
+      },
+      boxStatus: {
+        activeMembers: kpis.activos,
+        totalMembers: kpis.total,
+        expired: kpis.vencidos,
+        expiringSoon: membershipAlerts.porVencer.length,
+        avgOccupancyToday,
+        attendanceToday,
+      },
+      kpis,
+      alertas,
+      membershipAlerts,
+      todayClasses: classesWithCupo.sort((a, b) =>
+        a.hora_inicio.localeCompare(b.hora_inicio)
+      ),
+      lowOccupancyClasses,
+      birthdayAlerts,
+    };
   }
-
-  const reservationsToday = todayReservas.filter((r) =>
-    ["confirmada", "asistio", "no_asistio"].includes(r.estado)
-  ).length;
-  const attendanceToday = todayReservas.filter(
-    (r) => r.estado === "asistio"
-  ).length;
-
-  const classesWithCupo = todayClasses.map((c) => ({
-    ...c,
-    cupo_ocupado: c.cupo_ocupado ?? 0,
-  })) as AdminDashboardTodayClass[];
-
-  const avgOccupancyToday = computeAverageOccupancy(classesWithCupo);
-  const membershipAlerts = partitionMembershipAlerts(alertas);
-
-  const lowOccupancyClasses = classesWithCupo.filter((c) => {
-    if (c.cupo_maximo <= 0) return false;
-    const pct = (c.cupo_ocupado / c.cupo_maximo) * 100;
-    return pct < 40 && pct >= 0;
-  });
-
-  return {
-    today: ctx.today,
-    boxName: ctx.boxConfig.name,
-    executive: {
-      classesToday: todayClasses.length,
-      reservationsToday,
-      attendanceToday,
-      avgOccupancyToday,
-      expiringSoon: membershipAlerts.porVencer.length,
-      pendingPayment: kpis.pendientes,
-    },
-    boxStatus: {
-      activeMembers: kpis.activos,
-      totalMembers: kpis.total,
-      expired: kpis.vencidos,
-      expiringSoon: membershipAlerts.porVencer.length,
-      avgOccupancyToday,
-      attendanceToday,
-    },
-    kpis,
-    alertas,
-    membershipAlerts,
-    todayClasses: classesWithCupo.sort((a, b) =>
-      a.hora_inicio.localeCompare(b.hora_inicio)
-    ),
-    lowOccupancyClasses,
-    birthdayAlerts,
-  };
-}
+);
 
 export const getAdminDashboardHeavyData = cache(async function getAdminDashboardHeavyData(
   boxId?: string,
