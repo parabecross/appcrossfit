@@ -28,6 +28,7 @@
   },
   "auth": {
     "login": "Iniciar sesión",
+    "loadingUser": "Cargando usuario...",
     "register": "Registrarse",
     "logout": "Cerrar sesión",
     "email": "Correo electrónico",
@@ -656,7 +657,8 @@
       "lowOccupancy": "Clases con baja ocupación hoy",
       "pendingPayment": "Pendientes de pago",
       "empty": "Todo en orden. No hay alertas pendientes.",
-      "emptyPremium": "Todo en orden por ahora."
+      "emptyPremium": "Todo en orden por ahora.",
+      "loadError": "No se pudieron cargar las alertas avanzadas. El resto del panel sigue disponible."
     },
     "today": {
       "title": "Actividad reciente",

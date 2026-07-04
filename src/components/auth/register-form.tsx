@@ -154,8 +154,6 @@ export function RegisterForm() {
     } else {
       router.push("/login");
     }
-
-    setLoading(false);
   };
 
   const accountTypes: { id: AccountType; label: string }[] = [

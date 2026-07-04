@@ -28,6 +28,7 @@
   },
   "auth": {
     "login": "Log in",
+    "loadingUser": "Loading user...",
     "register": "Sign up",
     "logout": "Log out",
     "email": "Email",
@@ -657,7 +658,8 @@
       "lowOccupancy": "Low occupancy classes today",
       "pendingPayment": "Pending payment",
       "empty": "All good. No pending alerts.",
-      "emptyPremium": "All good for now."
+      "emptyPremium": "All good for now.",
+      "loadError": "Advanced alerts could not be loaded. The rest of the dashboard is still available."
     },
     "today": {
       "title": "Recent activity",

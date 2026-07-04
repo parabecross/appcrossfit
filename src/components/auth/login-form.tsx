@@ -14,7 +14,6 @@ import { AthronLogo } from "@/components/brand/athron-logo";
 
 export function LoginForm() {
   const t = useTranslations("auth");
-  const tc = useTranslations("common");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +31,7 @@ export function LoginForm() {
     e.preventDefault();
     if (!configured) {
       setError(t("configMissing"));
+      setLoading(false);
       return;
     }
 
@@ -47,13 +47,13 @@ export function LoginForm() {
 
       if (authError) {
         setError(authError.message);
+        setLoading(false);
         return;
       }
 
       router.refresh();
     } catch {
       setError(t("configMissing"));
-    } finally {
       setLoading(false);
     }
   };
@@ -95,7 +95,7 @@ export function LoginForm() {
             <p className="text-sm text-red-400">{error}</p>
           )}
           <Button type="submit" className="w-full" disabled={loading || !configured}>
-            {loading ? tc("loading") : t("login")}
+            {loading ? t("loadingUser") : t("login")}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
