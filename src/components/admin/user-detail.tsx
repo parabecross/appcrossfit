@@ -34,6 +34,7 @@ import type { BoxEntitlements } from "@/lib/entitlements/types";
 
 export function UserDetailClient({
   user,
+  email: initialEmail,
   membresias,
   classHistory,
   planes,
@@ -41,6 +42,7 @@ export function UserDetailClient({
   entitlements,
 }: {
   user: Profile;
+  email: string | null;
   membresias: (Membresia & { plan: Plan | null })[];
   classHistory: AthleteClassHistoryItem[];
   planes: Plan[];
@@ -51,8 +53,16 @@ export function UserDetailClient({
   const tm = useTranslations("membership.status");
   const ta = useTranslations("admin");
   const tc = useTranslations("common");
+  const tauth = useTranslations("auth");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState(initialEmail ?? "");
+  const [telefono, setTelefono] = useState(user.telefono ?? "");
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    email: initialEmail ?? "",
+    telefono: user.telefono ?? "",
+  });
   const [planId, setPlanId] = useState(planes[0]?.id ?? "");
   const [activateOpen, setActivateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -62,6 +72,7 @@ export function UserDetailClient({
   const [editFechaFin, setEditFechaFin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
   const current = membresias[0];
   const currentEstado = current
     ? syncMembresiaEstadoLocal(current.fecha_fin, current.estado)
@@ -85,6 +96,49 @@ export function UserDetailClient({
     const plan = getSelectedPlan() ?? planes[0];
     const inicio = new Date().toISOString().split("T")[0];
     return computeFechaFin(inicio, plan?.duracion_dias ?? 30);
+  };
+
+  const openContactDialog = () => {
+    setError(null);
+    setContactForm({ email, telefono });
+    setContactOpen(true);
+  };
+
+  const saveContact = async () => {
+    if (!contactForm.email.trim()) {
+      setError(ta("contactEmailRequired"));
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setContactSuccess(false);
+
+    try {
+      const res = await fetch("/api/admin/usuario", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.user_id,
+          email: contactForm.email.trim(),
+          telefono: contactForm.telefono.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? tc("error"));
+        return;
+      }
+      setEmail(data.email ?? contactForm.email.trim());
+      setTelefono(contactForm.telefono.trim());
+      setContactSuccess(true);
+      setContactOpen(false);
+      router.refresh();
+    } catch {
+      setError(tc("error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const callMembresiaApi = async (body: Record<string, unknown>) => {
@@ -187,7 +241,9 @@ export function UserDetailClient({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black">{user.nombre_completo}</h1>
-          <p className="text-muted-foreground">{user.telefono}</p>
+          <p className="text-muted-foreground">
+            {email || "—"} · {telefono || ta("noPhoneForWhatsApp")}
+          </p>
           {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
         </div>
         {user.rol === "socio" && (
@@ -200,11 +256,87 @@ export function UserDetailClient({
         )}
       </div>
 
+      {contactSuccess && (
+        <p className="text-sm text-green-400">{ta("contactUpdated")}</p>
+      )}
       {success && (
         <p className="text-sm text-green-400">{t("assignSuccess")}</p>
       )}
-      {error && !activateOpen && !editOpen && (
+      {error && !activateOpen && !editOpen && !contactOpen && (
         <p className="text-sm text-red-400">{error}</p>
+      )}
+
+      {user.rol === "socio" && (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>{ta("contactInfo")}</CardTitle>
+              <CardDescription>{ta("editContactDesc")}</CardDescription>
+            </div>
+            <Dialog
+              open={contactOpen}
+              onOpenChange={(open) => {
+                if (open) openContactDialog();
+                else setContactOpen(false);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {ta("editContact")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{ta("editContact")}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label>{tauth("email")}</Label>
+                    <Input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) =>
+                        setContactForm({ ...contactForm, email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>{tauth("phone")}</Label>
+                    <Input
+                      value={contactForm.telefono}
+                      onChange={(e) =>
+                        setContactForm({
+                          ...contactForm,
+                          telefono: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  {error && contactOpen && (
+                    <p className="text-sm text-red-400">{error}</p>
+                  )}
+                  <Button
+                    onClick={saveContact}
+                    disabled={loading || !contactForm.email.trim()}
+                    className="w-full"
+                  >
+                    {loading ? tc("loading") : tc("save")}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
+            <div>
+              <p className="text-muted-foreground">{tauth("email")}</p>
+              <p className="font-medium">{email || "—"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">{tauth("phone")}</p>
+              <p className="font-medium">{telefono || "—"}</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {current?.fecha_fin && user.rol === "socio" && (

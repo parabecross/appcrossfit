@@ -29,10 +29,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { user_id } = body;
+  const { user_id, target_rol = "socio" } = body;
 
   if (!user_id) {
     return NextResponse.json({ error: "Falta user_id" }, { status: 400 });
+  }
+
+  if (target_rol !== "socio" && target_rol !== "coach") {
+    return NextResponse.json({ error: "Rol no permitido" }, { status: 400 });
   }
 
   if (user_id === user.id) {
@@ -62,10 +66,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (target.rol !== "socio") {
+  if (target.rol !== target_rol) {
     return NextResponse.json(
       {
-        error: `Solo se pueden eliminar socios (este usuario es ${target.rol})`,
+        error:
+          target_rol === "coach"
+            ? "Solo se pueden eliminar coaches"
+            : `Solo se pueden eliminar socios (este usuario es ${target.rol})`,
       },
       { status: 403 }
     );
@@ -92,9 +99,9 @@ export async function POST(request: NextRequest) {
   await logAdminAction({
     actorUserId: user.id,
     boxId: adminProfile.box_id,
-    accion: "eliminar_usuario",
+    accion: target_rol === "coach" ? "eliminar_coach" : "eliminar_usuario",
     targetUserId: user_id,
-    detalle: { nombre_completo: target.nombre_completo },
+    detalle: { nombre_completo: target.nombre_completo, rol: target_rol },
   });
 
   return NextResponse.json({ success: true });

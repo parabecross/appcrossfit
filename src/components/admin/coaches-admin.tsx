@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import type { CoachWithEmail } from "@/lib/queries/coaches";
 import { useRouter } from "@/i18n/routing";
+import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 
 interface Credentials {
   email: string;
@@ -297,6 +298,11 @@ export function CoachesAdmin({
                       >
                         <KeyRound className="h-4 w-4" />
                       </Button>
+                      <DeleteSocioDialog
+                        userId={c.user_id}
+                        nombre={c.nombre_completo}
+                        targetRol="coach"
+                      />
                     </div>
                   </td>
                 </tr>

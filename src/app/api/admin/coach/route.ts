@@ -73,6 +73,7 @@ export async function PATCH(request: NextRequest) {
   if (email) {
     const { error: authError } = await admin.auth.admin.updateUserById(user_id, {
       email,
+      email_confirm: true,
       user_metadata: {
         nombre_completo,
         telefono,

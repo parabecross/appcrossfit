@@ -16,15 +16,19 @@ import { useRouter } from "@/i18n/routing";
 interface DeleteSocioDialogProps {
   userId: string;
   nombre: string;
+  targetRol?: "socio" | "coach";
   variant?: "icon" | "button";
   redirectAfterDelete?: boolean;
+  redirectTo?: string;
 }
 
 export function DeleteSocioDialog({
   userId,
   nombre,
+  targetRol = "socio",
   variant = "icon",
   redirectAfterDelete = false,
+  redirectTo,
 }: DeleteSocioDialogProps) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
@@ -34,6 +38,12 @@ export function DeleteSocioDialog({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const isCoach = targetRol === "coach";
+  const titleKey = isCoach ? "deleteCoach" : "deleteUser";
+  const confirmKey = isCoach ? "deleteCoachConfirm" : "deleteUserConfirm";
+  const warningKey = isCoach ? "deleteCoachWarning" : "deleteUserWarning";
+  const successKey = isCoach ? "deleteCoachSuccess" : "deleteUserSuccess";
+
   const handleDelete = async () => {
     setLoading(true);
     setError(null);
@@ -41,7 +51,7 @@ export function DeleteSocioDialog({
       const res = await fetch("/api/admin/eliminar-usuario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+        body: JSON.stringify({ user_id: userId, target_rol: targetRol }),
       });
       const text = await res.text();
       let data: { error?: string } = {};
@@ -57,7 +67,7 @@ export function DeleteSocioDialog({
       setSuccess(true);
       setOpen(false);
       if (redirectAfterDelete) {
-        router.push("/admin/usuarios");
+        router.push(redirectTo ?? (isCoach ? "/admin/coaches" : "/admin/usuarios"));
       } else {
         router.refresh();
       }
@@ -71,7 +81,7 @@ export function DeleteSocioDialog({
   return (
     <div>
       {success && (
-        <p className="text-sm text-green-400 mb-2">{t("deleteUserSuccess")}</p>
+        <p className="text-sm text-green-400 mb-2">{t(successKey)}</p>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
@@ -84,18 +94,18 @@ export function DeleteSocioDialog({
               <Trash2 className="h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="destructive">{t("deleteUser")}</Button>
+            <Button variant="destructive">{t(titleKey)}</Button>
           )}
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("deleteUser")}</DialogTitle>
+            <DialogTitle>{t(titleKey)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {t("deleteUserConfirm", { name: nombre })}
+              {t(confirmKey, { name: nombre })}
             </p>
-            <p className="text-sm text-red-400">{t("deleteUserWarning")}</p>
+            <p className="text-sm text-red-400">{t(warningKey)}</p>
             {error && <p className="text-sm text-red-400">{error}</p>}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setOpen(false)}>
@@ -106,7 +116,7 @@ export function DeleteSocioDialog({
                 onClick={handleDelete}
                 disabled={loading}
               >
-                {loading ? tc("loading") : t("deleteUser")}
+                {loading ? tc("loading") : t(titleKey)}
               </Button>
             </div>
           </div>

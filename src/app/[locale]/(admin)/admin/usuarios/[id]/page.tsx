@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { UserDetailClient } from "@/components/admin/user-detail";
@@ -26,6 +27,13 @@ export default async function UserDetailPage({
 
   if (!user) notFound();
 
+  let email: string | null = null;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = createAdminClient();
+    const { data: authData } = await admin.auth.admin.getUserById(user.user_id);
+    email = authData.user?.email ?? null;
+  }
+
   const entitlements = await getBoxEntitlements(adminProfile.box_id!);
 
   const [{ data: membresias }, { data: planes }, classHistory] =
@@ -46,6 +54,7 @@ export default async function UserDetailPage({
   return (
     <UserDetailClient
       user={user}
+      email={email}
       membresias={membresias ?? []}
       classHistory={classHistory}
       planes={planes ?? []}
