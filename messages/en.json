@@ -217,6 +217,7 @@
     },
     "card": {
       "badge": "Legacy",
+      "athleteCard": "Athlete Card",
       "byAthron": "by ATHRON",
       "level": "Level",
       "age": "Age",
@@ -230,6 +231,9 @@
       "goal": "Goal",
       "poweredBy": "Powered by ATHRON"
     },
+    "preparingCard": "Preparing your Athlete Card…",
+    "waitBeforeShare": "Wait {seconds} seconds before sharing — we're making sure your photo looks perfect.",
+    "waitCountdown": "Ready in {seconds}s…",
     "actions": {
       "share": "Share my Athlete Card",
       "downloadTitle": "Download",

@@ -1,7 +1,8 @@
 /** Tipografía refinada para canvas 1080px */
 export const CARD_TYPO = {
   legacy: 26,
-  byAthron: 20,
+  athleteCard: 22,
+  byAthron: 18,
   name: 68,
   discipline: 24,
   tagline: 28,

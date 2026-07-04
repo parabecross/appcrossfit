@@ -14,7 +14,9 @@ interface AthleteCardProps {
   previewScale?: number;
   labels: {
     legacy: string;
+    athleteCard: string;
     byAthron: string;
+    poweredBy: string;
     levelLabel: string;
     level: Record<string, string>;
     years: string;
@@ -158,41 +160,70 @@ export const AthleteCard = forwardRef<HTMLDivElement, AthleteCardProps>(
 
           {/* Header */}
           <div
-            className="absolute z-10 flex items-center gap-4"
+            className="absolute z-10 flex items-start justify-between gap-4"
             style={{ top: pad, left: pad, right: pad }}
           >
+            <div className="flex items-center gap-4 min-w-0">
+              <div
+                style={{
+                  width: 3,
+                  height: 48,
+                  backgroundColor: accent,
+                  borderRadius: 2,
+                  opacity: 0.9,
+                  flexShrink: 0,
+                }}
+              />
+              <div className="min-w-0">
+                <p
+                  className="uppercase text-white/90"
+                  style={{
+                    fontSize: CARD_TYPO.legacy,
+                    letterSpacing: "0.28em",
+                    fontWeight: 600,
+                    lineHeight: 1,
+                  }}
+                >
+                  {labels.legacy}
+                </p>
+                <p
+                  className="uppercase text-white"
+                  style={{
+                    fontSize: CARD_TYPO.athleteCard,
+                    letterSpacing: "0.14em",
+                    fontWeight: 700,
+                    marginTop: 8,
+                    lineHeight: 1,
+                  }}
+                >
+                  {labels.athleteCard}
+                </p>
+                <p
+                  className="uppercase"
+                  style={{
+                    fontSize: CARD_TYPO.byAthron,
+                    letterSpacing: "0.2em",
+                    fontWeight: 600,
+                    marginTop: 10,
+                    color: accent,
+                    opacity: 0.95,
+                  }}
+                >
+                  {labels.poweredBy}
+                </p>
+              </div>
+            </div>
             <div
+              className="shrink-0 rounded-full border px-3 py-1.5 uppercase font-bold"
               style={{
-                width: 3,
-                height: 36,
-                backgroundColor: accent,
-                borderRadius: 2,
-                opacity: 0.9,
+                fontSize: CARD_TYPO.legacy - 4,
+                letterSpacing: "0.22em",
+                borderColor: `${accent}66`,
+                backgroundColor: `${accent}18`,
+                color: accent,
               }}
-            />
-            <div>
-              <p
-                className="uppercase text-white/90"
-                style={{
-                  fontSize: CARD_TYPO.legacy,
-                  letterSpacing: "0.28em",
-                  fontWeight: 600,
-                  lineHeight: 1,
-                }}
-              >
-                {labels.legacy}
-              </p>
-              <p
-                className="uppercase text-white/50"
-                style={{
-                  fontSize: CARD_TYPO.byAthron,
-                  letterSpacing: "0.22em",
-                  fontWeight: 400,
-                  marginTop: 8,
-                }}
-              >
-                {labels.byAthron}
-              </p>
+            >
+              ATHRON
             </div>
           </div>
 

@@ -28,6 +28,7 @@ import {
   preloadImage,
   waitForFontsReady,
   waitForPaintFrames,
+  LEGACY_SHARE_WAIT_SECONDS,
 } from "@/lib/legacy/preload-image";
 import type { AthleticLevel, LegacyCardFormat } from "@/lib/legacy/types";
 import { LEGACY_CARD_DIMENSIONS } from "@/lib/legacy/types";
@@ -86,16 +87,12 @@ export function LegacyClient({
   activeGoal,
   boxName,
   boxLogoUrl,
-  embeddedPhotoUrl = null,
-  embeddedLogoUrl = null,
 }: {
   profile: Profile;
   perfilDeportivo: AtletaPerfilDeportivo | null;
   activeGoal: AtletaObjetivo | null;
   boxName: string;
   boxLogoUrl: string | null;
-  embeddedPhotoUrl?: string | null;
-  embeddedLogoUrl?: string | null;
 }) {
   const t = useTranslations("legacy");
   const tc = useTranslations("common");
@@ -114,32 +111,39 @@ export function LegacyClient({
   const [format, setFormat] = useState<LegacyCardFormat>("story");
   const [loading, setLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
-  const [exportReady, setExportReady] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
+  const [shareReady, setShareReady] = useState(false);
+  const [waitSeconds, setWaitSeconds] = useState(LEGACY_SHARE_WAIT_SECONDS);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resolvedPhotoUrl, setResolvedPhotoUrl] = useState<string | null>(
-    embeddedPhotoUrl ?? profile.foto_url
+    profile.foto_url
   );
   const [resolvedLogoUrl, setResolvedLogoUrl] = useState<string | null>(
-    embeddedLogoUrl ?? boxLogoUrl
+    boxLogoUrl
   );
 
   useEffect(() => {
     let cancelled = false;
 
     async function prepareAssets() {
-      setExportReady(false);
+      setAssetsReady(false);
+      setShareReady(false);
+      setWaitSeconds(LEGACY_SHARE_WAIT_SECONDS);
       setError(null);
 
-      await waitForFontsReady();
+      try {
+        await waitForFontsReady();
+      } catch {
+        /* fonts timeout — continue with system fonts */
+      }
 
-      const photoSrc = embeddedPhotoUrl ?? profile.foto_url?.trim() ?? null;
+      const photoSrc = profile.foto_url?.trim() ?? null;
       if (photoSrc) {
         const photoResult = await preloadImage(photoSrc);
         if (cancelled) return;
         if (!photoResult.ok) {
           setError(t("errors.photoExportFailed"));
-          setExportReady(false);
           return;
         }
         setResolvedPhotoUrl(photoResult.url);
@@ -147,20 +151,18 @@ export function LegacyClient({
         setResolvedPhotoUrl(null);
       }
 
-      const logoSrc = embeddedLogoUrl ?? boxLogoUrl?.trim() ?? null;
+      const logoSrc = boxLogoUrl?.trim() ?? null;
       if (logoSrc) {
         const logoResult = await preloadImage(logoSrc);
         if (cancelled) return;
         if (logoResult.ok) {
           setResolvedLogoUrl(logoResult.url);
         }
-      } else {
-        setResolvedLogoUrl(boxLogoUrl);
       }
 
       await waitForPaintFrames(2);
       if (!cancelled) {
-        setExportReady(true);
+        setAssetsReady(true);
       }
     }
 
@@ -168,13 +170,31 @@ export function LegacyClient({
     return () => {
       cancelled = true;
     };
-  }, [
-    embeddedPhotoUrl,
-    embeddedLogoUrl,
-    profile.foto_url,
-    boxLogoUrl,
-    t,
-  ]);
+  }, [profile.foto_url, boxLogoUrl, t]);
+
+  useEffect(() => {
+    if (!assetsReady) {
+      setShareReady(false);
+      setWaitSeconds(LEGACY_SHARE_WAIT_SECONDS);
+      return;
+    }
+
+    setShareReady(false);
+    setWaitSeconds(LEGACY_SHARE_WAIT_SECONDS);
+
+    const interval = window.setInterval(() => {
+      setWaitSeconds((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(interval);
+          setShareReady(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [assetsReady]);
 
   const [form, setForm] = useState({
     fecha_nacimiento: perfilDeportivo?.fecha_nacimiento ?? "",
@@ -236,7 +256,9 @@ export function LegacyClient({
   const cardLabels = useMemo(
     () => ({
       legacy: t("card.badge"),
+      athleteCard: t("card.athleteCard"),
       byAthron: t("card.byAthron"),
+      poweredBy: t("card.poweredBy"),
       levelLabel: t("card.level"),
       level: {
         beginner: t("levels.beginner"),
@@ -314,7 +336,7 @@ export function LegacyClient({
 
   const runExport = useCallback(
     async (targetFormat: LegacyCardFormat) => {
-      if (!exportReady) return;
+      if (!shareReady) return;
 
       setLoading(true);
       setError(null);
@@ -363,7 +385,7 @@ export function LegacyClient({
         setLoading(false);
       }
     },
-    [exportReady, profile.nombre_completo, t, tc]
+    [shareReady, profile.nombre_completo, t, tc]
   );
 
   const [scale, setScale] = useState(0.28);
@@ -383,7 +405,7 @@ export function LegacyClient({
         badge={
           <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-400">
             <Sparkles className="h-3 w-3" />
-            Legacy
+            Athlete Card · ATHRON
           </span>
         }
       />
@@ -553,7 +575,12 @@ export function LegacyClient({
 
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold">{t("preview.title")}</h2>
+            <div>
+              <h2 className="text-sm font-bold">{t("preview.title")}</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-400/90 mt-1">
+                {t("card.poweredBy")}
+              </p>
+            </div>
             <div className="flex rounded-lg border border-white/10 p-0.5">
               {(["story", "post", "square"] as const).map((f) => (
                 <button
@@ -582,16 +609,25 @@ export function LegacyClient({
             />
           </div>
 
-          <div className="border-t border-white/10 pt-4">
+          <div className="border-t border-white/10 pt-4 space-y-2">
+            {!shareReady && (
+              <p className="text-xs text-center text-muted-foreground px-2">
+                {assetsReady
+                  ? t("waitBeforeShare", { seconds: waitSeconds })
+                  : t("preparingCard")}
+              </p>
+            )}
             <Button
               variant="default"
               className="w-full h-12 text-base font-semibold"
-              disabled={loading || !exportReady}
+              disabled={loading || !shareReady}
               onClick={() => void runExport(format)}
             >
               <Share2 className="h-4 w-4 mr-2 shrink-0" />
-              {!exportReady && profile.foto_url
-                ? tc("loading")
+              {!shareReady
+                ? assetsReady
+                  ? t("waitCountdown", { seconds: waitSeconds })
+                  : tc("loading")
                 : t("actions.share")}
             </Button>
           </div>

@@ -1,6 +1,9 @@
 import { resolveImageDataUrl } from "@/lib/legacy/resolve-image-data-url";
 
 const IS_DEV = process.env.NODE_ENV === "development";
+const PRELOAD_TIMEOUT_MS = 20_000;
+
+export const LEGACY_SHARE_WAIT_SECONDS = 5;
 
 export function devLog(label: string, data?: Record<string, unknown>) {
   if (!IS_DEV) return;
@@ -21,10 +24,23 @@ export type PreloadImageResult =
   | { ok: true; url: string; width: number; height: number }
   | { ok: false; error: string; cors?: boolean };
 
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(`timeout:${label}`)), ms);
+    }),
+  ]);
+}
+
 async function decodeLoadedImage(img: HTMLImageElement): Promise<void> {
   if (!img.decode) return;
   try {
-    await img.decode();
+    await withTimeout(img.decode(), PRELOAD_TIMEOUT_MS, "decode");
     devLog("image.decode success", {
       width: img.naturalWidth,
       height: img.naturalHeight,
@@ -37,9 +53,21 @@ async function decodeLoadedImage(img: HTMLImageElement): Promise<void> {
 function loadImageElement(resolvedUrl: string): Promise<PreloadImageResult> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.decoding = "sync";
+    const isDataUrl = resolvedUrl.startsWith("data:");
+    if (!isDataUrl) {
+      img.crossOrigin = "anonymous";
+    }
+    img.decoding = "async";
     img.loading = "eager";
+
+    const finish = (result: PreloadImageResult) => {
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => {
+      finish({ ok: false, error: "timeout:load" });
+    }, PRELOAD_TIMEOUT_MS);
 
     img.onload = () => {
       void (async () => {
@@ -49,24 +77,24 @@ function loadImageElement(resolvedUrl: string): Promise<PreloadImageResult> {
         });
         await decodeLoadedImage(img);
         if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-          resolve({
+          finish({
             ok: true,
             url: resolvedUrl,
             width: img.naturalWidth,
             height: img.naturalHeight,
           });
         } else {
-          resolve({ ok: false, error: "zero dimensions" });
+          finish({ ok: false, error: "zero dimensions" });
         }
       })();
     };
 
     img.onerror = () => {
       devLog("image.onload error", { url: resolvedUrl.slice(0, 120) });
-      resolve({
+      finish({
         ok: false,
         error: "load failed",
-        cors: !resolvedUrl.startsWith("data:"),
+        cors: !isDataUrl,
       });
     };
 
@@ -74,8 +102,7 @@ function loadImageElement(resolvedUrl: string): Promise<PreloadImageResult> {
   });
 }
 
-/** Preload + decode an image URL (resolves remote URLs to data URLs when needed). */
-export async function preloadImage(src: string): Promise<PreloadImageResult> {
+async function preloadImageInner(src: string): Promise<PreloadImageResult> {
   const absolute = toAbsoluteImageUrl(src);
   if (!absolute) return { ok: false, error: "empty url" };
 
@@ -84,7 +111,11 @@ export async function preloadImage(src: string): Promise<PreloadImageResult> {
   let resolvedUrl = absolute;
   if (!absolute.startsWith("data:")) {
     try {
-      resolvedUrl = await resolveImageDataUrl(absolute);
+      resolvedUrl = await withTimeout(
+        resolveImageDataUrl(absolute),
+        PRELOAD_TIMEOUT_MS,
+        "resolve"
+      );
       devLog("preloadImage resolved", {
         backgroundUrl: resolvedUrl.slice(0, 120),
       });
@@ -97,9 +128,23 @@ export async function preloadImage(src: string): Promise<PreloadImageResult> {
   return loadImageElement(resolvedUrl);
 }
 
+/** Preload + decode an image URL (resolves remote URLs to data URLs when needed). */
+export async function preloadImage(src: string): Promise<PreloadImageResult> {
+  try {
+    return await withTimeout(
+      preloadImageInner(src),
+      PRELOAD_TIMEOUT_MS,
+      "preload"
+    );
+  } catch (error) {
+    devLog("preloadImage timeout", { error: String(error) });
+    return { ok: false, error: String(error) };
+  }
+}
+
 export async function waitForFontsReady(): Promise<void> {
   if (typeof document === "undefined" || !document.fonts?.ready) return;
-  await document.fonts.ready;
+  await withTimeout(document.fonts.ready, PRELOAD_TIMEOUT_MS, "fonts");
   devLog("fonts ready");
 }
 
