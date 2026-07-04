@@ -11,6 +11,8 @@
     "demo": "tsx scripts/reset-parabellum-demo.ts",
     "check-isolation": "tsx scripts/check-box-isolation.ts",
     "verify-cupo-migration": "tsx scripts/verify-cupo-migration.ts",
+    "verify-hotfix-security": "tsx scripts/verify-hotfix-security-rest.ts",
+    "apply-hotfix-security-pilot": "tsx scripts/apply-hotfix-security-pilot.ts",
     "e2e-two-boxes": "tsx scripts/e2e-two-box-isolation.ts",
     "teardown-isolation-boxes": "tsx scripts/teardown-isolation-test-boxes.ts",
     "seed-demo-boxes": "tsx scripts/seed-demo-boxes-qa.ts",

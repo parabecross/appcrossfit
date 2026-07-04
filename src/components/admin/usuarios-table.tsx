@@ -68,6 +68,7 @@ export function UsuariosTable({
   const tm = useTranslations("membership.status");
   const tmem = useTranslations("membership");
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     email: "",
@@ -79,6 +80,14 @@ export function UsuariosTable({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const emptyForm = {
+    email: "",
+    password: "",
+    nombre: "",
+    telefono: "",
+    rol: "socio" as const,
+  };
+
   const filtered = users.filter(
     (u) =>
       u.nombre_completo.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,19 +97,25 @@ export function UsuariosTable({
   const createUser = async () => {
     setCreating(true);
     setError(null);
-    const res = await fetch("/api/admin/crear-usuario", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Error");
+    try {
+      const res = await fetch("/api/admin/crear-usuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? tc("error"));
+        return;
+      }
+      setForm(emptyForm);
+      setCreateOpen(false);
+      router.refresh();
+    } catch {
+      setError(tc("error"));
+    } finally {
       setCreating(false);
-      return;
     }
-    router.refresh();
-    setCreating(false);
   };
 
   return (
@@ -112,7 +127,13 @@ export function UsuariosTable({
           onChange={(e) => setSearch(e.target.value)}
           className="w-full sm:max-w-sm"
         />
-        <Dialog>
+        <Dialog
+          open={createOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) setError(null);
+          }}
+        >
           <DialogTrigger asChild>
             <Button>{t("createUser")}</Button>
           </DialogTrigger>
