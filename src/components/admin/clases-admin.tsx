@@ -592,19 +592,6 @@ export function AdminClasesClient({
               </div>
 
               <WorkoutBlock entrenamiento={selectedClaseData.entrenamiento} />
-              {canManageClases && (
-              <div className="flex justify-end">
-                <EditClaseDialog
-                  clase={selectedClaseData}
-                  coaches={coaches}
-                  existingClases={localClases}
-                  locale={locale}
-                  isCoach
-                  variant="button"
-                  onUpdated={handleClassUpdated}
-                />
-              </div>
-              )}
 
               <AttendanceList />
             </div>
@@ -670,22 +657,11 @@ export function AdminClasesClient({
               <CardContent>
                 {selectedClaseData ? (
                   <>
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="mb-3">
                       <p className="text-sm font-medium">
                         {selectedClaseData.nombre} —{" "}
                         {formatShortDay(selectedClaseData.fecha, locale)}
                       </p>
-                      {canManageClases && (
-                      <EditClaseDialog
-                        clase={selectedClaseData}
-                        coaches={coaches}
-                        existingClases={localClases}
-                        locale={locale}
-                        isCoach
-                        variant="icon"
-                        onUpdated={handleClassUpdated}
-                      />
-                      )}
                     </div>
                     <WorkoutBlock
                       entrenamiento={selectedClaseData.entrenamiento}
