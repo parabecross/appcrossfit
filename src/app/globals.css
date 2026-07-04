@@ -39,6 +39,8 @@
   body {
     @apply bg-background text-foreground antialiased overflow-x-hidden;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
@@ -65,7 +67,7 @@
     @apply pb-28 md:pb-0;
   }
   .input-date-compact {
-    @apply block h-11 w-full min-w-0 rounded-xl border border-input bg-secondary/50 px-3 text-sm text-foreground;
+    @apply block h-11 w-full min-w-0 rounded-xl border border-input bg-secondary/50 px-3 text-base md:text-sm text-foreground;
     -webkit-appearance: none;
     appearance: none;
     line-height: 1.25rem;

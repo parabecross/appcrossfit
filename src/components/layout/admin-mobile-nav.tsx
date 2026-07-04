@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   Trophy,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +59,33 @@ function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boole
   if (pathname.includes("/ranking")) return t("ranking");
   if (pathname.includes("/estadisticas")) return t("stats");
   return isCoach ? "Coach" : "Admin";
+}
+
+function AdminMobileNavTab({
+  href,
+  icon: Icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2.5 min-h-[56px] min-w-[48px] text-xs font-semibold leading-tight transition-[color,background] active:scale-[0.97]",
+        active
+          ? "text-primary bg-primary/10"
+          : "text-muted-foreground active:bg-white/5"
+      )}
+    >
+      <Icon className={cn("h-6 w-6 shrink-0", active && "stroke-[2.5]")} />
+      <span className="truncate max-w-full text-center">{label}</span>
+    </Link>
+  );
 }
 
 export function AdminMobileNav({
@@ -116,35 +144,32 @@ export function AdminMobileNav({
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom">
-        <div className="flex items-stretch justify-around px-1 pt-1.5 pb-1">
-          {tabs.map(({ href, icon: Icon, key }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
-                <span className="truncate max-w-full">{t(key)}</span>
-              </Link>
-            );
-          })}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom touch-manipulation">
+        <div className="flex items-stretch justify-around gap-0.5 px-1.5 pt-2 pb-2">
+          {tabs.map(({ href, icon: Icon, key }) => (
+            <AdminMobileNavTab
+              key={href}
+              href={href}
+              icon={Icon}
+              label={t(key)}
+              active={pathname.startsWith(href)}
+            />
+          ))}
 
           {!isCoach && (
             <button
               type="button"
               onClick={() => setMoreOpen(true)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors",
-                moreActive ? "text-primary" : "text-muted-foreground"
+                "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2.5 min-h-[56px] min-w-[48px] text-xs font-semibold leading-tight transition-[color,background] active:scale-[0.97]",
+                moreActive
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground active:bg-white/5"
               )}
             >
-              <MoreHorizontal className={cn("h-5 w-5", moreActive && "stroke-[2.5]")} />
+              <MoreHorizontal
+                className={cn("h-6 w-6 shrink-0", moreActive && "stroke-[2.5]")}
+              />
               <span>Más</span>
             </button>
           )}
