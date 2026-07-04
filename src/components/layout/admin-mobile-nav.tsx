@@ -48,6 +48,17 @@ const adminMoreLinks = [
   { href: "/admin/mi-perfil", icon: User, key: "profile" },
 ] as const;
 
+const mobileBottomNavTabClass = (active: boolean) =>
+  cn(
+    "mobile-bottom-nav-tab",
+    active
+      ? "text-primary bg-primary/10"
+      : "text-muted-foreground active:bg-white/5"
+  );
+
+const mobileBottomNavIconClass = (active: boolean) =>
+  cn("mobile-bottom-nav-icon", active && "stroke-[2.5]");
+
 function getPageTitle(pathname: string, t: (k: string) => string, isCoach: boolean) {
   if (pathname.includes("/clases")) return t("classes");
   if (pathname.includes("/mis-atletas")) return t("athletes");
@@ -73,16 +84,8 @@ function AdminMobileNavTab({
   active: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2.5 min-h-[56px] min-w-[48px] text-xs font-semibold leading-tight transition-[color,background] active:scale-[0.97]",
-        active
-          ? "text-primary bg-primary/10"
-          : "text-muted-foreground active:bg-white/5"
-      )}
-    >
-      <Icon className={cn("h-6 w-6 shrink-0", active && "stroke-[2.5]")} />
+    <Link href={href} className={mobileBottomNavTabClass(active)}>
+      <Icon className={mobileBottomNavIconClass(active)} />
       <span className="truncate max-w-full text-center">{label}</span>
     </Link>
   );
@@ -144,8 +147,8 @@ export function AdminMobileNav({
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom touch-manipulation">
-        <div className="flex items-stretch justify-around gap-0.5 px-1.5 pt-2 pb-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom">
+        <div className="mobile-bottom-nav flex items-stretch justify-around gap-0.5 px-1 sm:px-1.5">
           {tabs.map(({ href, icon: Icon, key }) => (
             <AdminMobileNavTab
               key={href}
@@ -160,17 +163,10 @@ export function AdminMobileNav({
             <button
               type="button"
               onClick={() => setMoreOpen(true)}
-              className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2.5 min-h-[56px] min-w-[48px] text-xs font-semibold leading-tight transition-[color,background] active:scale-[0.97]",
-                moreActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground active:bg-white/5"
-              )}
+              className={mobileBottomNavTabClass(moreActive)}
             >
-              <MoreHorizontal
-                className={cn("h-6 w-6 shrink-0", moreActive && "stroke-[2.5]")}
-              />
-              <span>Más</span>
+              <MoreHorizontal className={mobileBottomNavIconClass(moreActive)} />
+              <span className="truncate max-w-full text-center">Más</span>
             </button>
           )}
         </div>
@@ -189,22 +185,22 @@ export function AdminMobileNav({
                   href={href}
                   onClick={() => setMoreOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors min-h-[48px]",
                     pathname.startsWith(href)
                       ? "bg-primary/15 text-primary"
                       : "hover:bg-white/5"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-6 w-6 shrink-0" />
                   {t(key)}
                 </Link>
               ))}
               <button
                 type="button"
                 onClick={logout}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground min-h-[48px]"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-6 w-6 shrink-0" />
                 {ta("logout")}
               </button>
             </div>

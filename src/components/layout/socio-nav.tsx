@@ -39,7 +39,7 @@ function MobileNavTab({
       prefetch
       onClick={onNavigate}
       className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2.5 min-h-[56px] min-w-[48px] text-[11px] font-semibold leading-tight transition-[color,background,opacity,transform] active:scale-[0.97]",
+        "mobile-bottom-nav-tab",
         active
           ? "text-primary bg-primary/10"
           : "text-muted-foreground active:bg-white/5",
@@ -47,7 +47,7 @@ function MobileNavTab({
       )}
       aria-busy={pending}
     >
-      <Icon className={cn("h-6 w-6 shrink-0", active && "stroke-[2.5]")} />
+      <Icon className={cn("mobile-bottom-nav-icon", active && "stroke-[2.5]")} />
       <span className="truncate max-w-full text-center">{label}</span>
     </Link>
   );
@@ -163,8 +163,8 @@ export function SocioMobileNav({ brandLabel }: { brandLabel?: string }) {
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom touch-manipulation">
-        <div className="flex items-stretch justify-around gap-0.5 px-1.5 pt-2 pb-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-card/95 backdrop-blur-md md:hidden safe-bottom">
+        <div className="mobile-bottom-nav flex items-stretch justify-around gap-0.5 px-1 sm:px-1.5">
           {links.map(({ href, icon, key }) => (
             <MobileNavTab
               key={href}
