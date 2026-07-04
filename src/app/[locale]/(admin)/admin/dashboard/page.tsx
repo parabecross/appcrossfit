@@ -11,6 +11,7 @@ import { DashboardBoxHeader } from "@/components/admin/dashboard/dashboard-box-h
 import { DashboardTodayHero } from "@/components/admin/dashboard/dashboard-today-hero";
 import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
 import { DashboardPriorityAlerts } from "@/components/admin/dashboard/dashboard-priority-alerts";
+import { BirthdayInfoCard } from "@/components/admin/birthday-info-card";
 import { DashboardUpcomingClasses } from "@/components/admin/dashboard/dashboard-upcoming-classes";
 import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
 import { DashboardChartsSection } from "@/components/admin/dashboard/dashboard-charts-section";
@@ -132,6 +133,8 @@ export default async function AdminDashboardPage({
               }}
             />
           </section>
+
+          <BirthdayInfoCard alerts={data.birthdayAlerts} />
 
           <DashboardPriorityAlerts
             membershipAlerts={data.membershipAlerts}

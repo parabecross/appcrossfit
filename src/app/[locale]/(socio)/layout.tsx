@@ -8,7 +8,9 @@ import {
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
+import { buildBirthdayGreeting } from "@/lib/birthdays/helpers";
 import { todayInTimezone } from "@/lib/dates/date-only";
+import { getOwnBirthdayToday } from "@/lib/queries/birthdays";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,14 @@ export default async function SocioLayout({
   const boxConfig = await getBoxConfig(profile.box_id);
   const today = todayInTimezone(boxConfig.timezone);
 
+  const { isToday, age } = await getOwnBirthdayToday(
+    profile.id,
+    boxConfig.timezone
+  );
+  const birthdayGreeting = isToday
+    ? buildBirthdayGreeting(profile.nombre_completo, locale, age)
+    : null;
+
   return (
     <div className="flex min-h-screen mobile-page w-full overflow-x-hidden">
       <SocioDesktopSidebar brandLabel={boxConfig.name} />
@@ -37,6 +47,7 @@ export default async function SocioLayout({
             audience="athlete"
             locale={locale}
             today={today}
+            birthdayGreeting={birthdayGreeting}
             className="mb-5"
           />
           {children}

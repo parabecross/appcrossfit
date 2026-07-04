@@ -21,6 +21,10 @@ import {
   getMembresiasMapForUsuarios,
 } from "@/lib/queries/memberships";
 import { resolveQueryBoxId } from "@/lib/queries/box-scope";
+import {
+  getBirthdayAlerts,
+  type BirthdayAlert,
+} from "@/lib/queries/birthdays";
 import { getSocioDisplayStatus } from "@/lib/membresias/helpers";
 import {
   computeDemandStats,
@@ -84,6 +88,7 @@ export interface AdminDashboardData {
     demand: ReturnType<typeof computeDemandStats>;
     trend: ReturnType<typeof computeTrendStats>;
   };
+  birthdayAlerts: BirthdayAlert[];
 }
 
 async function getSocioProfiles(boxId: string) {
@@ -108,12 +113,14 @@ export async function getAdminDashboardData(
   const prevWeekRange = getPreviousWeekRange(boxConfig.timezone);
   const supabase = await createClient();
 
-  const [kpis, alertas, statsRaw, todayClasses, socios] = await Promise.all([
+  const [kpis, alertas, statsRaw, todayClasses, socios, birthdayAlerts] =
+    await Promise.all([
     getKpis(resolvedBoxId),
     getAlertasMembresia(resolvedBoxId),
     getStatsData(resolvedBoxId),
     getClasesByDateRange(today, today, resolvedBoxId),
     getSocioProfiles(resolvedBoxId),
+    getBirthdayAlerts(resolvedBoxId, boxConfig.timezone),
   ]);
 
   const socioIds = socios.map((s) => s.id);
@@ -429,5 +436,6 @@ export async function getAdminDashboardData(
     recentSkills: recentSkills.slice(0, 5),
     topConsistentAthletes: [],
     charts: { demand, trend },
+    birthdayAlerts,
   };
 }

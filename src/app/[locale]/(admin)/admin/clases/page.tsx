@@ -12,7 +12,9 @@ import {
 import { getWeekDates, toDateString } from "@/lib/clases/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { AdminClasesClient } from "@/components/admin/clases-admin";
+import { BirthdayInfoCard } from "@/components/admin/birthday-info-card";
 import { LockedFeatureCard } from "@/components/plans/locked-feature-card";
+import { getBirthdayAlerts } from "@/lib/queries/birthdays";
 import { getTranslations } from "next-intl/server";
 import type { Profile, Reserva } from "@/types/database";
 
@@ -101,8 +103,12 @@ export default async function AdminClasesPage({
     reservasFiltradas = await fetchReservasForClases(claseIds);
   }
 
+  const birthdayAlerts = await getBirthdayAlerts(boxId, boxConfig.timezone);
+
   return (
-    <AdminClasesClient
+    <>
+      <BirthdayInfoCard alerts={birthdayAlerts} />
+      <AdminClasesClient
       clases={clases}
       reservas={reservasFiltradas}
       coaches={coaches}
@@ -113,5 +119,6 @@ export default async function AdminClasesPage({
       canManageClases={canManageClases}
       canMarkAttendanceFeature={canMarkAttendanceFeature}
     />
+    </>
   );
 }

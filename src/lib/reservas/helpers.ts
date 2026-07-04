@@ -74,7 +74,7 @@ function isUpcomingActiveReserva(
   if (!isActiveReserva(reserva.estado)) return false;
 
   const clase = clasesById.get(reserva.clase_id);
-  if (!clase) return true;
+  if (!clase) return false;
 
   return !hasClassEnded(clase.fecha, clase.hora_fin, timeZone);
 }

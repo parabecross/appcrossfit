@@ -180,4 +180,54 @@ describe("countUpcomingActiveReservasForUser", () => {
       hasReachedFutureReservaLimit(reservas, profileId, clasesById, tz, 4)
     ).toBe(false);
   });
+
+  it("does not count confirmada when clase is absent from clasesById (past horizon)", () => {
+    const reservas: {
+      clase_id: string;
+      usuario_id: string;
+      estado: ReservaEstado;
+    }[] = [
+      { clase_id: "c-missing-past", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-1", usuario_id: profileId, estado: "confirmada" },
+    ];
+    const sparseClases = new Map([
+      ["c-future-1", { fecha: "2099-06-01", hora_fin: "08:00" }],
+    ]);
+    expect(
+      countUpcomingActiveReservasForUser(reservas, profileId, sparseClases, tz)
+    ).toBe(1);
+  });
+
+  it("does not block limit when only missing-from-map reservas would exceed cap", () => {
+    const reservas: {
+      clase_id: string;
+      usuario_id: string;
+      estado: ReservaEstado;
+    }[] = [
+      { clase_id: "c-missing-1", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-missing-2", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-missing-3", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-1", usuario_id: profileId, estado: "confirmada" },
+    ];
+    const sparseClases = new Map([
+      ["c-future-1", { fecha: "2099-06-01", hora_fin: "08:00" }],
+    ]);
+    expect(
+      hasReachedFutureReservaLimit(reservas, profileId, sparseClases, tz, 3)
+    ).toBe(false);
+  });
+
+  it("still counts future reserva when clase is in clasesById (optimistic book path)", () => {
+    const reservas: {
+      clase_id: string;
+      usuario_id: string;
+      estado: ReservaEstado;
+    }[] = [
+      { clase_id: "c-future-1", usuario_id: profileId, estado: "confirmada" },
+      { clase_id: "c-future-2", usuario_id: profileId, estado: "confirmada" },
+    ];
+    expect(
+      countUpcomingActiveReservasForUser(reservas, profileId, clasesById, tz)
+    ).toBe(2);
+  });
 });

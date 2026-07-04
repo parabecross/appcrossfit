@@ -766,7 +766,15 @@
     "tooltipOccupancy": "Ocupación"
   },
   "motivation": {
-    "dailyTitle": "Mensaje del día"
+    "dailyTitle": "Mensaje del día",
+    "birthdayTitle": "🎂 ¡Feliz cumpleaños!"
+  },
+  "birthdays": {
+    "title": "Cumpleaños",
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "yesterday": "Ayer",
+    "turningAge": "Cumple {age} años"
   },
   "progress": {
     "title": "Mi progreso",
