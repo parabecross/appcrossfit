@@ -4,15 +4,10 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
-import {
-  uploadAvatarForUser,
-  uploadAvatarViaApi,
-} from "@/lib/avatars/upload";
 import { slugifyBoxName } from "@/lib/box/slug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/auth/password-input";
-import { PhotoUploadInput } from "@/components/auth/photo-upload-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -68,10 +63,8 @@ export function RegisterForm() {
     boxName: "",
     boxTimezone: APP_CONFIG.GYM_TIMEZONE as string,
   });
-  const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +90,6 @@ export function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setWarning(null);
 
     if (accountType !== "gym" && !form.boxId) {
       setError(t("selectBoxRequired"));
@@ -137,16 +129,6 @@ export function RegisterForm() {
       setError(signUpError.message);
       setLoading(false);
       return;
-    }
-
-    if (data.user && photo) {
-      const result = data.session
-        ? await uploadAvatarForUser(supabase, data.user.id, photo)
-        : await uploadAvatarViaApi(data.user.id, photo);
-
-      if (result.error) {
-        setWarning(t("photoUploadFailed"));
-      }
     }
 
     if (data.session) {
@@ -306,12 +288,7 @@ export function RegisterForm() {
               />
             </div>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="photo">{t("photo")}</Label>
-            <PhotoUploadInput id="photo" onChange={setPhoto} />
-          </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {warning && <p className="text-sm text-amber-400">{warning}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? tc("loading") : t("register")}
           </Button>
