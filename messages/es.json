@@ -543,7 +543,7 @@
     "expired": "Vencidos",
     "socioStatusPorVencer": "Por vencer",
     "createUser": "Crear socio",
-    "createUserSuccess": "Socio creado. Se envió correo de confirmación si está activo en Supabase.",
+    "createUserSuccess": "Socio creado. Ya puede iniciar sesión con el correo y contraseña asignados.",
     "createCoach": "Crear coach",
     "createCoachDesc": "Define correo y contraseña. El coach recibirá un email para confirmar su cuenta y podrá entrar con esas credenciales.",
     "createCoachSuccess": "Coach creado. Se envió un correo de confirmación — comparte la contraseña con el coach para que pueda entrar tras confirmar.",

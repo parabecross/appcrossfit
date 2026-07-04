@@ -544,7 +544,7 @@
     "expired": "Expired",
     "socioStatusPorVencer": "Expiring soon",
     "createUser": "Create member",
-    "createUserSuccess": "Member created. Confirmation email sent if enabled in Supabase.",
+    "createUserSuccess": "Member created. They can sign in immediately with the email and password you set.",
     "createCoach": "Create coach",
     "createCoachDesc": "Set email and password. The coach will receive a confirmation email and can sign in with those credentials.",
     "createCoachSuccess": "Coach created. Confirmation email sent — share the password so they can sign in after confirming.",

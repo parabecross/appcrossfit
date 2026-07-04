@@ -79,11 +79,12 @@ export async function POST(request: NextRequest) {
   // admin: bypasses RLS — new user forced to auth.box_id in insert below
   const admin = createAdminClient();
 
-  // email_confirm: false → Supabase envía correo de confirmación (si está activo en Auth)
+  // Admin asigna contraseña: marcar email confirmado para login inmediato
+  // (email_confirm: false bloqueaba con "Email not confirmed" sin correo enviado).
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
-    email_confirm: false,
+    email_confirm: true,
     user_metadata: {
       nombre_completo: nombre,
       telefono,
@@ -117,6 +118,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     success: true,
     userId: data.user?.id,
-    emailSent: true,
+    emailConfirmed: true,
   });
 }
