@@ -60,7 +60,6 @@ export default async function MiProgresoPage({
             uniqueTrainingDays: expediente.attendance.uniqueTrainingDays,
           }}
           boxSlug={boxConfig.slug}
-          today={today}
           locale={locale}
         />
       </FeatureGate>

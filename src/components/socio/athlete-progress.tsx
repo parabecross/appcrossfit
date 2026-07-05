@@ -53,7 +53,6 @@ import { ProgressBadgesSummary } from "@/components/socio/progress/progress-badg
 import { ProgressGoals } from "@/components/socio/progress/progress-goals";
 import { ProgressHistoryPanel } from "@/components/socio/progress/progress-history-panel";
 import { ProgressRankingCard } from "@/components/socio/progress/progress-ranking-card";
-import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 import type { BadgeInput } from "@/lib/progreso/badges";
 import type { UserAthronSummary } from "@/lib/ranking/aggregate";
 import type {
@@ -76,7 +75,6 @@ export function AthleteProgress({
   athronSummary,
   badgeInput,
   boxSlug,
-  today,
   locale,
 }: {
   profileId: string;
@@ -87,7 +85,6 @@ export function AthleteProgress({
   athronSummary: UserAthronSummary;
   badgeInput: BadgeInput;
   boxSlug?: string;
-  today: string;
   locale: string;
 }) {
   const t = useTranslations("progress");
@@ -453,13 +450,6 @@ export function AthleteProgress({
 
   return (
     <div className="space-y-4">
-      <DailyMotivationBanner
-        audience="athlete"
-        locale={locale}
-        today={today}
-        compact
-      />
-
       <ProgressRankingCard
         summary={athronSummary}
         locale={locale}
