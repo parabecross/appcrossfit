@@ -21,7 +21,13 @@ export const DEFAULT_EVOLUTION_BONUSES = {
 };
 
 export const DEFAULT_ACHIEVEMENT_POINTS: Record<string, number> = {
-  primer_pr: 20,
+  primer_pr: 50,
+  primer_movimiento: 25,
+  pr_mejora: 100,
+  racha_mejoras_mes: 250,
+  pr_hunter: 300,
+  comeback_pr: 200,
+  best_month: 300,
   siete_dias: 15,
   treinta_dias: 30,
   cien_clases: 50,
@@ -38,6 +44,7 @@ export const DEFAULT_ACHIEVEMENT_POINTS: Record<string, number> = {
   skill_kipping_pull_up: 10,
   skill_butterfly_pull_up: 20,
   murph: 30,
+  /** @deprecated Usar pr_mejora; se mantiene por compatibilidad con eventos antiguos. */
   benchmark: 20,
 };
 

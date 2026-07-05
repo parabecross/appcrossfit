@@ -859,7 +859,13 @@
       "locked": "Locked"
     },
     "badges": {
-      "primer_pr": "First PR",
+      "primer_pr": "First PR/RM logged",
+      "primer_movimiento": "First movement logged",
+      "pr_mejora": "PR/RM improvement",
+      "racha_mejoras_mes": "Improvement streak",
+      "pr_hunter": "PR Hunter",
+      "comeback_pr": "Comeback PR",
+      "best_month": "Best Month",
       "benchmark": "New personal record",
       "murph": "Murph completed",
       "siete_dias": "7 training days",

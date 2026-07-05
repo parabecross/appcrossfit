@@ -5,9 +5,18 @@ import type {
   SkillEstado,
 } from "@/types/database";
 import { SKILL_KEYS, type SkillKey } from "./constants";
+import {
+  countComebackImprovements,
+  enumeratePrImprovements,
+} from "@/lib/ranking/pr-achievements";
 
 export const MILESTONE_BADGE_KEYS = [
   "primer_pr",
+  "pr_mejora",
+  "pr_hunter",
+  "racha_mejoras_mes",
+  "comeback_pr",
+  "best_month",
   "siete_dias",
   "treinta_dias",
   "cien_clases",
@@ -55,9 +64,27 @@ function skillUnlocked(skills: AtletaSkill[], skillKey: SkillKey): boolean {
 
 export function computeBadges(input: BadgeInput): BadgeStatus[] {
   const hasCompletedGoal = input.objetivos.some((o) => o.estado === "completado");
+  const improvements = enumeratePrImprovements(input.marcas);
+  const byMonth = new Map<string, number>();
+  for (const event of improvements) {
+    byMonth.set(event.monthKey, (byMonth.get(event.monthKey) ?? 0) + 1);
+  }
+  const maxMonthImprovements = Math.max(0, ...Array.from(byMonth.values()));
+  const hasRachaMes = Array.from(byMonth.values()).some(
+    (count) => count >= 3
+  );
+  let bestMonthCount = 0;
+  for (const count of byMonth.values()) {
+    bestMonthCount = Math.max(bestMonthCount, count);
+  }
 
   const milestoneRules: Record<MilestoneBadgeKey, boolean> = {
     primer_pr: input.marcas.length > 0,
+    pr_mejora: improvements.length > 0,
+    pr_hunter: improvements.length >= 5,
+    racha_mejoras_mes: hasRachaMes,
+    comeback_pr: countComebackImprovements(input.marcas) > 0,
+    best_month: bestMonthCount > 0,
     siete_dias: input.uniqueTrainingDays >= 7,
     treinta_dias: input.uniqueTrainingDays >= 30,
     cien_clases: input.totalClasses >= 100,

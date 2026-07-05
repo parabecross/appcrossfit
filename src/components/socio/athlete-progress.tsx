@@ -46,7 +46,6 @@ import {
 } from "@/lib/progreso/helpers";
 import { getPrMotivationMessage } from "@/lib/progreso/motivation";
 import {
-  badgeKeysToRevokeAfterPrDelete,
   isSkillAchieved,
   skillBadgeKey,
 } from "@/lib/ranking/achievement-sync";
@@ -118,7 +117,7 @@ export function AthleteProgress({
 
   const latestMarcas = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
 
-  const syncRankingAchievement = async (
+  const syncSkillAchievement = async (
     action: "award" | "revoke",
     badgeKey: string
   ) => {
@@ -132,6 +131,35 @@ export function AthleteProgress({
       body: JSON.stringify({
         usuarioId: profileId,
         badgeKey,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(t("rankingSyncFailed"));
+    }
+  };
+
+  const awardPrAchievements = async (marcaId: string) => {
+    const res = await fetch("/api/ranking/award-pr-achievements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuarioId: profileId,
+        marcaId,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(t("rankingSyncFailed"));
+    }
+    return (await res.json()) as { awarded: string[] };
+  };
+
+  const revokePrAchievements = async (marca: AtletaPrMarca) => {
+    const res = await fetch("/api/ranking/revoke-pr-achievements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuarioId: profileId,
+        marcaId: marca.id,
       }),
     });
     if (!res.ok) {
@@ -214,12 +242,6 @@ export function AthleteProgress({
       prForm.recordTipo,
       rmReps
     );
-    const improved = isPrImprovement(
-      selectedExercise,
-      valor,
-      previous?.valor ?? null
-    );
-
     const { data, error: insertError } = await supabase
       .from("atleta_pr_marcas")
       .insert({
@@ -245,23 +267,22 @@ export function AthleteProgress({
     setMarcas((prev) => [data as AtletaPrMarca, ...prev]);
     setPrOpen(false);
 
-    if (improved) {
+    const isFirstOrImprovement =
+      !previous || isPrImprovement(selectedExercise, valor, previous.valor);
+
+    if (isFirstOrImprovement) {
       const delta = previous
         ? comparePrDelta(selectedExercise, valor, previous.valor, def.unit)
         : "";
       setCelebration(
         `${getPrMotivationMessage(locale)}${delta ? ` (${delta})` : ""}`
       );
-      try {
-        await syncRankingAchievement(
-          "award",
-          marcas.length === 0 ? "primer_pr" : "benchmark"
-        );
-      } catch (syncError) {
-        setError(
-          syncError instanceof Error ? syncError.message : tc("error")
-        );
-      }
+    }
+
+    try {
+      await awardPrAchievements(data.id);
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : tc("error"));
     }
 
     router.refresh();
@@ -288,9 +309,7 @@ export function AthleteProgress({
     setDeleteTarget(null);
 
     try {
-      for (const badgeKey of badgeKeysToRevokeAfterPrDelete(remaining)) {
-        await syncRankingAchievement("revoke", badgeKey);
-      }
+      await revokePrAchievements(marca);
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : tc("error"));
     }
@@ -347,7 +366,7 @@ export function AthleteProgress({
 
       try {
         if (isSkillAchieved(previousEstado)) {
-          await syncRankingAchievement("revoke", skillBadgeKey(skillKey));
+          await syncSkillAchievement("revoke", skillBadgeKey(skillKey));
         }
       } catch (syncError) {
         setError(syncError instanceof Error ? syncError.message : tc("error"));
@@ -412,9 +431,9 @@ export function AthleteProgress({
 
     try {
       if (wasAchieved && !nowAchieved) {
-        await syncRankingAchievement("revoke", badge);
+        await syncSkillAchievement("revoke", badge);
       } else if (!wasAchieved && nowAchieved) {
-        await syncRankingAchievement("award", badge);
+        await syncSkillAchievement("award", badge);
       }
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : tc("error"));

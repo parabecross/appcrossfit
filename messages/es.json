@@ -858,7 +858,13 @@
       "locked": "Bloqueada"
     },
     "badges": {
-      "primer_pr": "Primer PR",
+      "primer_pr": "Primer PR/RM registrado",
+      "primer_movimiento": "Primer movimiento registrado",
+      "pr_mejora": "Mejora de PR/RM",
+      "racha_mejoras_mes": "Racha de mejoras",
+      "pr_hunter": "PR Hunter",
+      "comeback_pr": "Comeback PR",
+      "best_month": "Best Month",
       "benchmark": "Nuevo récord personal",
       "murph": "Murph completado",
       "siete_dias": "7 días entrenando",

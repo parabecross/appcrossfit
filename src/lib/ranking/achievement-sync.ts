@@ -15,15 +15,12 @@ export function skillBadgeKey(skillKey: string): string {
   return `skill_${skillKey}`;
 }
 
-/** Qué insignias de ranking revocar tras borrar una marca PR/RM. */
+/** @deprecated Los logros PR se revocan vía /api/ranking/revoke-pr-achievements */
 export function badgeKeysToRevokeAfterPrDelete(
   remainingMarcas: AtletaPrMarca[]
 ): string[] {
   if (remainingMarcas.length === 0) {
-    return ["primer_pr", "benchmark"];
-  }
-  if (remainingMarcas.length === 1) {
-    return ["benchmark"];
+    return ["primer_pr"];
   }
   return [];
 }
