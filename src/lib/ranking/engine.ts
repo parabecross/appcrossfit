@@ -18,6 +18,12 @@ import {
   shouldRevokePrimerMovimiento,
   shouldRevokePrimerPr,
 } from "./pr-achievements";
+import {
+  buildValidPrIdempotencyKeys,
+  idempotencyKeysForDeletedMarcaSnapshot,
+  isPrAchievementEvent,
+  primerPrIdempotencyKey,
+} from "./pr-achievement-cleanup";
 import { streakBonusForDay } from "./streak";
 import type { AthleticLevel, AtletaPrMarca, RankingConfig } from "@/types/database";
 
@@ -629,6 +635,22 @@ export async function revokeAchievement(params: {
   });
 }
 
+async function deleteEventsByMarcaIdPrefix(
+  admin: AdminClient,
+  marcaId: string,
+  boxId: string
+): Promise<number> {
+  const { data, error } = await admin
+    .from("ranking_point_events")
+    .delete()
+    .eq("box_id", boxId)
+    .like("idempotency_key", `achievement:marca:${marcaId}:%`)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
+}
+
 async function deleteEventsByMarcaMetadata(
   admin: AdminClient,
   marcaId: string,
@@ -869,6 +891,172 @@ export async function reconcilePrAchievementsForMarca(params: {
   return syncPrAchievementsForMarca(params);
 }
 
+export async function cleanupOrphanPrRankingEvents(params: {
+  usuarioId: string;
+  boxId: string;
+  admin?: AdminClient;
+}): Promise<{ eventsRemoved: number; eventsReawarded: number }> {
+  const admin = params.admin ?? createAdminClient();
+
+  const { data: allMarcas } = await admin
+    .from("atleta_pr_marcas")
+    .select("*")
+    .eq("usuario_id", params.usuarioId)
+    .order("fecha", { ascending: true });
+
+  const marcas = (allMarcas ?? []) as AtletaPrMarca[];
+
+  const { data: achievementEvents, error: fetchError } = await admin
+    .from("ranking_point_events")
+    .select("id, idempotency_key, metadata")
+    .eq("box_id", params.boxId)
+    .eq("usuario_id", params.usuarioId)
+    .eq("event_type", "achievement");
+
+  if (fetchError) throw new Error(fetchError.message);
+
+  const prEvents = (achievementEvents ?? []).filter((event) =>
+    isPrAchievementEvent(event, params.usuarioId)
+  );
+
+  let eventsRemoved = 0;
+
+  if (marcas.length === 0) {
+    if (prEvents.length > 0) {
+      const { data, error } = await admin
+        .from("ranking_point_events")
+        .delete()
+        .in(
+          "id",
+          prEvents.map((e) => e.id)
+        )
+        .select("id");
+      if (error) throw new Error(error.message);
+      eventsRemoved += data?.length ?? 0;
+    }
+    return { eventsRemoved, eventsReawarded: 0 };
+  }
+
+  const validKeys = buildValidPrIdempotencyKeys(marcas);
+  const orphanIds = prEvents
+    .filter((event) => !validKeys.has(event.idempotency_key))
+    .map((event) => event.id);
+
+  if (orphanIds.length > 0) {
+    const { data, error } = await admin
+      .from("ranking_point_events")
+      .delete()
+      .in("id", orphanIds)
+      .select("id");
+    if (error) throw new Error(error.message);
+    eventsRemoved += data?.length ?? 0;
+  }
+
+  let eventsReawarded = 0;
+  const sorted = [...marcas].sort((a, b) => {
+    const byDate = a.fecha.localeCompare(b.fecha);
+    if (byDate !== 0) return byDate;
+    return a.created_at.localeCompare(b.created_at);
+  });
+
+  for (let i = 0; i < sorted.length; i++) {
+    const slice = sorted.slice(0, i + 1);
+    const marca = sorted[i];
+    const awards = evaluatePrAchievements({ marca, allMarcas: slice });
+    for (const award of awards) {
+      const result = await awardAchievement({
+        usuarioId: params.usuarioId,
+        boxId: params.boxId,
+        badgeKey: award.badgeKey,
+        fecha: marca.fecha,
+        idempotencyKey: award.idempotencyKey,
+        metadata: award.metadata,
+        admin,
+      });
+      if (result.awarded) eventsReawarded++;
+    }
+  }
+
+  await reawardAggregatePrAchievements(
+    admin,
+    marcas,
+    params.usuarioId,
+    params.boxId
+  );
+
+  return { eventsRemoved, eventsReawarded };
+}
+
+export async function revokePrAchievementsByMarcaId(params: {
+  marcaId: string;
+  usuarioId: string;
+  boxId: string;
+  marcaSnapshot?: AtletaPrMarca | null;
+  admin?: AdminClient;
+}): Promise<{ eventsRemoved: number }> {
+  const admin = params.admin ?? createAdminClient();
+  let eventsRemoved = 0;
+
+  eventsRemoved += await deleteEventsByMarcaMetadata(
+    admin,
+    params.marcaId,
+    params.boxId
+  );
+  eventsRemoved += await deleteEventsByMarcaIdPrefix(
+    admin,
+    params.marcaId,
+    params.boxId
+  );
+
+  if (params.marcaSnapshot) {
+    eventsRemoved += await deleteEventsByIdempotencyKeysForBox(
+      admin,
+      params.boxId,
+      idempotencyKeysForDeletedMarcaSnapshot(params.marcaSnapshot)
+    );
+  }
+
+  const { data: remainingMarcas } = await admin
+    .from("atleta_pr_marcas")
+    .select("*")
+    .eq("usuario_id", params.usuarioId)
+    .order("fecha", { ascending: true });
+
+  const remaining = (remainingMarcas ?? []) as AtletaPrMarca[];
+
+  if (shouldRevokePrimerPr(remaining)) {
+    eventsRemoved += await deleteEventsByIdempotencyKeysForBox(
+      admin,
+      params.boxId,
+      [
+        primerPrIdempotencyKey(params.usuarioId),
+        `achievement:${params.usuarioId}:benchmark`,
+      ]
+    );
+  }
+
+  eventsRemoved += await deleteAggregatePrAchievements(
+    admin,
+    params.usuarioId,
+    params.boxId
+  );
+
+  await reawardAggregatePrAchievements(
+    admin,
+    remaining,
+    params.usuarioId,
+    params.boxId
+  );
+
+  const cleanup = await cleanupOrphanPrRankingEvents({
+    usuarioId: params.usuarioId,
+    boxId: params.boxId,
+    admin,
+  });
+
+  return { eventsRemoved: eventsRemoved + cleanup.eventsRemoved };
+}
+
 export async function revokePrAchievementsForMarca(params: {
   marca: AtletaPrMarca;
   remainingMarcas: AtletaPrMarca[];
@@ -881,7 +1069,8 @@ export async function revokePrAchievementsForMarca(params: {
 
   if (shouldRevokePrimerPr(remainingMarcas)) {
     keysToDelete.push(
-      `achievement:${marca.usuario_id}:${PR_ACHIEVEMENT_KEYS.primer_pr}`
+      `achievement:${marca.usuario_id}:${PR_ACHIEVEMENT_KEYS.primer_pr}`,
+      `achievement:${marca.usuario_id}:benchmark`
     );
   }
 
@@ -891,6 +1080,7 @@ export async function revokePrAchievementsForMarca(params: {
     keysToDelete
   );
   eventsRemoved += await deleteEventsByMarcaMetadata(admin, marca.id, boxId);
+  eventsRemoved += await deleteEventsByMarcaIdPrefix(admin, marca.id, boxId);
   eventsRemoved += await deleteAggregatePrAchievements(
     admin,
     marca.usuario_id,

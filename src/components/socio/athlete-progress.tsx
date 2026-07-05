@@ -160,6 +160,7 @@ export function AthleteProgress({
       body: JSON.stringify({
         usuarioId: profileId,
         marcaId: marca.id,
+        marcaSnapshot: marca,
       }),
     });
     if (!res.ok) {
@@ -293,6 +294,14 @@ export function AthleteProgress({
     setError(null);
     setCelebration(null);
 
+    try {
+      await revokePrAchievements(marca);
+    } catch (syncError) {
+      setLoading(false);
+      setError(syncError instanceof Error ? syncError.message : tc("error"));
+      return;
+    }
+
     const { error: deleteError } = await supabase
       .from("atleta_pr_marcas")
       .delete()
@@ -307,12 +316,6 @@ export function AthleteProgress({
     const remaining = marcas.filter((m) => m.id !== marca.id);
     setMarcas(remaining);
     setDeleteTarget(null);
-
-    try {
-      await revokePrAchievements(marca);
-    } catch (syncError) {
-      setError(syncError instanceof Error ? syncError.message : tc("error"));
-    }
 
     setLoading(false);
     router.refresh();

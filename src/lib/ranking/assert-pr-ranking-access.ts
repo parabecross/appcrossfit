@@ -20,6 +20,8 @@ export async function assertPrRankingAccess(params: {
   caller: ProfileRow;
   targetUsuarioId: string;
   marcaId?: string;
+  /** Si false, permite marcaId aunque ya no exista (revoke post-delete). */
+  requireMarcaExists?: boolean;
 }): Promise<void> {
   if (!params.caller.box_id) {
     throw new RankingAccessError("Forbidden", 403);
@@ -43,7 +45,7 @@ export async function assertPrRankingAccess(params: {
     throw new RankingAccessError("Forbidden", 403);
   }
 
-  if (params.marcaId) {
+  if (params.marcaId && params.requireMarcaExists !== false) {
     const { data: marca, error: marcaError } = await params.supabase
       .from("atleta_pr_marcas")
       .select("id, usuario_id")

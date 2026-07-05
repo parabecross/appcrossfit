@@ -10,11 +10,7 @@ import {
   assertPrRankingAccess,
   RankingAccessError,
 } from "@/lib/ranking/assert-pr-ranking-access";
-import {
-  revokePrAchievementsByMarcaId,
-  revokePrAchievementsForMarca,
-} from "@/lib/ranking/engine";
-import type { AtletaPrMarca } from "@/types/database";
+import { cleanupOrphanPrRankingEvents } from "@/lib/ranking/engine";
 
 export async function POST(request: Request) {
   try {
@@ -26,17 +22,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as {
-      marcaId?: string;
+    const body = (await request.json().catch(() => ({}))) as {
       usuarioId?: string;
-      marcaSnapshot?: AtletaPrMarca | null;
     };
-    if (!body.marcaId || !body.usuarioId) {
-      return NextResponse.json(
-        { error: "marcaId and usuarioId required" },
-        { status: 400 }
-      );
-    }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -48,6 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const targetUsuarioId = body.usuarioId ?? profile.id;
+
     try {
       const ent = await getBoxEntitlements(profile.box_id);
       assertFeatureEnabled(ent, "ranking");
@@ -58,12 +48,18 @@ export async function POST(request: Request) {
       throw e;
     }
 
+    const isAdmin =
+      profile.rol === "admin" || profile.rol === "coach" || profile.rol === "owner";
+
+    if (!isAdmin && targetUsuarioId !== profile.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     try {
       await assertPrRankingAccess({
         supabase,
         caller: profile,
-        targetUsuarioId: body.usuarioId,
-        requireMarcaExists: false,
+        targetUsuarioId,
       });
     } catch (e) {
       if (e instanceof RankingAccessError) {
@@ -72,37 +68,10 @@ export async function POST(request: Request) {
       throw e;
     }
 
-    const admin = createAdminClient();
-    const { data: marca } = await admin
-      .from("atleta_pr_marcas")
-      .select("*")
-      .eq("id", body.marcaId)
-      .eq("usuario_id", body.usuarioId)
-      .maybeSingle();
-
-    if (marca) {
-      const { data: remaining } = await admin
-        .from("atleta_pr_marcas")
-        .select("*")
-        .eq("usuario_id", body.usuarioId)
-        .neq("id", body.marcaId);
-
-      const result = await revokePrAchievementsForMarca({
-        marca: marca as AtletaPrMarca,
-        remainingMarcas: (remaining ?? []) as AtletaPrMarca[],
-        boxId: profile.box_id,
-        admin,
-      });
-
-      return NextResponse.json(result);
-    }
-
-    const result = await revokePrAchievementsByMarcaId({
-      marcaId: body.marcaId,
-      usuarioId: body.usuarioId,
+    const result = await cleanupOrphanPrRankingEvents({
+      usuarioId: targetUsuarioId,
       boxId: profile.box_id,
-      marcaSnapshot: body.marcaSnapshot ?? null,
-      admin,
+      admin: createAdminClient(),
     });
 
     return NextResponse.json(result);
