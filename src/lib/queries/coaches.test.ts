@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("react", () => ({
+  cache: <T extends (...args: never[]) => unknown>(fn: T) => fn,
+}));
+
 import { isAssignableCoach } from "./coaches";
 
 describe("isAssignableCoach", () => {
