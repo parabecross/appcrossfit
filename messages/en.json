@@ -319,7 +319,8 @@
       "expires": "Expires",
       "none": "No active membership",
       "pendingPayment": "Pending payment",
-      "daysLeft": "{days, plural, one {# day left} other {# days left}}"
+      "daysLeft": "{days, plural, one {# day left} other {# days left}}",
+      "viewMembership": "View membership"
     },
     "ranking": {
       "title": "Your monthly ranking",
@@ -813,7 +814,20 @@
       "title": "My progress",
       "subtitle": "Your evolution, consistency, and marks in one place.",
       "pageSubtitle": "Athletic record — evolution, consistency, and personal progress.",
-      "viewAll": "View full record"
+      "viewAll": "View full record",
+      "viewAllBadges": "View all",
+      "viewAllAchievements": "View all",
+      "badgesDialogTitle": "Skill badges",
+      "achievementsDialogTitle": "Achievements",
+      "noBadgesYet": "Mark a skill as achieved to unlock badges.",
+      "noAchievementsYet": "Keep training to unlock achievements.",
+      "weekChange": "vs week",
+      "weekRankSame": "Same position as last week",
+      "rankLeader": "You lead your category this month!",
+      "pointsToNext": "{points} pts to reach #{rank}",
+      "rankPending": "Earn points with attendance to appear on the leaderboard.",
+      "dayRankUp": "Up {delta} place(s) since yesterday",
+      "dayRankDown": "Down {delta} place(s) since yesterday"
     },
     "dashboard": {
       "streak": "Current streak",
@@ -873,6 +887,9 @@
       "coachHelpLabel": "Request for your coach",
       "targetDate": "Target date",
       "markComplete": "Mark complete",
+      "deleteGoal": "Delete goal",
+      "deleteGoalTitle": "Delete goal",
+      "deleteGoalConfirm": "Delete «{goal}»? This action cannot be undone.",
       "status": {
         "en_proceso": "In progress",
         "completado": "Completed",

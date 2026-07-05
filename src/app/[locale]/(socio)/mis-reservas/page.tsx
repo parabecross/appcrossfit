@@ -79,7 +79,6 @@ export default async function MisReservasPage({
         <AthleteMembershipCard
           profile={profile}
           membership={membership}
-          locale={locale}
           today={today}
         />
       }

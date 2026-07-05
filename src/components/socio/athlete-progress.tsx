@@ -51,11 +51,13 @@ import {
   skillBadgeKey,
 } from "@/lib/ranking/achievement-sync";
 import { cn, formatCompactDate } from "@/lib/utils";
-import { ProgressDashboard } from "@/components/socio/progress/progress-dashboard";
+import { ProgressBadgesSummary } from "@/components/socio/progress/progress-badges-summary";
 import { ProgressGoals } from "@/components/socio/progress/progress-goals";
-import { ProgressBadgesPanel } from "@/components/socio/progress/progress-badges-panel";
 import { ProgressHistoryPanel } from "@/components/socio/progress/progress-history-panel";
-import type { AttendanceStats } from "@/lib/progreso/attendance";
+import { ProgressRankingCard } from "@/components/socio/progress/progress-ranking-card";
+import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
+import type { BadgeInput } from "@/lib/progreso/badges";
+import type { UserAthronSummary } from "@/lib/ranking/aggregate";
 import type {
   AtletaObjetivo,
   AtletaPrMarca,
@@ -73,8 +75,10 @@ export function AthleteProgress({
   skills: initialSkills,
   skillHistorial: initialHist,
   objetivos: initialObjetivos,
-  activeGoal,
-  attendance,
+  athronSummary,
+  badgeInput,
+  boxSlug,
+  today,
   locale,
 }: {
   profileId: string;
@@ -82,8 +86,10 @@ export function AthleteProgress({
   skills: AtletaSkill[];
   skillHistorial: AtletaSkillHistorial[];
   objetivos: AtletaObjetivo[];
-  activeGoal: AtletaObjetivo | null;
-  attendance: AttendanceStats & { attendanceRate: number | null };
+  athronSummary: UserAthronSummary;
+  badgeInput: BadgeInput;
+  boxSlug?: string;
+  today: string;
   locale: string;
 }) {
   const t = useTranslations("progress");
@@ -423,38 +429,23 @@ export function AthleteProgress({
   };
 
   return (
-    <div className="space-y-6">
-      {celebration && (
-        <div className="flex gap-3 items-start rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
-          <Trophy className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
-          <div>
-            <Badge variant="success" className="mb-1.5">
-              {t("newRecordBadge")}
-            </Badge>
-            <p className="text-sm text-green-200">{celebration}</p>
-          </div>
-        </div>
-      )}
-
-      <ProgressDashboard
-        marcas={marcas}
-        skills={skills}
-        objetivos={objetivos}
-        activeGoal={activeGoal}
-        attendance={attendance}
+    <div className="space-y-4">
+      <DailyMotivationBanner
+        audience="athlete"
+        locale={locale}
+        today={today}
+        compact
       />
 
-      <ProgressBadgesPanel
-        input={{
-          marcas,
-          skills,
-          objetivos,
-          totalClasses: attendance.totalClasses,
-          uniqueTrainingDays: attendance.uniqueTrainingDays,
-        }}
+      <ProgressRankingCard
+        summary={athronSummary}
+        locale={locale}
+        boxSlug={boxSlug}
       />
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <ProgressBadgesSummary input={badgeInput} />
+
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
         {(["prs", "skills", "goals", "history"] as Tab[]).map((key) => (
           <button
             key={key}
@@ -471,6 +462,18 @@ export function AthleteProgress({
           </button>
         ))}
       </div>
+
+      {tab === "prs" && celebration && (
+        <div className="flex gap-3 items-start rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <Trophy className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
+          <div>
+            <Badge variant="success" className="mb-1.5">
+              {t("newRecordBadge")}
+            </Badge>
+            <p className="text-sm text-green-200">{celebration}</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-400 text-center rounded-xl bg-red-500/10 px-4 py-2">

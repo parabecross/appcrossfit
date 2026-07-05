@@ -15,6 +15,7 @@ export function DailyMotivationBanner({
   today,
   birthdayGreeting,
   className,
+  compact = false,
 }: {
   audience: MotivationAudience;
   locale: string;
@@ -22,6 +23,7 @@ export function DailyMotivationBanner({
   today: string;
   birthdayGreeting?: string | null;
   className?: string;
+  compact?: boolean;
 }) {
   const t = useTranslations("motivation");
 
@@ -31,6 +33,42 @@ export function DailyMotivationBanner({
   );
 
   const isBirthday = Boolean(birthdayGreeting);
+  const text = isBirthday ? birthdayGreeting : message;
+
+  if (compact && !isBirthday) {
+    return (
+      <p
+        className={cn(
+          "flex gap-1.5 items-start text-xs leading-snug text-muted-foreground",
+          className
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <Sparkles
+          className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"
+          aria-hidden
+        />
+        <span>{text}</span>
+      </p>
+    );
+  }
+
+  if (compact && isBirthday) {
+    return (
+      <p
+        className={cn(
+          "flex gap-1.5 items-start text-xs leading-snug text-amber-200/90",
+          className
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <Cake className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" aria-hidden />
+        <span>{text}</span>
+      </p>
+    );
+  }
 
   return (
     <div

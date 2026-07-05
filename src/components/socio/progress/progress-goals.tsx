@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Target } from "lucide-react";
+import { Plus, Target, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,7 @@ export function ProgressGoals({
     nombre: "",
     fecha_objetivo: "",
   });
+  const [deleteTarget, setDeleteTarget] = useState<AtletaObjetivo | null>(null);
 
   const resetForm = () => {
     setForm({ nombre: "", fecha_objetivo: "" });
@@ -101,6 +102,27 @@ export function ProgressGoals({
     setObjetivos((prev) =>
       prev.map((o) => (o.id === id ? (data as AtletaObjetivo) : o))
     );
+    router.refresh();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setLoading(true);
+    const { error: deleteError } = await supabase
+      .from("atleta_objetivos")
+      .delete()
+      .eq("id", deleteTarget.id);
+
+    setLoading(false);
+
+    if (deleteError) {
+      setError(deleteError.message ?? tc("error"));
+      return;
+    }
+
+    setObjetivos((prev) => prev.filter((o) => o.id !== deleteTarget.id));
+    setDeleteTarget(null);
     router.refresh();
   };
 
@@ -165,17 +187,29 @@ export function ProgressGoals({
                   </p>
                 )}
               </div>
-              <Badge
-                variant={
-                  goal.estado === "completado"
-                    ? "success"
-                    : goal.estado === "en_proceso"
-                      ? "warning"
-                      : "secondary"
-                }
-              >
-                {t(`status.${goal.estado}`)}
-              </Badge>
+              <div className="flex items-start gap-1 shrink-0">
+                <Badge
+                  variant={
+                    goal.estado === "completado"
+                      ? "success"
+                      : goal.estado === "en_proceso"
+                        ? "warning"
+                        : "secondary"
+                  }
+                >
+                  {t(`status.${goal.estado}`)}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-red-400 hover:text-red-300"
+                  onClick={() => setDeleteTarget(goal)}
+                  disabled={loading}
+                  aria-label={t("deleteGoal")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {goal.notas && (
@@ -211,6 +245,42 @@ export function ProgressGoals({
         t={t}
         tc={tc}
       />
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("deleteGoalTitle")}</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t("deleteGoalConfirm", { goal: deleteTarget.nombre })}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={loading}
+                >
+                  {tc("cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => void confirmDelete()}
+                  disabled={loading}
+                >
+                  {loading ? tc("loading") : tc("delete")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

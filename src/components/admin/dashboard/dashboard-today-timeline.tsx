@@ -64,10 +64,7 @@ export function DashboardTodayTimeline({
   const t = useTranslations("adminDashboard.today");
   const dayGroups = useMemo(() => groupActivityByDay(events), [events]);
 
-  const [expandedDays, setExpandedDays] = useState<Set<string>>(() => {
-    const first = dayGroups[0]?.dateKey;
-    return first ? new Set([first]) : new Set();
-  });
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
 
   const toggleDay = (dateKey: string) => {
     setExpandedDays((prev) => {

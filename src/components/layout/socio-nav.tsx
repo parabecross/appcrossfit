@@ -135,13 +135,13 @@ export function SocioMobileNav({ brandLabel }: { brandLabel?: string }) {
   return (
     <>
       <header className="sticky top-0 z-40 w-full shrink-0 border-b border-white/5 bg-background/90 backdrop-blur-md md:hidden safe-top">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl brand-gradient">
-              <Dumbbell className="h-4 w-4 text-white" />
+        <div className="flex items-center justify-between gap-2 px-3 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg brand-gradient">
+              <Dumbbell className="h-3.5 w-3.5 text-white" />
             </div>
-            <div className="min-w-0">
-              <p className="font-black text-xs tracking-wider uppercase brand-text truncate">
+            <div className="min-w-0 leading-tight">
+              <p className="font-bold text-[11px] tracking-wide brand-text truncate">
                 {brand}
               </p>
               <p className="text-sm font-semibold truncate">
@@ -149,12 +149,12 @@ export function SocioMobileNav({ brandLabel }: { brandLabel?: string }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             <LanguageSwitcher />
             <button
               type="button"
               onClick={logout}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/5 hover:text-foreground"
               aria-label={ta("logout")}
             >
               <LogOut className="h-4 w-4" />

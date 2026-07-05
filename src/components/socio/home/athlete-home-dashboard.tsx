@@ -67,12 +67,14 @@ export function AthleteHomeDashboard({
   );
 
   return (
-    <div className="space-y-6 pb-4 md:pb-2">
-      <header className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-black brand-text leading-tight">
+    <div className="space-y-4 pb-2 md:space-y-6 md:pb-4">
+      <header>
+        <h1 className="text-xl font-bold brand-text leading-tight md:text-3xl md:font-black">
           {t("greeting", { name: firstName })}
         </h1>
-        <p className="text-sm text-muted-foreground">{t("tagline")}</p>
+        <p className="hidden md:block text-sm text-muted-foreground mt-1">
+          {t("tagline")}
+        </p>
       </header>
 
       {showBanner && bannerType && (
@@ -91,46 +93,41 @@ export function AthleteHomeDashboard({
         title={ts("bookingsSubtitle")}
         description={ts("bookingsSubtitle")}
       >
-        <section className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
-          <div className="px-4 pt-4 pb-3 border-b border-white/5">
-            <p className="text-sm font-bold">{t("sections.bookingTitle")}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {localNextBooking
-                ? t("sections.bookingSubtitleBooked")
-                : t("sections.bookingSubtitle")}
-            </p>
-          </div>
-
-          {localNextBooking && (
-            <div className="px-4 py-3 border-b border-white/5">
-              <AthleteNextClassCard
-                booking={localNextBooking}
-                locale={locale}
-                gymTimezone={gymTimezone}
-                reservas={localReservas}
-                serverReservas={serverReservas}
-                profileId={profileId}
-                onReservationsChange={setLocalReservas}
-              />
-            </div>
-          )}
-
-          <div className="p-4">
-            <WeeklyCalendar
-              clases={clases}
+        <div className="space-y-3">
+          {localNextBooking ? (
+            <AthleteNextClassCard
+              booking={localNextBooking}
+              locale={locale}
+              gymTimezone={gymTimezone}
               reservas={localReservas}
               serverReservas={serverReservas}
               profileId={profileId}
-              canBook={canBook}
-              locale={locale}
-              gymTimezone={gymTimezone}
-              classScores={classScores}
-              athleteLevel={athleteLevel}
-              hideRankingWidget
               onReservationsChange={setLocalReservas}
             />
-          </div>
-        </section>
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-3">
+              <p className="text-sm font-medium">{t("nextClass.emptyTitle")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("nextClass.emptyDesc")}
+              </p>
+            </div>
+          )}
+
+          <WeeklyCalendar
+            clases={clases}
+            reservas={localReservas}
+            serverReservas={serverReservas}
+            profileId={profileId}
+            canBook={canBook}
+            locale={locale}
+            gymTimezone={gymTimezone}
+            classScores={classScores}
+            athleteLevel={athleteLevel}
+            hideRankingWidget
+            socioCompact
+            onReservationsChange={setLocalReservas}
+          />
+        </div>
       </FeatureGate>
 
       <FeatureGate

@@ -227,11 +227,18 @@ export async function getAthronRankingForBox(params: {
   };
 }
 
-function computeRankDelta(
+function addDays(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + delta);
+  return dt.toISOString().slice(0, 10);
+}
+
+function computeRankDeltaBetween(
   usuarioId: string,
   allEvents: RankingPointEvent[],
-  yesterday: string,
-  today: string,
+  earlierDate: string,
+  laterDate: string,
   category: AthleticLevel,
   levelMap: Map<string, string | null>
 ): number | null {
@@ -247,10 +254,28 @@ function computeRankDelta(
     return idx === -1 ? null : idx + 1;
   };
 
-  const rankYesterday = rankOn(yesterday);
-  const rankToday = rankOn(today);
-  if (rankYesterday === null || rankToday === null) return null;
-  return rankYesterday - rankToday;
+  const rankEarlier = rankOn(earlierDate);
+  const rankLater = rankOn(laterDate);
+  if (rankEarlier === null || rankLater === null) return null;
+  return rankEarlier - rankLater;
+}
+
+function computeRankDelta(
+  usuarioId: string,
+  allEvents: RankingPointEvent[],
+  yesterday: string,
+  today: string,
+  category: AthleticLevel,
+  levelMap: Map<string, string | null>
+): number | null {
+  return computeRankDeltaBetween(
+    usuarioId,
+    allEvents,
+    yesterday,
+    today,
+    category,
+    levelMap
+  );
 }
 
 async function buildDailyHistory(
@@ -345,6 +370,11 @@ export type UserAthronSummary = {
   streak: number;
   category: AthleticLevel | null;
   attendances: number;
+  rank_delta: number | null;
+  week_rank_delta: number | null;
+  points_to_next: number | null;
+  next_rank: number | null;
+  leaderboard_size: number | null;
 };
 
 export async function getUserAthronSummary(params: {
@@ -366,7 +396,6 @@ export async function getUserAthronSummary(params: {
         .from("ranking_point_events")
         .select("*")
         .eq("box_id", params.boxId)
-        .eq("usuario_id", params.usuarioId)
         .eq("month_key", month_key),
       admin
         .from("atleta_perfil_deportivo")
@@ -383,7 +412,8 @@ export async function getUserAthronSummary(params: {
     ]);
 
   const category = (perfil?.nivel_deportivo as AthleticLevel | null) ?? null;
-  const userEvents = (events ?? []) as RankingPointEvent[];
+  const allEvents = (events ?? []) as RankingPointEvent[];
+  const userEvents = allEvents.filter((e) => e.usuario_id === params.usuarioId);
   const month_points = sumPoints(userEvents);
   const today_points = sumPoints(userEvents.filter((e) => e.fecha === today));
   const attendances = userEvents.filter((e) => e.event_type === "attendance").length;
@@ -400,6 +430,12 @@ export async function getUserAthronSummary(params: {
   const streak = computeAttendanceStreak(Array.from(new Set(dates)), today);
 
   let month_rank: number | null = null;
+  let rank_delta: number | null = null;
+  let week_rank_delta: number | null = null;
+  let points_to_next: number | null = null;
+  let next_rank: number | null = null;
+  let leaderboard_size: number | null = null;
+
   if (category) {
     const data = await getAthronRankingForBox({
       boxSlug: params.boxSlug,
@@ -407,8 +443,36 @@ export async function getUserAthronSummary(params: {
       category,
     });
     if (data) {
+      leaderboard_size = data.leaderboard.length;
       const row = data.leaderboard.find((r) => r.usuario_id === params.usuarioId);
       month_rank = row?.rank ?? null;
+      rank_delta = row?.rank_delta ?? null;
+
+      if (row && row.rank > 1) {
+        const above = data.leaderboard[row.rank - 2];
+        points_to_next = Math.max(1, above.total_points - row.total_points + 1);
+        next_rank = row.rank - 1;
+      }
+
+      const userIds = Array.from(new Set(allEvents.map((e) => e.usuario_id)));
+      const { data: perfiles } = userIds.length
+        ? await admin
+            .from("atleta_perfil_deportivo")
+            .select("usuario_id, nivel_deportivo")
+            .in("usuario_id", userIds)
+        : { data: [] };
+      const levelMap = new Map(
+        (perfiles ?? []).map((p) => [p.usuario_id, p.nivel_deportivo])
+      );
+      const weekAgo = addDays(today, -7);
+      week_rank_delta = computeRankDeltaBetween(
+        params.usuarioId,
+        allEvents,
+        weekAgo,
+        today,
+        category,
+        levelMap
+      );
     }
   }
 
@@ -419,5 +483,10 @@ export async function getUserAthronSummary(params: {
     streak,
     category,
     attendances,
+    rank_delta,
+    week_rank_delta,
+    points_to_next,
+    next_rank,
+    leaderboard_size,
   };
 }

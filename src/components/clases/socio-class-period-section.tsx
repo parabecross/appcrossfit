@@ -18,11 +18,11 @@ export function SocioClassPeriodSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+    <section className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden md:rounded-2xl md:border-white/10">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
+        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left hover:bg-white/[0.02] transition-colors md:px-4 md:py-3.5"
         aria-expanded={open}
       >
         <div className="min-w-0">

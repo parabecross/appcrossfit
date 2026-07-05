@@ -42,13 +42,21 @@ export default async function SocioLayout({
         <header className="hidden md:flex items-center justify-end border-b border-white/5 px-6 py-3 shrink-0">
           <LanguageSwitcher />
         </header>
-        <main className="flex-1 w-full px-4 py-4 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden">
+        <main className="flex-1 w-full px-4 py-3 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden">
           <DailyMotivationBanner
             audience="athlete"
             locale={locale}
             today={today}
             birthdayGreeting={birthdayGreeting}
-            className="mb-5"
+            compact
+            className="mb-3 md:hidden"
+          />
+          <DailyMotivationBanner
+            audience="athlete"
+            locale={locale}
+            today={today}
+            birthdayGreeting={birthdayGreeting}
+            className="mb-5 hidden md:block"
           />
           {children}
         </main>

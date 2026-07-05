@@ -319,7 +319,8 @@
       "expires": "Vence",
       "none": "Sin membresía activa",
       "pendingPayment": "Pendiente de pago",
-      "daysLeft": "{days, plural, one {Queda # día} other {Quedan # días}}"
+      "daysLeft": "{days, plural, one {Queda # día} other {Quedan # días}}",
+      "viewMembership": "Ver membresía"
     },
     "ranking": {
       "title": "Tu ranking del mes",
@@ -812,7 +813,20 @@
       "title": "Mi progreso",
       "subtitle": "Tu evolución, constancia y marcas en un solo lugar.",
       "pageSubtitle": "Expediente deportivo — evolución, constancia y progreso personal.",
-      "viewAll": "Ver expediente completo"
+      "viewAll": "Ver expediente completo",
+      "viewAllBadges": "Ver todas",
+      "viewAllAchievements": "Ver todos",
+      "badgesDialogTitle": "Insignias de skills",
+      "achievementsDialogTitle": "Logros",
+      "noBadgesYet": "Marca una skill como lograda para desbloquear insignias.",
+      "noAchievementsYet": "Sigue entrenando para desbloquear logros.",
+      "weekChange": "vs semana",
+      "weekRankSame": "Misma posición que la semana pasada",
+      "rankLeader": "¡Lideras tu categoría este mes!",
+      "pointsToNext": "Te faltan {points} pts para el puesto #{rank}",
+      "rankPending": "Suma puntos con asistencias para aparecer en el ranking.",
+      "dayRankUp": "Subiste {delta} puesto(s) desde ayer",
+      "dayRankDown": "Bajaste {delta} puesto(s) desde ayer"
     },
     "dashboard": {
       "streak": "Racha actual",
@@ -872,6 +886,9 @@
       "coachHelpLabel": "Pedido a tu coach",
       "targetDate": "Fecha objetivo",
       "markComplete": "Marcar completado",
+      "deleteGoal": "Eliminar objetivo",
+      "deleteGoalTitle": "Eliminar objetivo",
+      "deleteGoalConfirm": "¿Eliminar «{goal}»? Esta acción no se puede deshacer.",
       "status": {
         "en_proceso": "En proceso",
         "completado": "Completado",

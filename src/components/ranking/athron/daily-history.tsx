@@ -7,7 +7,6 @@ import { AthleteAvatar } from "@/components/ui/athlete-avatar";
 import { Button } from "@/components/ui/button";
 import {
   formatRankingDayParts,
-  getWeekStartMonday,
 } from "@/lib/dates/format-display";
 import { groupDailyHistoryByWeek } from "@/lib/ranking/daily-history-grouping";
 import { summarizePointBreakdown } from "@/lib/ranking/point-breakdown";
@@ -28,12 +27,10 @@ export function DailyHistory({
   locale: string;
 }) {
   const t = useTranslations("rankingAthron");
-  const [openDay, setOpenDay] = useState<string | null>(days[0]?.fecha ?? null);
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(() => {
-    const first = days[0]?.fecha;
-    if (!first) return new Set();
-    return new Set([getWeekStartMonday(first)]);
-  });
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(
+    () => new Set()
+  );
   const [visibleWeekCount, setVisibleWeekCount] = useState(
     INITIAL_VISIBLE_WEEKS
   );
@@ -155,10 +152,6 @@ export function DailyHistory({
           className="w-full border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
           onClick={() => {
             setVisibleWeekCount((n) => n + 1);
-            const nextWeek = weekGroups[visibleWeekCount];
-            if (nextWeek) {
-              setExpandedWeeks((prev) => new Set(prev).add(nextWeek.weekKey));
-            }
           }}
         >
           {t("dailyHistoryLoadMore")}

@@ -67,6 +67,8 @@ interface WeeklyCalendarProps {
   adminViewMode?: AdminClassesViewMode;
   adminSearch?: string;
   adminCoachFilter?: string;
+  /** Lighter mobile layout for socio booking home */
+  socioCompact?: boolean;
 }
 
 export function WeeklyCalendar({
@@ -93,6 +95,7 @@ export function WeeklyCalendar({
   adminViewMode = "cards",
   adminSearch = "",
   adminCoachFilter = "all",
+  socioCompact = false,
 }: WeeklyCalendarProps) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -545,7 +548,7 @@ export function WeeklyCalendar({
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className={cn("space-y-3", !socioCompact && "md:space-y-6")}>
       {daysWithClasses.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
           {daysWithClasses.map((ds) => {
@@ -564,7 +567,8 @@ export function WeeklyCalendar({
                   setBookError(null);
                 }}
                 className={cn(
-                  "relative flex shrink-0 flex-col items-center min-w-[56px] rounded-2xl px-3 py-2.5 text-xs font-semibold transition-all",
+                  "relative flex shrink-0 flex-col items-center rounded-xl px-2.5 text-xs font-semibold transition-all",
+                  socioCompact ? "min-w-[50px] py-2" : "min-w-[56px] py-2.5 rounded-2xl",
                   isSelected
                     ? "brand-gradient text-white glow-primary"
                     : "bg-secondary/60 text-muted-foreground",
@@ -589,29 +593,52 @@ export function WeeklyCalendar({
       )}
 
       {!isAdmin && myBookingsOnDay > 0 && (
-        <div className="flex items-center gap-2 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-400" />
-          {t("bookedSelectedDay", {
-            count: myBookingsOnDay,
-            dayLabel: bookedDayLabel,
-          })}
-        </div>
+        socioCompact ? (
+          <p className="text-xs text-green-400/90 px-0.5">
+            {t("bookedSelectedDay", {
+              count: myBookingsOnDay,
+              dayLabel: bookedDayLabel,
+            })}
+          </p>
+        ) : (
+          <div className="flex items-center gap-2 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-400" />
+            {t("bookedSelectedDay", {
+              count: myBookingsOnDay,
+              dayLabel: bookedDayLabel,
+            })}
+          </div>
+        )
       )}
 
       {!isAdmin && upcomingReservationCount > 0 && (
-        <div
-          className={cn(
-            "rounded-2xl border px-4 py-3 text-sm leading-relaxed",
-            atReservationLimit
-              ? "border-orange-500/30 bg-orange-500/10 text-orange-200"
-              : "border-white/10 bg-white/[0.03] text-muted-foreground"
-          )}
-        >
-          {t("reservationLimitHint", {
-            count: upcomingReservationCount,
-            max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
-          })}
-        </div>
+        socioCompact ? (
+          <p
+            className={cn(
+              "text-xs leading-relaxed px-0.5",
+              atReservationLimit ? "text-orange-400" : "text-muted-foreground"
+            )}
+          >
+            {t("reservationLimitHint", {
+              count: upcomingReservationCount,
+              max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
+            })}
+          </p>
+        ) : (
+          <div
+            className={cn(
+              "rounded-2xl border px-4 py-3 text-sm leading-relaxed",
+              atReservationLimit
+                ? "border-orange-500/30 bg-orange-500/10 text-orange-200"
+                : "border-white/10 bg-white/[0.03] text-muted-foreground"
+            )}
+          >
+            {t("reservationLimitHint", {
+              count: upcomingReservationCount,
+              max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
+            })}
+          </div>
+        )
       )}
 
       {bookError && (
@@ -706,7 +733,7 @@ export function WeeklyCalendar({
           ))}
         </div>
       ) : (
-        <div className="space-y-3 pb-2">
+        <div className={cn("space-y-2 pb-1", socioCompact && "pb-2")}>
           {socioGroupedClases.map(({ period, classes }) => {
             const bookedInSection = classes.filter((c) => myReservation(c.id)).length;
             return (

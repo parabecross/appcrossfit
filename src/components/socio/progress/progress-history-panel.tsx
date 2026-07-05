@@ -138,7 +138,6 @@ export function ProgressHistoryPanel({
           title={t("historySectionPrs")}
           subtitle={t("historySectionPrsHint")}
           count={marcas.length}
-          defaultOpen={marcas.length > 0 && marcas.length <= 4}
         >
           {marcas.map((m) => (
             <div
@@ -177,9 +176,6 @@ export function ProgressHistoryPanel({
           title={t("historySectionSkills")}
           subtitle={t("historySectionSkillsHint")}
           count={skillHistorial.length}
-          defaultOpen={
-            skillHistorial.length > 0 && skillHistorial.length <= 4
-          }
         >
           {skillHistorial.map((h) => (
             <div

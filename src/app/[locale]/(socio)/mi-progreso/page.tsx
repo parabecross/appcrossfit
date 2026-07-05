@@ -2,11 +2,11 @@ import { getTranslations } from "next-intl/server";
 
 import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
+import { todayInTimezone } from "@/lib/clases/helpers";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { getAtletaExpediente } from "@/lib/queries/expediente";
 import { getUserAthronSummary } from "@/lib/ranking/aggregate";
 import { AthleteProgress } from "@/components/socio/athlete-progress";
-import { AthronProgressSection } from "@/components/ranking/athron/athron-progress-section";
 import { SocioPageHeader } from "@/components/socio/socio-page-header";
 import { FeatureGate } from "@/components/plans/feature-gate";
 
@@ -22,6 +22,7 @@ export default async function MiProgresoPage({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const entitlements = await getBoxEntitlements(profile.box_id!);
+  const today = todayInTimezone(boxConfig.timezone);
   const [expediente, athronSummary] = await Promise.all([
     getAtletaExpediente(profile.id, boxConfig.timezone),
     getUserAthronSummary({
@@ -33,7 +34,7 @@ export default async function MiProgresoPage({
   ]);
 
   return (
-    <div className="space-y-6 pb-24 md:pb-0 md:max-w-4xl md:mx-auto w-full">
+    <div className="space-y-4 pb-24 md:pb-0 md:max-w-4xl md:mx-auto w-full">
       <SocioPageHeader
         title={t("expediente.title")}
         subtitle={t("expediente.pageSubtitle")}
@@ -44,19 +45,22 @@ export default async function MiProgresoPage({
         title={t("expediente.title")}
         description={t("expediente.pageSubtitle")}
       >
-        <AthronProgressSection
-          summary={athronSummary}
-          locale={locale}
-          boxSlug={boxConfig.slug}
-        />
         <AthleteProgress
           profileId={profile.id}
           marcas={expediente.marcas}
           skills={expediente.skills}
           skillHistorial={expediente.skillHistorial}
           objetivos={expediente.objetivos}
-          activeGoal={expediente.activeGoal}
-          attendance={expediente.attendance}
+          athronSummary={athronSummary}
+          badgeInput={{
+            marcas: expediente.marcas,
+            skills: expediente.skills,
+            objetivos: expediente.objetivos,
+            totalClasses: expediente.attendance.totalClasses,
+            uniqueTrainingDays: expediente.attendance.uniqueTrainingDays,
+          }}
+          boxSlug={boxConfig.slug}
+          today={today}
           locale={locale}
         />
       </FeatureGate>

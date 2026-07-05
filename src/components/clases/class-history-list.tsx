@@ -87,16 +87,6 @@ export function ClassHistoryList({
     return monthGroups.slice(0, visibleMonths);
   }, [monthGroups, periodFilter, visibleMonths]);
 
-  const firstMonthKey = monthGroups[0]?.monthKey;
-
-  useEffect(() => {
-    if (!firstMonthKey) return;
-    setExpandedMonths((prev) => {
-      if (prev.size > 0) return prev;
-      return new Set([firstMonthKey]);
-    });
-  }, [firstMonthKey]);
-
   const canEnterScores = !!profileId && !!gymTimezone;
 
   const toggleMonth = (monthKey: string) => {
