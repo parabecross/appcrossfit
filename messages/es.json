@@ -535,7 +535,13 @@
       "morning": "Mañana",
       "afternoon": "Tarde",
       "evening": "Noche"
-    }
+    },
+    "socioTimeBlock": {
+      "morning": "Matutinas",
+      "afternoon": "Vespertinas"
+    },
+    "socioTimeBlockClasses": "{count, plural, one {# clase} other {# clases}}",
+    "socioTimeBlockBooked": "{count, plural, one {# reserva tuya} other {# reservas tuyas}}"
   },
   "admin": {
     "dashboard": "Panel de control",

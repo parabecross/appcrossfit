@@ -16,8 +16,11 @@ import {
 } from "@/lib/clases/helpers";
 import {
   getClassTimeBlock,
+  getSocioDayPeriod,
   type ClassTimeBlock,
+  type SocioDayPeriod,
 } from "@/lib/clases/workout-summary";
+import { SocioClassPeriodSection } from "@/components/clases/socio-class-period-section";
 import { AdminClassCardCompact } from "@/components/admin/clases/admin-class-card-compact";
 import { AdminClassListRow } from "@/components/admin/clases/admin-class-list-row";
 import type { AdminClassesViewMode } from "@/components/admin/clases/admin-classes-toolbar";
@@ -34,8 +37,6 @@ import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
 import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
-import { DeleteClaseDialog } from "@/components/admin/delete-clase-dialog";
-import { EditClaseDialog } from "@/components/admin/edit-clase-dialog";
 import { countReservasForClase, countUpcomingActiveReservasForUser, hasReachedFutureReservaLimit, isActiveReserva, isOptimisticReservaId, occupiedForSocioClass, RESERVA_LIMITE_MAX_CODE } from "@/lib/reservas/helpers";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
@@ -111,6 +112,7 @@ export function WeeklyCalendar({
   const [loading, setLoading] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [bookError, setBookError] = useState<string | null>(null);
+  const [openPeriods, setOpenPeriods] = useState<Set<SocioDayPeriod>>(new Set());
 
   const localReservas = controlled ? reservas : uncontrolledReservas;
   const updateReservas = controlled ? onReservationsChange! : setUncontrolledReservas;
@@ -199,6 +201,19 @@ export function WeeklyCalendar({
       .filter((g) => g.classes.length > 0);
   }, [isAdmin, dayClases]);
 
+  const socioGroupedClases = useMemo(() => {
+    if (isAdmin) return [];
+    const periods: SocioDayPeriod[] = ["morning", "afternoon"];
+    return periods
+      .map((period) => ({
+        period,
+        classes: dayClases.filter(
+          (c) => getSocioDayPeriod(c.hora_inicio) === period
+        ),
+      }))
+      .filter((g) => g.classes.length > 0);
+  }, [isAdmin, dayClases]);
+
   const myReservation = (claseId: string) =>
     localReservas.find(
       (r) =>
@@ -206,6 +221,11 @@ export function WeeklyCalendar({
         r.usuario_id === profileId &&
         isActiveReserva(r.estado)
     );
+
+  useEffect(() => {
+    if (isAdmin) return;
+    setOpenPeriods(new Set());
+  }, [selected, isAdmin]);
 
   const occupiedForSocio = (claseId: string, baseOccupied: number) =>
     occupiedForSocioClass(
@@ -359,6 +379,170 @@ export function WeeklyCalendar({
     classScores.find(
       (s) => s.clase_id === claseId && s.usuario_id === profileId
     );
+
+  const togglePeriod = (period: SocioDayPeriod) => {
+    setOpenPeriods((prev) => {
+      const next = new Set(prev);
+      if (next.has(period)) next.delete(period);
+      else next.add(period);
+      return next;
+    });
+  };
+
+  const periodSectionSubtitle = (
+    classCount: number,
+    bookedCount: number
+  ) => {
+    const classesLabel = t("socioTimeBlockClasses", { count: classCount });
+    if (bookedCount <= 0) return classesLabel;
+    return `${classesLabel} · ${t("socioTimeBlockBooked", { count: bookedCount })}`;
+  };
+
+  const renderSocioClassCard = (clase: Clase) => {
+    const occupied = occupiedForSocio(clase.id, clase.cupo_ocupado ?? 0);
+    const full = occupied >= clase.cupo_maximo;
+    const reservation = myReservation(clase.id);
+    const booked = !!reservation;
+    const canCancel = booked
+      ? canCancelReservation(clase.fecha, clase.hora_inicio, gymTimezone)
+      : false;
+    const bookingClosed = !canBookClass(
+      clase.fecha,
+      clase.hora_inicio,
+      gymTimezone
+    );
+    const classEnded = hasClassEnded(
+      clase.fecha,
+      clase.hora_fin,
+      gymTimezone
+    );
+    const myScore = myScoreForClase(clase.id);
+    const canLogScore =
+      booked &&
+      classEnded &&
+      reservation &&
+      reservation.estado !== "no_asistio" &&
+      !hasScoreResponse(myScore);
+
+    return (
+      <Card
+        key={clase.id}
+        className={cn(
+          "border-white/5 transition-all rounded-2xl overflow-hidden",
+          booked &&
+            "ring-2 ring-green-500/40 border-green-500/30 bg-green-500/[0.03]"
+        )}
+      >
+        {booked && (
+          <div className="bg-green-600/90 px-4 py-1.5 text-center text-xs font-semibold text-white">
+            {t("booked")}
+          </div>
+        )}
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-lg leading-snug flex-1 min-w-0">
+              {clase.nombre}
+            </CardTitle>
+            <Badge
+              variant={full ? "destructive" : booked ? "success" : "secondary"}
+              className="shrink-0"
+            >
+              {full ? t("full") : booked ? t("booked") : t("status.programada")}
+            </Badge>
+          </div>
+          <p className="text-base font-medium text-foreground/90">
+            {formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}
+          </p>
+          {clase.coach_nombre && (
+            <CoachInfo
+              nombre={clase.coach_nombre}
+              fotoUrl={clase.coach_foto_url}
+              bio={clase.coach_bio}
+            />
+          )}
+          <WorkoutBlock entrenamiento={clase.entrenamiento} />
+        </CardHeader>
+        <CardContent className="space-y-4 pb-5">
+          <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
+          {canLogScore && reservation && (
+            <ScoreEntryForm
+              claseId={clase.id}
+              reservaId={reservation.id}
+              usuarioId={profileId}
+            />
+          )}
+          {booked && classEnded && myScore && hasScoreResponse(myScore) && (
+            <ScoreResponseSummary score={myScore} />
+          )}
+          {booked && !classEnded ? (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl text-base"
+                disabled={!canCancel || loading === reservation?.id}
+                onClick={() =>
+                  handleCancel(
+                    reservation!.id,
+                    clase.fecha,
+                    clase.hora_inicio
+                  )
+                }
+              >
+                {loading === reservation?.id
+                  ? tc("loading")
+                  : t("cancelBooking")}
+              </Button>
+              {!canCancel && (
+                <p className="text-xs text-orange-400 text-center leading-relaxed">
+                  {t("cancelTooLate", {
+                    hours: APP_CONFIG.CANCELACION_HORAS,
+                  })}
+                </p>
+              )}
+            </div>
+          ) : !booked ? (
+            <div className="space-y-2">
+              <Button
+                className="w-full h-12 rounded-xl text-base font-semibold"
+                disabled={
+                  !canBook ||
+                  full ||
+                  bookingClosed ||
+                  atReservationLimit ||
+                  loading === clase.id
+                }
+                onClick={() => handleBook(clase.id)}
+              >
+                {loading === clase.id
+                  ? tc("loading")
+                  : full
+                    ? t("full")
+                    : atReservationLimit
+                      ? t("reservationLimitShort")
+                      : bookingClosed
+                        ? t("bookClosed")
+                        : t("book")}
+              </Button>
+              {atReservationLimit && !full && !bookingClosed && (
+                <p className="text-xs text-orange-400 text-center leading-relaxed">
+                  {t("reservationLimit", {
+                    max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
+                  })}
+                </p>
+              )}
+              {bookingClosed && !full && !classEnded && !atReservationLimit && (
+                <p className="text-xs text-orange-400 text-center leading-relaxed">
+                  {t("bookTooLate", {
+                    minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS,
+                  })}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -522,196 +706,21 @@ export function WeeklyCalendar({
           ))}
         </div>
       ) : (
-        <div className="grid gap-3 md:gap-4 md:grid-cols-2">
-          {dayClases.map((clase) => {
-            const occupied = isAdmin
-              ? countReservasForClase(localReservas, clase.id)
-              : occupiedForSocio(clase.id, clase.cupo_ocupado ?? 0);
-            const full = occupied >= clase.cupo_maximo;
-            const reservation = myReservation(clase.id);
-            const booked = !!reservation;
-            const canCancel = booked
-              ? canCancelReservation(clase.fecha, clase.hora_inicio, gymTimezone)
-              : false;
-            const bookingClosed = !canBookClass(
-              clase.fecha,
-              clase.hora_inicio,
-              gymTimezone
-            );
-            const classEnded = hasClassEnded(
-              clase.fecha,
-              clase.hora_fin,
-              gymTimezone
-            );
-            const myScore = myScoreForClase(clase.id);
-            const canLogScore =
-              !isAdmin &&
-              booked &&
-              classEnded &&
-              reservation &&
-              reservation.estado !== "no_asistio" &&
-              !hasScoreResponse(myScore);
-
+        <div className="space-y-3 pb-2">
+          {socioGroupedClases.map(({ period, classes }) => {
+            const bookedInSection = classes.filter((c) => myReservation(c.id)).length;
             return (
-              <Card
-                key={clase.id}
-                className={cn(
-                  "border-white/5 transition-all rounded-2xl overflow-hidden",
-                  booked &&
-                    !isAdmin &&
-                    "ring-2 ring-green-500/40 border-green-500/30 bg-green-500/[0.03]",
-                  isAdmin &&
-                    onClassSelect &&
-                    selectedClaseId === clase.id &&
-                    "ring-2 ring-primary/50 border-primary/30",
-                  isAdmin && onClassSelect && "cursor-pointer active:scale-[0.99]"
-                )}
-                onClick={
-                  isAdmin && onClassSelect
-                    ? () => onClassSelect(clase.id)
-                    : undefined
-                }
+              <SocioClassPeriodSection
+                key={period}
+                title={t(`socioTimeBlock.${period}`)}
+                subtitle={periodSectionSubtitle(classes.length, bookedInSection)}
+                open={openPeriods.has(period)}
+                onToggle={() => togglePeriod(period)}
               >
-                {booked && !isAdmin && (
-                  <div className="bg-green-600/90 px-4 py-1.5 text-center text-xs font-semibold text-white">
-                    {t("booked")}
-                  </div>
-                )}
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-lg leading-snug flex-1 min-w-0">
-                      {clase.nombre}
-                    </CardTitle>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isAdmin && canEditClass && (
-                        <EditClaseDialog
-                          clase={clase}
-                          coaches={coaches}
-                          existingClases={clases}
-                          locale={locale}
-                          onUpdated={onClassUpdated}
-                        />
-                      )}
-                      {isAdmin && (
-                        <DeleteClaseDialog
-                          claseId={clase.id}
-                          nombre={clase.nombre}
-                          fecha={clase.fecha}
-                          locale={locale}
-                          enrolledCount={occupied}
-                          variant="icon"
-                          onDeleted={() => onClassDeleted?.(clase.id)}
-                        />
-                      )}
-                      <Badge
-                        variant={full ? "destructive" : booked ? "success" : "secondary"}
-                        className="shrink-0"
-                      >
-                        {full ? t("full") : booked ? t("booked") : t("status.programada")}
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="text-base font-medium text-foreground/90">
-                    {formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}
-                  </p>
-                  {clase.coach_nombre && (
-                    <CoachInfo
-                      nombre={clase.coach_nombre}
-                      fotoUrl={clase.coach_foto_url}
-                      bio={clase.coach_bio}
-                    />
-                  )}
-                  <WorkoutBlock entrenamiento={clase.entrenamiento} />
-                </CardHeader>
-                <CardContent className="space-y-4 pb-5">
-                  <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
-                  {!isAdmin && (
-                    <>
-                      {canLogScore && reservation && (
-                        <ScoreEntryForm
-                          claseId={clase.id}
-                          reservaId={reservation.id}
-                          usuarioId={profileId}
-                        />
-                      )}
-                      {!isAdmin &&
-                        booked &&
-                        classEnded &&
-                        myScore &&
-                        hasScoreResponse(myScore) && (
-                          <ScoreResponseSummary score={myScore} />
-                        )}
-                      {booked && !classEnded ? (
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            className="w-full h-12 rounded-xl text-base"
-                            disabled={
-                              !canCancel || loading === reservation?.id
-                            }
-                            onClick={() =>
-                              handleCancel(
-                                reservation!.id,
-                                clase.fecha,
-                                clase.hora_inicio
-                              )
-                            }
-                          >
-                            {loading === reservation?.id
-                              ? tc("loading")
-                              : t("cancelBooking")}
-                          </Button>
-                          {!canCancel && (
-                            <p className="text-xs text-orange-400 text-center leading-relaxed">
-                              {t("cancelTooLate", {
-                                hours: APP_CONFIG.CANCELACION_HORAS,
-                              })}
-                            </p>
-                          )}
-                        </div>
-                      ) : !booked ? (
-                        <div className="space-y-2">
-                          <Button
-                            className="w-full h-12 rounded-xl text-base font-semibold"
-                            disabled={
-                              !canBook ||
-                              full ||
-                              bookingClosed ||
-                              atReservationLimit ||
-                              loading === clase.id
-                            }
-                            onClick={() => handleBook(clase.id)}
-                          >
-                            {loading === clase.id
-                              ? tc("loading")
-                              : full
-                                ? t("full")
-                                : atReservationLimit
-                                  ? t("reservationLimitShort")
-                                  : bookingClosed
-                                    ? t("bookClosed")
-                                    : t("book")}
-                          </Button>
-                          {atReservationLimit && !full && !bookingClosed && (
-                            <p className="text-xs text-orange-400 text-center leading-relaxed">
-                              {t("reservationLimit", {
-                                max: APP_CONFIG.MAX_SOCIO_FUTURE_RESERVAS,
-                              })}
-                            </p>
-                          )}
-                          {bookingClosed && !full && !classEnded && !atReservationLimit && (
-                            <p className="text-xs text-orange-400 text-center leading-relaxed">
-                              {t("bookTooLate", {
-                                minutes: APP_CONFIG.RESERVA_CIERRE_MINUTOS,
-                              })}
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {classes.map((clase) => renderSocioClassCard(clase))}
+                </div>
+              </SocioClassPeriodSection>
             );
           })}
         </div>

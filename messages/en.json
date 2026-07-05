@@ -536,7 +536,13 @@
       "morning": "Morning",
       "afternoon": "Afternoon",
       "evening": "Evening"
-    }
+    },
+    "socioTimeBlock": {
+      "morning": "Morning classes",
+      "afternoon": "Afternoon & evening"
+    },
+    "socioTimeBlockClasses": "{count, plural, one {# class} other {# classes}}",
+    "socioTimeBlockBooked": "{count, plural, one {# booking} other {# bookings}}"
   },
   "admin": {
     "dashboard": "Control panel",

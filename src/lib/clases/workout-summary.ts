@@ -14,6 +14,14 @@ export function summarizeWorkout(
 
 export type ClassTimeBlock = "morning" | "afternoon" | "evening";
 
+/** Socio booking view: before noon vs noon onwards. */
+export type SocioDayPeriod = "morning" | "afternoon";
+
+export function getSocioDayPeriod(horaInicio: string): SocioDayPeriod {
+  const hour = parseInt(horaInicio.slice(0, 2), 10);
+  return hour < 12 ? "morning" : "afternoon";
+}
+
 export function getClassTimeBlock(horaInicio: string): ClassTimeBlock {
   const hour = parseInt(horaInicio.slice(0, 2), 10);
   if (hour < 12) return "morning";

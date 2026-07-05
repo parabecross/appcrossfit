@@ -67,7 +67,7 @@ export function AthleteHomeDashboard({
   );
 
   return (
-    <div className="space-y-6 pb-2">
+    <div className="space-y-6 pb-4 md:pb-2">
       <header className="space-y-1">
         <h1 className="text-2xl md:text-3xl font-black brand-text leading-tight">
           {t("greeting", { name: firstName })}
