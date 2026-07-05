@@ -43,6 +43,8 @@ export const DEFAULT_ACHIEVEMENT_POINTS: Record<string, number> = {
   skill_pistols: 20,
   skill_kipping_pull_up: 10,
   skill_butterfly_pull_up: 20,
+  /** Bonus extra al pasar de logrado → dominado (cualquier skill). */
+  skill_dominado_bonus: 15,
   murph: 30,
   /** @deprecated Usar pr_mejora; se mantiene por compatibilidad con eventos antiguos. */
   benchmark: 20,
@@ -111,5 +113,13 @@ export function achievementPointsFor(
   config: RankingConfig,
   key: BadgeKey | string
 ): number {
+  if (key.endsWith("_dominado")) {
+    return (
+      config.achievement_points[key] ??
+      config.achievement_points.skill_dominado_bonus ??
+      DEFAULT_ACHIEVEMENT_POINTS.skill_dominado_bonus ??
+      15
+    );
+  }
   return config.achievement_points[key] ?? DEFAULT_ACHIEVEMENT_POINTS[key] ?? 15;
 }

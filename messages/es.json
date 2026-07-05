@@ -881,7 +881,18 @@
       "skill_rope_climb": "Rope Climb logrado",
       "skill_pistols": "Pistols logrados",
       "skill_kipping_pull_up": "Kipping Pull-up logrado",
-      "skill_butterfly_pull_up": "Butterfly Pull-up logrado"
+      "skill_butterfly_pull_up": "Butterfly Pull-up logrado",
+      "skill_chest_to_bar_dominado": "Chest to Bar dominado",
+      "skill_bar_muscle_up_dominado": "Bar Muscle Up dominado",
+      "skill_pull_ups_dominado": "Pull-ups dominadas",
+      "skill_ring_muscle_up_dominado": "Ring Muscle Up dominado",
+      "skill_handstand_push_up_dominado": "Handstand Push-up dominado",
+      "skill_handstand_walk_dominado": "Handstand Walk dominado",
+      "skill_double_unders_dominado": "Double Unders dominados",
+      "skill_rope_climb_dominado": "Rope Climb dominado",
+      "skill_pistols_dominado": "Pistols dominados",
+      "skill_kipping_pull_up_dominado": "Kipping Pull-up dominado",
+      "skill_butterfly_pull_up_dominado": "Butterfly Pull-up dominado"
     },
     "goals": {
       "add": "Nuevo objetivo",

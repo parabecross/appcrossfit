@@ -46,8 +46,7 @@ import {
 } from "@/lib/progreso/helpers";
 import { getPrMotivationMessage } from "@/lib/progreso/motivation";
 import {
-  isSkillAchieved,
-  skillBadgeKey,
+  resolveSkillRankingSync,
 } from "@/lib/ranking/achievement-sync";
 import { cn, formatCompactDate } from "@/lib/utils";
 import { ProgressBadgesSummary } from "@/components/socio/progress/progress-badges-summary";
@@ -116,6 +115,17 @@ export function AthleteProgress({
   const [deleteTarget, setDeleteTarget] = useState<AtletaPrMarca | null>(null);
 
   const latestMarcas = useMemo(() => getLatestPrPerExercise(marcas), [marcas]);
+
+  const applySkillRankingSync = async (
+    skillKey: string,
+    previous: SkillEstado | null,
+    next: SkillEstado | "none"
+  ) => {
+    const actions = resolveSkillRankingSync(skillKey, previous, next);
+    for (const { action, badgeKey } of actions) {
+      await syncSkillAchievement(action, badgeKey);
+    }
+  };
 
   const syncSkillAchievement = async (
     action: "award" | "revoke",
@@ -368,9 +378,7 @@ export function AthleteProgress({
       setSkills((prev) => prev.filter((s) => s.id !== existing.id));
 
       try {
-        if (isSkillAchieved(previousEstado)) {
-          await syncSkillAchievement("revoke", skillBadgeKey(skillKey));
-        }
+        await applySkillRankingSync(skillKey, previousEstado, "none");
       } catch (syncError) {
         setError(syncError instanceof Error ? syncError.message : tc("error"));
       }
@@ -381,7 +389,7 @@ export function AthleteProgress({
     }
 
     const estado = value;
-    const wasAchieved = existing ? isSkillAchieved(existing.estado) : false;
+    const previousEstado = existing?.estado ?? null;
 
     if (existing) {
       const { data, error: updateError } = await supabase
@@ -429,15 +437,8 @@ export function AthleteProgress({
 
     if (hist) setSkillHistorial(hist as AtletaSkillHistorial[]);
 
-    const badge = skillBadgeKey(skillKey);
-    const nowAchieved = isSkillAchieved(estado);
-
     try {
-      if (wasAchieved && !nowAchieved) {
-        await syncSkillAchievement("revoke", badge);
-      } else if (!wasAchieved && nowAchieved) {
-        await syncSkillAchievement("award", badge);
-      }
+      await applySkillRankingSync(skillKey, previousEstado, estado);
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : tc("error"));
     }

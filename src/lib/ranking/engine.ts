@@ -6,7 +6,11 @@ import {
   type RankingLevel,
 } from "@/lib/scores/helpers";
 import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
-import { mergeRankingConfig, monthKeyFromDate } from "./config";
+import {
+  achievementPointsFor,
+  mergeRankingConfig,
+  monthKeyFromDate,
+} from "./config";
 import { computeEvolutionAwards } from "./evolution";
 import { pointsForRank } from "./position-points";
 import {
@@ -580,10 +584,7 @@ export async function awardAchievement(params: {
   const fecha = params.fecha ?? new Date().toISOString().slice(0, 10);
   const month_key = monthKeyFromDate(fecha);
   const points =
-    params.points ??
-    config.achievement_points[params.badgeKey] ??
-    config.achievement_points.primer_pr ??
-    15;
+    params.points ?? achievementPointsFor(config, params.badgeKey);
 
   const ok = await insertEvent(admin, {
     box_id: params.boxId,
