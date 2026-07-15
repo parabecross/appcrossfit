@@ -6,7 +6,7 @@ import {
   SocioMobileNav,
 } from "@/components/layout/socio-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
+import { SocioTopBanner } from "@/components/layout/socio-top-banner";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { buildBirthdayGreeting } from "@/lib/birthdays/helpers";
 import { todayInTimezone } from "@/lib/dates/date-only";
@@ -42,21 +42,11 @@ export default async function SocioLayout({
         <header className="hidden md:flex items-center justify-end border-b border-white/5 px-6 py-3 shrink-0">
           <LanguageSwitcher />
         </header>
-        <main className="flex-1 w-full px-4 py-3 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden">
-          <DailyMotivationBanner
-            audience="athlete"
+        <main className="flex-1 w-full px-4 py-3 md:p-8 md:max-w-4xl md:mx-auto overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
+          <SocioTopBanner
             locale={locale}
             today={today}
             birthdayGreeting={birthdayGreeting}
-            compact
-            className="mb-3 md:hidden"
-          />
-          <DailyMotivationBanner
-            audience="athlete"
-            locale={locale}
-            today={today}
-            birthdayGreeting={birthdayGreeting}
-            className="mb-5 hidden md:block"
           />
           {children}
         </main>

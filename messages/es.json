@@ -302,20 +302,21 @@
   },
   "socioHome": {
     "greeting": "Hola, {name}",
-    "tagline": "Tu entrenamiento de hoy, en un vistazo.",
+    "tagline": "Tu día de entrenamiento, en un vistazo.",
     "quickActionsTitle": "Acciones rápidas",
     "nextClass": {
-      "label": "Tu próxima clase",
+      "label": "Próxima clase",
       "confirmed": "Reservada",
       "emptyTitle": "Sin clase reservada",
-      "emptyDesc": "Reserva tu lugar y llega listo para entrenar.",
+      "emptyDesc": "Elige una clase y asegura tu lugar.",
       "bookNow": "Reservar clase",
-      "cancel": "Cancelar reserva",
+      "cancel": "Cancelar",
+      "view": "Ver",
       "viewSchedule": "Ver horario",
       "cancelTooLate": "Cancelación disponible hasta {hours} h antes de la clase."
     },
     "membership": {
-      "label": "Tu membresía",
+      "label": "Membresía",
       "expires": "Vence",
       "none": "Sin membresía activa",
       "pendingPayment": "Pendiente de pago",
@@ -323,12 +324,13 @@
       "viewMembership": "Ver membresía"
     },
     "ranking": {
-      "title": "Tu ranking del mes",
+      "title": "Ranking",
       "unavailable": "Ranking no disponible en tu plan.",
-      "rankPosition": "#{rank} este mes",
-      "rankPending": "Suma puntos y sube en el ranking",
+      "rankPosition": "#{rank}",
+      "rankPending": "Sin posición aún",
       "monthPoints": "{points} pts este mes",
-      "streak": "{days} días de racha"
+      "streak": "{days} días de racha",
+      "viewRanking": "Ver ranking"
     },
     "quickActions": {
       "book": "Reservar clase",
@@ -337,13 +339,67 @@
       "progress": "Ver progreso"
     },
     "sections": {
-      "bookingTitle": "Reservar clase",
+      "bookingTitle": "Horario completo",
       "bookingSubtitle": "Elige día y hora en el calendario",
       "bookingSubtitleBooked": "Tu reserva confirmada — puedes cancelar o elegir otra clase",
       "historyTitle": "Historial resumido",
       "historySubtitle": "{attended} asistencias · {noShow} faltas",
       "expand": "Ver más",
       "collapse": "Ocultar"
+    },
+    "greetingPeriods": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "context": {
+      "hasTraining": "Tienes entrenamiento hoy",
+      "noBooking": "No tienes reservas"
+    },
+    "constancy": {
+      "title": "Constancia",
+      "week": "Esta semana",
+      "month": "Este mes",
+      "streak": "Racha"
+    },
+    "progress": {
+      "title": "Progreso",
+      "viewProgress": "Ver progreso",
+      "lastPr": "Último PR",
+      "lastRm": "Último RM",
+      "lastSkill": "Último skill",
+      "prs": "PRs",
+      "skills": "Skills",
+      "badges": "Insignias",
+      "empty": "Aún no hay marcas registradas.",
+      "share": "Compartir",
+      "shareTitle": "Mi progreso en ATHRON",
+      "emptyShare": "Empezando mi progreso en ATHRON."
+    },
+    "badges": {
+      "title": "Insignias",
+      "viewAll": "Ver todas",
+      "empty": "Todavía no tienes insignias desbloqueadas."
+    },
+    "available": {
+      "title": "Clases disponibles",
+      "book": "Reservar",
+      "spots": "{count, plural, =0 {Llena} =1 {1 lugar} other {# lugares}}",
+      "empty": "No hay clases disponibles por ahora.",
+      "cannotBook": "No disponible"
+    },
+    "share": {
+      "copied": "Texto copiado",
+      "failed": "No se pudo compartir"
+    },
+    "profileSummary": {
+      "title": "Tu resumen",
+      "attendances": "Asistencias",
+      "prs": "PRs",
+      "skills": "Skills",
+      "rank": "Ranking",
+      "membership": "Membresía",
+      "noRank": "—"
     }
   },
   "scores": {

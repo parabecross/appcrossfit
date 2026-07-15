@@ -1,15 +1,9 @@
+import { Suspense } from "react";
 import { requireRole } from "@/lib/auth/get-profile";
 
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
-import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
-import {
-  getScoresByUsuario,
-  getScoresForClases,
-  scoresByClaseId,
-} from "@/lib/queries/class-scores";
-import { enrichScoresForSocio, getAthleteLevel } from "@/lib/queries/daily-ranking";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
 import { todayInTimezone } from "@/lib/dates/date-only";
 import { canReserve } from "@/lib/membresias/helpers";
@@ -17,6 +11,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { AthleteHomeDashboard } from "@/components/socio/home/athlete-home-dashboard";
 import { AthleteMembershipCard } from "@/components/socio/home/athlete-membership-card";
+import {
+  AthleteHomeSecondary,
+  AthleteHomeSecondaryFallback,
+} from "@/components/socio/home/athlete-home-secondary";
 
 export const dynamic = "force-dynamic";
 
@@ -34,22 +32,11 @@ export default async function MisReservasPage({
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
   const supabase = await createClient();
-  const [clases, membership, { data: reservas }, classHistory] =
-    await Promise.all([
-      getClasesByDateRange(from, to),
-      getMembresiaActual(profile.id),
-      supabase.from("reservas").select("*").eq("usuario_id", profile.id),
-      getAthleteClassHistory(profile.id, profile.box_id!),
-    ]);
-
-  const claseIds = clases.map((c) => c.id);
-  const [rawClassScores, myScores, athleteLevel] = await Promise.all([
-      getScoresForClases(claseIds),
-      getScoresByUsuario(profile.id),
-      getAthleteLevel(profile.id),
-    ]);
-  const classScores = await enrichScoresForSocio(rawClassScores);
-  const myScoresMap = scoresByClaseId(myScores);
+  const [clases, membership, { data: reservas }] = await Promise.all([
+    getClasesByDateRange(from, to),
+    getMembresiaActual(profile.id),
+    supabase.from("reservas").select("*").eq("usuario_id", profile.id),
+  ]);
 
   const reserveCheck = canReserve(profile, membership);
   const showBanner =
@@ -57,8 +44,6 @@ export default async function MisReservasPage({
     reserveCheck.reason === "expired";
 
   const firstName = profile.nombre_completo.split(" ")[0];
-  const attended = classHistory.filter((r) => r.estado === "asistio").length;
-  const noShow = classHistory.filter((r) => r.estado === "no_asistio").length;
 
   const bannerType =
     profile.estado_cuenta === "pendiente_pago"
@@ -70,6 +55,9 @@ export default async function MisReservasPage({
   return (
     <AthleteHomeDashboard
       firstName={firstName}
+      fullName={profile.nombre_completo}
+      fotoUrl={profile.foto_url}
+      boxName={boxConfig.name}
       locale={locale}
       gymTimezone={boxConfig.timezone}
       showBanner={showBanner}
@@ -80,6 +68,7 @@ export default async function MisReservasPage({
           profile={profile}
           membership={membership}
           today={today}
+          locale={locale}
         />
       }
       entitlements={entitlements}
@@ -87,11 +76,18 @@ export default async function MisReservasPage({
       clases={clases}
       reservas={reservas ?? []}
       profileId={profile.id}
-      classScores={classScores}
-      athleteLevel={athleteLevel}
-      classHistory={classHistory}
-      historySummary={{ attended, noShow }}
-      scoresByClaseId={myScoresMap}
+      secondary={
+        <Suspense fallback={<AthleteHomeSecondaryFallback />}>
+          <AthleteHomeSecondary
+            profileId={profile.id}
+            boxId={profile.box_id!}
+            boxSlug={boxConfig.slug}
+            timezone={boxConfig.timezone}
+            locale={locale}
+            entitlements={entitlements}
+          />
+        </Suspense>
+      }
     />
   );
 }

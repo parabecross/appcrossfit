@@ -1,22 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
-import { SocioClassHistory } from "@/components/clases/socio-class-history";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
-import { AthleteNextClassCard } from "@/components/socio/home/athlete-next-class-card";
+import { AthleteHomeHeader } from "@/components/socio/home/athlete-home-header";
+import {
+  AthleteNextClassCard,
+  AthleteNextClassEmpty,
+} from "@/components/socio/home/athlete-next-class-card";
+import { AthleteAvailableClasses } from "@/components/socio/home/athlete-available-classes";
 import { AthleteExpandableSection } from "@/components/socio/home/athlete-expandable-section";
+import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { FeatureGate } from "@/components/plans/feature-gate";
-import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
-import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import { findNextBookedClass } from "@/lib/reservas/next-booking";
+import {
+  greetingPeriodFromHour,
+  hasTrainingToday,
+  hourInTimezone,
+  pickAvailableClassesForHome,
+} from "@/lib/socio/home-snapshot";
+import { todayInTimezone } from "@/lib/dates/date-only";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
-import type { AthleticLevel, Clase, ClaseScore, Reserva } from "@/types/database";
-import type { ReactNode } from "react";
+import type { Clase, Reserva } from "@/types/database";
 
 export function AthleteHomeDashboard({
   firstName,
+  fullName,
+  fotoUrl,
+  boxName,
   locale,
   gymTimezone,
   showBanner,
@@ -28,13 +39,12 @@ export function AthleteHomeDashboard({
   clases,
   reservas,
   profileId,
-  classScores,
-  athleteLevel,
-  classHistory,
-  historySummary,
-  scoresByClaseId,
+  secondary,
 }: {
   firstName: string;
+  fullName: string;
+  fotoUrl: string | null;
+  boxName: string;
   locale: string;
   gymTimezone: string;
   showBanner: boolean;
@@ -46,11 +56,8 @@ export function AthleteHomeDashboard({
   clases: Clase[];
   reservas: Reserva[];
   profileId: string;
-  classScores: ClaseScoreWithProfile[];
-  athleteLevel: AthleticLevel | null;
-  classHistory: AthleteClassHistoryItem[];
-  historySummary: { attended: number; noShow: number };
-  scoresByClaseId: Map<string, ClaseScore>;
+  /** Ranking / progress / constancy / badges — Suspense slot */
+  secondary: ReactNode;
 }) {
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
@@ -61,31 +68,54 @@ export function AthleteHomeDashboard({
     setLocalReservas(reservas);
   }, [reservas]);
 
+  const today = todayInTimezone(gymTimezone);
   const localNextBooking = useMemo(
     () => findNextBookedClass(clases, localReservas, profileId, gymTimezone),
     [clases, localReservas, profileId, gymTimezone]
   );
 
-  return (
-    <div className="space-y-4 pb-2 md:space-y-6 md:pb-4">
-      <header>
-        <h1 className="text-xl font-bold brand-text leading-tight md:text-3xl md:font-black">
-          {t("greeting", { name: firstName })}
-        </h1>
-        <p className="hidden md:block text-sm text-muted-foreground mt-1">
-          {t("tagline")}
-        </p>
-      </header>
+  const trainingToday = hasTrainingToday(
+    localNextBooking?.clase.fecha ?? null,
+    today
+  );
 
-      {showBanner && bannerType && (
+  const period = greetingPeriodFromHour(hourInTimezone(gymTimezone));
+  const greeting = t(`greetingPeriods.${period}`);
+  const contextLine = trainingToday
+    ? t("context.hasTraining")
+    : t("context.noBooking");
+
+  const available = useMemo(
+    () =>
+      pickAvailableClassesForHome(
+        clases,
+        localReservas,
+        profileId,
+        gymTimezone,
+        5
+      ),
+    [clases, localReservas, profileId, gymTimezone]
+  );
+
+  return (
+    <div className="space-y-6 pb-6 md:space-y-8 md:pb-8 max-w-xl md:max-w-2xl">
+      <AthleteHomeHeader
+        greeting={greeting}
+        firstName={firstName}
+        boxName={boxName}
+        contextLine={contextLine}
+        hasTrainingToday={trainingToday}
+        fotoUrl={fotoUrl}
+        fullName={fullName}
+      />
+
+      {showBanner && bannerType ? (
         <MembershipBanner
           type={bannerType}
           expiryDate={membershipExpiry}
           locale={locale}
         />
-      )}
-
-      {membershipCard}
+      ) : null}
 
       <FeatureGate
         entitlements={entitlements}
@@ -93,76 +123,60 @@ export function AthleteHomeDashboard({
         title={ts("bookingsSubtitle")}
         description={ts("bookingsSubtitle")}
       >
-        <div className="space-y-3">
+        <div className="space-y-6">
           {localNextBooking ? (
             <AthleteNextClassCard
               booking={localNextBooking}
               locale={locale}
               gymTimezone={gymTimezone}
               reservas={localReservas}
-              serverReservas={serverReservas}
               profileId={profileId}
               onReservationsChange={setLocalReservas}
             />
           ) : (
-            <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-3">
-              <p className="text-sm font-medium">{t("nextClass.emptyTitle")}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {t("nextClass.emptyDesc")}
-              </p>
-            </div>
+            <AthleteNextClassEmpty canBook={canBook} />
           )}
 
-          <WeeklyCalendar
-            clases={clases}
+          {secondary}
+
+          <AthleteAvailableClasses
+            classes={available}
+            locale={locale}
+            canBook={canBook}
             reservas={localReservas}
             serverReservas={serverReservas}
             profileId={profileId}
-            canBook={canBook}
-            locale={locale}
-            gymTimezone={gymTimezone}
-            classScores={classScores}
-            athleteLevel={athleteLevel}
-            hideRankingWidget
-            socioCompact
             onReservationsChange={setLocalReservas}
           />
+
+          <AthleteExpandableSection
+            title={t("sections.bookingTitle")}
+            subtitle={
+              localNextBooking
+                ? t("sections.bookingSubtitleBooked")
+                : t("sections.bookingSubtitle")
+            }
+            defaultOpen={false}
+            expandLabel={t("sections.expand")}
+            collapseLabel={t("sections.collapse")}
+          >
+            <WeeklyCalendar
+              clases={clases}
+              reservas={localReservas}
+              serverReservas={serverReservas}
+              profileId={profileId}
+              canBook={canBook}
+              locale={locale}
+              gymTimezone={gymTimezone}
+              hideRankingWidget
+              socioCompact
+              onReservationsChange={setLocalReservas}
+            />
+          </AthleteExpandableSection>
         </div>
       </FeatureGate>
 
-      <FeatureGate
-        entitlements={entitlements}
-        featureKey="historial_completo"
-        title={ts("classHistory")}
-        description={ts("classHistoryDesc")}
-      >
-        <AthleteExpandableSection
-          title={t("sections.historyTitle")}
-          subtitle={t("sections.historySubtitle", {
-            attended: historySummary.attended,
-            noShow: historySummary.noShow,
-          })}
-          defaultOpen={false}
-          expandLabel={t("sections.expand")}
-          collapseLabel={t("sections.collapse")}
-        >
-          <SocioClassHistory
-            items={classHistory}
-            locale={locale}
-            gymTimezone={gymTimezone}
-            title=""
-            description=""
-            emptyMessage={ts("noClassHistory")}
-            summary={ts("classHistorySummary", {
-              attended: historySummary.attended,
-              noShow: historySummary.noShow,
-            })}
-            scoresByClaseId={scoresByClaseId}
-            profileId={profileId}
-            compact
-          />
-        </AthleteExpandableSection>
-      </FeatureGate>
+      {membershipCard}
     </div>
   );
 }

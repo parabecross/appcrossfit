@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getWeekRangeInTimezone } from "@/lib/admin/dashboard-helpers";
 import {
   computeAttendanceRate,
   computeAttendanceStats,
@@ -41,7 +42,8 @@ export async function getAtletaAttendanceStats(
     }
   }
 
-  const stats = computeAttendanceStats(attended, timeZone);
+  const weekRange = getWeekRangeInTimezone(timeZone);
+  const stats = computeAttendanceStats(attended, timeZone, weekRange);
   const attendanceRate = computeAttendanceRate(asistio, noAsistio);
 
   return {

@@ -302,33 +302,35 @@
   },
   "socioHome": {
     "greeting": "Hi, {name}",
-    "tagline": "Your training today, at a glance.",
+    "tagline": "Your training day at a glance.",
     "quickActionsTitle": "Quick actions",
     "nextClass": {
-      "label": "Your next class",
+      "label": "Next class",
       "confirmed": "Booked",
       "emptyTitle": "No class booked",
-      "emptyDesc": "Reserve your spot and show up ready to train.",
+      "emptyDesc": "Pick a class and lock your spot.",
       "bookNow": "Book a class",
-      "cancel": "Cancel booking",
+      "cancel": "Cancel",
+      "view": "View",
       "viewSchedule": "View schedule",
-      "cancelTooLate": "Cancellation available up to {hours} h before class."
+      "cancelTooLate": "Cancellation available until {hours} h before class."
     },
     "membership": {
-      "label": "Your membership",
+      "label": "Membership",
       "expires": "Expires",
       "none": "No active membership",
-      "pendingPayment": "Pending payment",
+      "pendingPayment": "Payment pending",
       "daysLeft": "{days, plural, one {# day left} other {# days left}}",
       "viewMembership": "View membership"
     },
     "ranking": {
-      "title": "Your monthly ranking",
+      "title": "Ranking",
       "unavailable": "Ranking not available on your plan.",
-      "rankPosition": "#{rank} this month",
-      "rankPending": "Earn points and climb the leaderboard",
+      "rankPosition": "#{rank}",
+      "rankPending": "No rank yet",
       "monthPoints": "{points} pts this month",
-      "streak": "{days}-day streak"
+      "streak": "{days}-day streak",
+      "viewRanking": "View ranking"
     },
     "quickActions": {
       "book": "Book class",
@@ -337,13 +339,67 @@
       "progress": "View progress"
     },
     "sections": {
-      "bookingTitle": "Book a class",
-      "bookingSubtitle": "Pick a day and time in the calendar",
-      "bookingSubtitleBooked": "Your booking is confirmed — cancel or pick another class",
-      "historyTitle": "Recent history",
+      "bookingTitle": "Full schedule",
+      "bookingSubtitle": "Pick a day and time on the calendar",
+      "bookingSubtitleBooked": "Your booking is confirmed — cancel or choose another class",
+      "historyTitle": "History summary",
       "historySubtitle": "{attended} attended · {noShow} no-shows",
       "expand": "Show more",
       "collapse": "Hide"
+    },
+    "greetingPeriods": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "context": {
+      "hasTraining": "You have training today",
+      "noBooking": "You have no bookings"
+    },
+    "constancy": {
+      "title": "Consistency",
+      "week": "This week",
+      "month": "This month",
+      "streak": "Streak"
+    },
+    "progress": {
+      "title": "Progress",
+      "viewProgress": "View progress",
+      "lastPr": "Latest PR",
+      "lastRm": "Latest RM",
+      "lastSkill": "Latest skill",
+      "prs": "PRs",
+      "skills": "Skills",
+      "badges": "Badges",
+      "empty": "No marks recorded yet.",
+      "share": "Share",
+      "shareTitle": "My ATHRON progress",
+      "emptyShare": "Starting my ATHRON progress."
+    },
+    "badges": {
+      "title": "Badges",
+      "viewAll": "View all",
+      "empty": "No badges unlocked yet."
+    },
+    "available": {
+      "title": "Available classes",
+      "book": "Book",
+      "spots": "{count, plural, =0 {Full} =1 {1 spot} other {# spots}}",
+      "empty": "No classes available right now.",
+      "cannotBook": "Unavailable"
+    },
+    "share": {
+      "copied": "Text copied",
+      "failed": "Could not share"
+    },
+    "profileSummary": {
+      "title": "Your summary",
+      "attendances": "Attendances",
+      "prs": "PRs",
+      "skills": "Skills",
+      "rank": "Ranking",
+      "membership": "Membership",
+      "noRank": "—"
     }
   },
   "scores": {

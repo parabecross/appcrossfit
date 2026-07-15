@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Badge } from "@/components/ui/badge";
 import { daysUntilDateOnly } from "@/lib/dates/date-only";
-import { cn } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import type { MembresiaWithPlan } from "@/lib/queries/memberships";
 import type { Profile } from "@/types/database";
 
@@ -23,10 +23,12 @@ export async function AthleteMembershipCard({
   profile,
   membership,
   today,
+  locale,
 }: {
   profile: Profile;
   membership: MembresiaWithPlan | null;
   today: string;
+  locale: string;
 }) {
   const t = await getTranslations("socioHome.membership");
   const tm = await getTranslations("membership.status");
@@ -57,54 +59,54 @@ export async function AthleteMembershipCard({
         ? tm(membership.estado)
         : null;
 
-  const footerText =
-    daysLeft !== null && daysLeft >= 0
-      ? t("daysLeft", { days: daysLeft })
-      : !membership && !isPendingPayment
-        ? t("none")
-        : null;
-
   return (
-    <div
-      className={cn(
-        "rounded-xl border px-3 py-2.5 md:rounded-2xl md:px-4 md:py-3",
-        tone === "danger" && "border-red-500/20 bg-red-500/[0.04]",
-        tone === "warning" && "border-orange-500/15 bg-orange-500/[0.03]",
-        tone === "success" && "border-white/8 bg-white/[0.02]",
-        tone === "muted" && "border-white/8 bg-white/[0.02]"
-      )}
-    >
-      <p className="text-xs text-muted-foreground">{t("label")}</p>
-
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold truncate">{planName}</p>
-        {badgeLabel && badgeVariant && (
-          <Badge variant={badgeVariant} className="shrink-0 text-[10px]">
-            {badgeLabel}
-          </Badge>
-        )}
-      </div>
-
-      <div className="mt-1 flex items-center justify-between gap-2">
-        {footerText ? (
-          <p
-            className={cn(
-              "text-xs text-muted-foreground",
-              daysLeft !== null && daysLeft <= 7 && "text-orange-400"
-            )}
-          >
-            {footerText}
-          </p>
-        ) : (
-          <span />
-        )}
+    <section className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {t("label")}
+        </h2>
         <Link
           href="/mi-membresia"
-          className="shrink-0 text-[11px] font-medium text-primary hover:underline"
+          className="min-h-11 inline-flex items-center text-xs font-semibold text-orange-400 hover:text-orange-300"
         >
           {t("viewMembership")}
         </Link>
       </div>
-    </div>
+      <div
+        className={cn(
+          "rounded-xl ring-1 px-3 py-3 space-y-1.5",
+          tone === "danger" && "ring-red-500/20 bg-red-500/[0.04]",
+          tone === "warning" && "ring-orange-500/15 bg-orange-500/[0.03]",
+          tone === "success" && "ring-white/8 bg-white/[0.03]",
+          tone === "muted" && "ring-white/8 bg-white/[0.03]"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold truncate">{planName}</p>
+          {badgeLabel && badgeVariant ? (
+            <Badge variant={badgeVariant} className="shrink-0 text-[10px]">
+              {badgeLabel}
+            </Badge>
+          ) : null}
+        </div>
+        {membership?.fecha_fin ? (
+          <p className="text-xs text-muted-foreground">
+            {t("expires")}: {formatDate(membership.fecha_fin, locale)}
+          </p>
+        ) : null}
+        {daysLeft !== null && daysLeft >= 0 ? (
+          <p
+            className={cn(
+              "text-xs text-muted-foreground",
+              daysLeft <= 7 && "text-orange-400"
+            )}
+          >
+            {t("daysLeft", { days: daysLeft })}
+          </p>
+        ) : !membership && !isPendingPayment ? (
+          <p className="text-xs text-muted-foreground">{t("none")}</p>
+        ) : null}
+      </div>
+    </section>
   );
 }
