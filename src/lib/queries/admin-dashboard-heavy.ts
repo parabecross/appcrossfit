@@ -110,15 +110,13 @@ export async function buildAdminDashboardHeavyData(
   const athletesWithoutWeekBooking = findAthletesWithoutWeekBooking(
     activeSocioIds,
     bookedThisWeek
-  )
-    .map((id) => ({
-      id,
-      nombre: nombreMap.get(id) ?? "—",
-      telefono: telefonoMap.get(id) ?? null,
-      fotoUrl: fotoMap.get(id) ?? null,
-      created_at: createdMap.get(id) ?? null,
-    }))
-    .slice(0, 12);
+  ).map((id) => ({
+    id,
+    nombre: nombreMap.get(id) ?? "—",
+    telefono: telefonoMap.get(id) ?? null,
+    fotoUrl: fotoMap.get(id) ?? null,
+    created_at: createdMap.get(id) ?? null,
+  }));
 
   const activityEvents: DashboardActivityEvent[] = [];
 
@@ -295,7 +293,7 @@ export async function buildAdminDashboardHeavyData(
   });
 
   return {
-    inactiveAthletesHigh: inactiveAthletesHigh.slice(0, 8),
+    inactiveAthletesHigh,
     athletesWithoutWeekBooking,
     weeklySummary,
     recentPrs: recentPrs.slice(0, 5),

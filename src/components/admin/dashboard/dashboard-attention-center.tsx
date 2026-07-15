@@ -41,7 +41,7 @@ function PriorityBadge({
   return (
     <span
       className={cn(
-        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
+        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0",
         level === "high" && "bg-red-500/20 text-red-400",
         level === "medium" && "bg-orange-500/20 text-orange-400",
         level === "low" && "bg-white/10 text-muted-foreground"
@@ -52,7 +52,8 @@ function PriorityBadge({
   );
 }
 
-function AttentionCaseCard({
+/** Dense one-line row — designed for boxes with dozens/hundreds of athletes. */
+function AttentionCaseRow({
   item,
   locale,
   boxName,
@@ -66,79 +67,77 @@ function AttentionCaseCard({
     levelMedium: string;
     levelLow: string;
     openProfile: string;
-    lastAttendance: string;
-    membership: string;
-    membershipStatuses: Record<string, string>;
   };
 }) {
   const tReasons = useTranslations("adminDashboard.attention.reasons");
-  const visibleReasons = item.reasons
-    .filter((r) => r !== "new_athlete")
-    .slice(0, 2);
+  const primaryReason = item.reasons.find((r) => r !== "new_athlete");
 
   return (
-    <article className="rounded-xl bg-black/20 ring-1 ring-white/10 px-3 py-3 sm:px-4 space-y-3">
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10">
-          {item.fotoUrl ? <AvatarImage src={item.fotoUrl} alt="" /> : null}
-          <AvatarFallback>{initials(item.nombre)}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/admin/usuarios/${item.profileId}`}
-              className="font-semibold text-sm truncate hover:underline min-h-11 inline-flex items-center"
-            >
-              {item.nombre}
-            </Link>
-            <PriorityBadge level={item.level} labels={labels} />
-          </div>
-          <ul className="space-y-0.5">
-            {visibleReasons.map((reason) => (
-              <li key={reason} className="text-xs text-muted-foreground">
-                {tReasons(reason as never)}
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-            {item.daysSinceAttendance != null ? (
-              <span className="tabular-nums">
-                {labels.lastAttendance}: {item.daysSinceAttendance}d
-              </span>
-            ) : null}
-            {item.membershipStatus ? (
-              <span>
-                {labels.membership}:{" "}
-                {labels.membershipStatuses[item.membershipStatus] ??
-                  item.membershipStatus}
-              </span>
-            ) : null}
-          </div>
+    <div className="flex items-center gap-2.5 rounded-xl bg-black/20 border border-white/10 px-2.5 py-2 min-h-14">
+      <Avatar className="h-9 w-9 shrink-0">
+        {item.fotoUrl ? <AvatarImage src={item.fotoUrl} alt="" /> : null}
+        <AvatarFallback className="text-xs">{initials(item.nombre)}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link
+            href={`/admin/usuarios/${item.profileId}`}
+            className="font-semibold text-sm truncate hover:underline"
+          >
+            {item.nombre}
+          </Link>
+          <PriorityBadge level={item.level} labels={labels} />
         </div>
+        {primaryReason ? (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {tReasons(primaryReason as never)}
+            {item.daysSinceAttendance != null
+              ? ` · ${item.daysSinceAttendance}d`
+              : ""}
+          </p>
+        ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <WhatsAppReminderButton
-          phone={item.telefono}
-          nombre={item.nombre}
-          fechaFin={item.fechaFin}
-          locale={locale}
-          type={item.whatsappType}
-          boxName={boxName}
-          athleteId={item.profileId}
-        />
-        <Link
-          href={`/admin/usuarios/${item.profileId}`}
-          className="inline-flex min-h-11 items-center text-xs font-medium text-orange-400 hover:text-orange-300"
-        >
-          {labels.openProfile}
-        </Link>
-      </div>
-    </article>
+      <WhatsAppReminderButton
+        phone={item.telefono}
+        nombre={item.nombre}
+        fechaFin={item.fechaFin}
+        locale={locale}
+        type={item.whatsappType}
+        boxName={boxName}
+        compact
+      />
+      <Link
+        href={`/admin/usuarios/${item.profileId}`}
+        className="hidden sm:inline-flex min-h-11 items-center text-xs font-medium text-orange-400 hover:text-orange-300 shrink-0 px-1"
+      >
+        {labels.openProfile}
+      </Link>
+    </div>
+  );
+}
+
+function MoreLink({
+  href,
+  text,
+}: {
+  href: string;
+  text: string | null;
+}) {
+  if (!text) return null;
+  return (
+    <Link
+      href={href}
+      className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-dashed border-white/15 px-3 text-sm text-muted-foreground hover:border-orange-500/30 hover:text-orange-300 transition-colors"
+    >
+      <span>{text}</span>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+    </Link>
   );
 }
 
 export function DashboardAttentionCenter({
   cases,
+  casesTotal,
   fullClasses,
   lowOccupancyClasses,
   birthdayAlerts,
@@ -149,6 +148,8 @@ export function DashboardAttentionCenter({
   labels,
 }: {
   cases: AttentionCase[];
+  /** Full unique count before preview cap (large boxes). */
+  casesTotal?: number;
   fullClasses: AdminDashboardTodayClass[];
   lowOccupancyClasses: AdminDashboardTodayClass[];
   birthdayAlerts: BirthdayAlert[];
@@ -182,8 +183,11 @@ export function DashboardAttentionCenter({
     followUpNeverContacted: string;
     followUpOverdue: string;
     followUpToday: string;
+    formatMoreAthletes: (remaining: number, total: number) => string;
   };
 }) {
+  const total = casesTotal ?? cases.length;
+  const remaining = Math.max(0, total - cases.length);
   const hasOps =
     fullClasses.length > 0 ||
     lowOccupancyClasses.length > 0 ||
@@ -198,12 +202,15 @@ export function DashboardAttentionCenter({
   const totalSignals = hasOps || hasCases || hasBirthdays || hasFollowUp;
 
   return (
-    <section className="rounded-2xl bg-white/[0.02] ring-1 ring-white/10 p-4 sm:p-5 space-y-4">
+    <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-5 space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold">{labels.title}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {labels.subtitle}
+            {total > 0 ? (
+              <span className="tabular-nums"> · {total}</span>
+            ) : null}
           </p>
         </div>
         <Link
@@ -261,12 +268,10 @@ export function DashboardAttentionCenter({
       ) : (
         <div className="space-y-4">
           {(fullClasses.length > 0 || pendingPaymentCount > 0) && (
-            <div className="rounded-xl px-3 py-3 sm:px-4 bg-red-500/[0.04] ring-1 ring-red-500/15 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400">
-                  {labels.priorityHigh}
-                </span>
-              </div>
+            <div className="rounded-xl px-3 py-3 sm:px-4 bg-red-500/[0.04] border border-red-500/15 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+                {labels.priorityHigh}
+              </span>
               {pendingPaymentCount > 0 ? (
                 <Link
                   href={USUARIOS_DEEP_LINKS.paymentPending}
@@ -283,7 +288,7 @@ export function DashboardAttentionCenter({
                   <p className="text-xs font-semibold text-red-400/90">
                     {labels.fullClasses}
                   </p>
-                  {fullClasses.slice(0, 4).map((c) => (
+                  {fullClasses.slice(0, 3).map((c) => (
                     <Link
                       key={c.id}
                       href="/admin/clases"
@@ -299,16 +304,14 @@ export function DashboardAttentionCenter({
           )}
 
           {lowOccupancyClasses.length > 0 ? (
-            <div className="rounded-xl px-3 py-3 sm:px-4 bg-orange-500/[0.04] ring-1 ring-orange-500/15 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">
-                  {labels.priorityMedium}
-                </span>
-              </div>
+            <div className="rounded-xl px-3 py-3 sm:px-4 bg-orange-500/[0.04] border border-orange-500/15 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">
+                {labels.priorityMedium}
+              </span>
               <p className="text-xs font-semibold text-orange-400/90">
                 {labels.lowOccupancy}
               </p>
-              {lowOccupancyClasses.slice(0, 4).map((c) => (
+              {lowOccupancyClasses.slice(0, 3).map((c) => (
                 <Link
                   key={c.id}
                   href="/admin/clases"
@@ -322,9 +325,9 @@ export function DashboardAttentionCenter({
           ) : null}
 
           {hasCases ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {cases.map((item) => (
-                <AttentionCaseCard
+                <AttentionCaseRow
                   key={item.profileId}
                   item={item}
                   locale={locale}
@@ -332,6 +335,14 @@ export function DashboardAttentionCenter({
                   labels={labels}
                 />
               ))}
+              <MoreLink
+                href={USUARIOS_DEEP_LINKS.needsAttention}
+                text={
+                  remaining > 0
+                    ? labels.formatMoreAthletes(remaining, total)
+                    : null
+                }
+              />
             </div>
           ) : null}
 
@@ -340,7 +351,12 @@ export function DashboardAttentionCenter({
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
                 {labels.priorityInfo}
               </span>
-              <BirthdayInfoCard alerts={birthdayAlerts} />
+              <BirthdayInfoCard alerts={birthdayAlerts.slice(0, 3)} />
+              {birthdayAlerts.length > 3 ? (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  +{birthdayAlerts.length - 3}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -351,6 +367,7 @@ export function DashboardAttentionCenter({
 
 export function DashboardRetentionCases({
   cases,
+  casesTotal,
   locale,
   boxName,
   labels,
@@ -358,6 +375,7 @@ export function DashboardRetentionCases({
   loadError,
 }: {
   cases: AttentionCase[];
+  casesTotal?: number;
   locale: string;
   boxName: string;
   labels: {
@@ -371,6 +389,8 @@ export function DashboardRetentionCases({
     membershipStatuses: Record<string, string>;
     loadError: string;
     empty: string;
+    formatMoreAthletes: (remaining: number, total: number) => string;
+    seeInbox: string;
   };
   advancedEnabled: boolean;
   loadError?: boolean;
@@ -379,7 +399,7 @@ export function DashboardRetentionCases({
 
   if (loadError) {
     return (
-      <section className="rounded-2xl bg-white/[0.02] ring-1 ring-white/10 p-4 sm:p-5">
+      <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-5">
         <p className="text-sm text-muted-foreground">{labels.loadError}</p>
       </section>
     );
@@ -387,14 +407,31 @@ export function DashboardRetentionCases({
 
   if (cases.length === 0) return null;
 
+  const total = casesTotal ?? cases.length;
+  const remaining = Math.max(0, total - cases.length);
+
   return (
     <section className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        {labels.title}
-      </p>
-      <div className="space-y-2">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {labels.title}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+            {total}
+          </p>
+        </div>
+        <Link
+          href={USUARIOS_DEEP_LINKS.inactive}
+          className="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-orange-400 hover:text-orange-300 shrink-0"
+        >
+          {labels.seeInbox}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      <div className="space-y-1.5">
         {cases.map((item) => (
-          <AttentionCaseCard
+          <AttentionCaseRow
             key={item.profileId}
             item={item}
             locale={locale}
@@ -402,6 +439,14 @@ export function DashboardRetentionCases({
             labels={labels}
           />
         ))}
+        <MoreLink
+          href={USUARIOS_DEEP_LINKS.inactive}
+          text={
+            remaining > 0
+              ? labels.formatMoreAthletes(remaining, total)
+              : null
+          }
+        />
       </div>
     </section>
   );

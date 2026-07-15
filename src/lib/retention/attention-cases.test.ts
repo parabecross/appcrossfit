@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildAttentionCases } from "./attention-cases";
+import {
+  buildAttentionCases,
+  DASHBOARD_ATTENTION_PREVIEW_LIMIT,
+} from "./attention-cases";
 
 describe("buildAttentionCases", () => {
   it("returns empty when there are no signals", () => {
@@ -12,11 +15,11 @@ describe("buildAttentionCases", () => {
         inactiveAthletes: [],
         athletesWithoutWeekBooking: [],
       })
-    ).toEqual([]);
+    ).toEqual({ cases: [], total: 0 });
   });
 
   it("prioritizes expired memberships over inactivity", () => {
-    const cases = buildAttentionCases({
+    const { cases } = buildAttentionCases({
       today: "2026-07-15",
       membershipExpired: [
         {
@@ -48,7 +51,7 @@ describe("buildAttentionCases", () => {
   });
 
   it("merges signals for the same athlete", () => {
-    const cases = buildAttentionCases({
+    const { cases } = buildAttentionCases({
       today: "2026-07-15",
       membershipExpired: [
         {
@@ -80,8 +83,8 @@ describe("buildAttentionCases", () => {
     expect(cases[0].daysSinceAttendance).toBe(18);
   });
 
-  it("caps the inbox size", () => {
-    const cases = buildAttentionCases({
+  it("caps the preview but reports full total for large boxes", () => {
+    const { cases, total } = buildAttentionCases({
       today: "2026-07-15",
       membershipExpired: [],
       membershipExpiring: [],
@@ -92,8 +95,9 @@ describe("buildAttentionCases", () => {
         daysSinceAttendance: 10 + i,
       })),
       athletesWithoutWeekBooking: [],
-      limit: 6,
+      limit: DASHBOARD_ATTENTION_PREVIEW_LIMIT,
     });
-    expect(cases).toHaveLength(6);
+    expect(cases).toHaveLength(DASHBOARD_ATTENTION_PREVIEW_LIMIT);
+    expect(total).toBe(20);
   });
 });

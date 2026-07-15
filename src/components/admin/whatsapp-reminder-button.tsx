@@ -25,6 +25,8 @@ export function WhatsAppReminderButton({
   className,
   boxName,
   athleteId,
+  /** Icon-only / no follow-up prompt — for dense dashboards. */
+  compact = false,
 }: {
   phone: string | null | undefined;
   nombre: string;
@@ -35,6 +37,7 @@ export function WhatsAppReminderButton({
   className?: string;
   boxName?: string;
   athleteId?: string;
+  compact?: boolean;
 }) {
   const t = useTranslations("admin");
   const tseg = useTranslations("admin.athletesInbox.seguimiento");
@@ -66,21 +69,26 @@ export function WhatsAppReminderButton({
         rel="noopener noreferrer"
         onClick={(e) => {
           e.stopPropagation();
-          if (athleteId) setPromptRegister(true);
+          if (athleteId && !compact) setPromptRegister(true);
         }}
         className={className}
+        aria-label="WhatsApp"
       >
         <Button
           type="button"
           size={size}
           variant="outline"
-          className="gap-1.5 min-h-11 border-green-600/40 text-green-400 hover:bg-green-600/10 hover:text-green-300 w-full sm:w-auto"
+          className={
+            compact
+              ? "h-11 w-11 p-0 border-green-600/40 text-green-400 hover:bg-green-600/10"
+              : "gap-1.5 min-h-11 border-green-600/40 text-green-400 hover:bg-green-600/10 hover:text-green-300 w-full sm:w-auto"
+          }
         >
           <MessageCircle className="h-4 w-4" />
-          WhatsApp
+          {compact ? null : "WhatsApp"}
         </Button>
       </a>
-      {athleteId && promptRegister ? (
+      {athleteId && !compact && promptRegister ? (
         <>
           <Button
             type="button"

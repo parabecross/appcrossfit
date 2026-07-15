@@ -4,7 +4,7 @@ import { getAdminDashboardHeavyData } from "@/lib/queries/admin-dashboard";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { canUseFeature } from "@/lib/entitlements/permissions";
 import { FeatureGate } from "@/components/plans/feature-gate";
-import { buildAttentionCases } from "@/lib/retention/attention-cases";
+import { buildAttentionCases, DASHBOARD_ATTENTION_PREVIEW_LIMIT } from "@/lib/retention/attention-cases";
 import { DashboardRetentionCases } from "@/components/admin/dashboard/dashboard-attention-center";
 import { DashboardPerformanceSection } from "@/components/admin/dashboard/dashboard-performance-section";
 import { DashboardChartsSection } from "@/components/admin/dashboard/dashboard-charts-section";
@@ -31,14 +31,14 @@ export async function DashboardHeavySection({
   const advancedAlerts = canUseFeature(entitlements, "alertas_avanzadas");
   const ws = heavy.weeklySummary;
 
-  const retentionCases = buildAttentionCases({
+  const { cases: retentionCases, total: retentionTotal } = buildAttentionCases({
     today,
     membershipExpired: [],
     membershipExpiring: [],
     pendingPaymentAthletes: [],
     inactiveAthletes: heavy.inactiveAthletesHigh,
     athletesWithoutWeekBooking: heavy.athletesWithoutWeekBooking,
-    limit: 8,
+    limit: DASHBOARD_ATTENTION_PREVIEW_LIMIT,
   });
 
   const membershipStatuses = {
@@ -76,6 +76,7 @@ export async function DashboardHeavySection({
     <div className="space-y-8">
       <DashboardRetentionCases
         cases={retentionCases}
+        casesTotal={retentionTotal}
         locale={locale}
         boxName={boxName}
         advancedEnabled={advancedAlerts}
@@ -91,6 +92,9 @@ export async function DashboardHeavySection({
           membershipStatuses,
           loadError: td("alerts.loadError"),
           empty: td("alerts.emptyPremium"),
+          formatMoreAthletes: (count, total) =>
+            td("attention.moreAthletes", { count, total }),
+          seeInbox: td("attention.seeInbox"),
         }}
       />
 

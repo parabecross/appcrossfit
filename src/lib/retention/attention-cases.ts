@@ -65,7 +65,12 @@ function membershipStatusFromAlert(
 /**
  * Builds a capped, sorted attention inbox from signals already loaded for the dashboard.
  * Does not query Supabase — callers pass snapshots from existing loaders.
+ *
+ * `cases` is limited for UI preview. `total` is the full unique athlete count
+ * so large boxes can show "Y N más" without listing everyone on the dashboard.
  */
+export const DASHBOARD_ATTENTION_PREVIEW_LIMIT = 3;
+
 export function buildAttentionCases(input: {
   today: string;
   membershipExpired: AlertaMembresia[];
@@ -86,7 +91,7 @@ export function buildAttentionCases(input: {
     created_at?: string | null;
   }>;
   limit?: number;
-}): AttentionCase[] {
+}): { cases: AttentionCase[]; total: number } {
   const byId = new Map<string, AttentionCase>();
 
   const upsert = (next: AttentionCase) => {
@@ -279,5 +284,15 @@ export function buildAttentionCases(input: {
     });
   }
 
-  return sortAttentionCases(Array.from(byId.values()), input.limit ?? 8);
+  return {
+    cases: sortAttentionCases(Array.from(byId.values()), input.limit ?? 8),
+    total: byId.size,
+  };
+}
+
+/** @deprecated Prefer buildAttentionCases().cases — kept for call-site migration. */
+export function buildAttentionCasesList(
+  input: Parameters<typeof buildAttentionCases>[0]
+): AttentionCase[] {
+  return buildAttentionCases(input).cases;
 }

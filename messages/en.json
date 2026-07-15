@@ -859,7 +859,9 @@
         "no_week_booking": "No booking this week",
         "attendance_drop": "Recent attendance dropped",
         "new_athlete": "New athlete"
-      }
+      },
+      "moreAthletes": "+{count} more · View all {total} in inbox",
+      "seeInbox": "Open inbox"
     },
     "planCard": {
       "currentPlan": "Your current plan",

@@ -858,7 +858,9 @@
         "no_week_booking": "Sin reserva esta semana",
         "attendance_drop": "Bajó su frecuencia reciente",
         "new_athlete": "Atleta nuevo"
-      }
+      },
+      "moreAthletes": "+{count} más · Ver los {total} en la bandeja",
+      "seeInbox": "Ver bandeja"
     },
     "planCard": {
       "currentPlan": "Tu plan actual",

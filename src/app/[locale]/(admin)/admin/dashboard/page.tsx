@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth/get-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDashboardEssentialData } from "@/lib/queries/admin-dashboard";
 import { loadBoxSeguimientosSnapshot } from "@/lib/queries/seguimientos";
-import { buildAttentionCases } from "@/lib/retention/attention-cases";
+import { buildAttentionCases, DASHBOARD_ATTENTION_PREVIEW_LIMIT } from "@/lib/retention/attention-cases";
 import { DashboardBoxHeader } from "@/components/admin/dashboard/dashboard-box-header";
 import { DashboardTodayHero } from "@/components/admin/dashboard/dashboard-today-hero";
 import { DashboardQuickActions } from "@/components/admin/dashboard/dashboard-quick-actions";
@@ -32,15 +32,16 @@ export default async function AdminDashboardPage({
   const membershipExpired = data.membershipAlerts.vencidas.length;
   const membershipExpiring = data.membershipAlerts.porVencer.length;
 
-  const essentialCases = buildAttentionCases({
-    today: data.today,
-    membershipExpired: data.membershipAlerts.vencidas,
-    membershipExpiring: data.membershipAlerts.porVencer,
-    pendingPaymentAthletes: data.pendingPaymentAthletes,
-    inactiveAthletes: [],
-    athletesWithoutWeekBooking: [],
-    limit: 8,
-  });
+  const { cases: essentialCases, total: essentialCasesTotal } =
+    buildAttentionCases({
+      today: data.today,
+      membershipExpired: data.membershipAlerts.vencidas,
+      membershipExpiring: data.membershipAlerts.porVencer,
+      pendingPaymentAthletes: data.pendingPaymentAthletes,
+      inactiveAthletes: [],
+      athletesWithoutWeekBooking: [],
+      limit: DASHBOARD_ATTENTION_PREVIEW_LIMIT,
+    });
 
   const supabase = await createClient();
   const { data: socioRows } = await supabase
@@ -123,6 +124,7 @@ export default async function AdminDashboardPage({
 
       <DashboardAttentionCenter
         cases={essentialCases}
+        casesTotal={essentialCasesTotal}
         fullClasses={data.fullClasses}
         lowOccupancyClasses={data.lowOccupancyClasses}
         birthdayAlerts={data.birthdayAlerts}
@@ -156,6 +158,8 @@ export default async function AdminDashboardPage({
           followUpNeverContacted: td("attention.followUpNeverContacted"),
           followUpOverdue: td("attention.followUpOverdue"),
           followUpToday: td("attention.followUpToday"),
+          formatMoreAthletes: (count, total) =>
+            td("attention.moreAthletes", { count, total }),
         }}
       />
 
