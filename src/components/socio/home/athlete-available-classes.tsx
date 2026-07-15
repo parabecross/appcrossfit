@@ -86,7 +86,7 @@ export function AthleteAvailableClasses({
             return (
               <li
                 key={clase.id}
-                className="rounded-xl bg-white/[0.03] ring-1 ring-white/8 px-3 py-3 flex items-center justify-between gap-3"
+                className="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-3 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{clase.nombre}</p>

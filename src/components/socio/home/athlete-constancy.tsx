@@ -28,7 +28,7 @@ export function AthleteConstancyCard({
         {items.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl bg-white/[0.03] ring-1 ring-white/8 px-2 py-3 text-center"
+            className="rounded-xl bg-white/[0.03] border border-white/10 px-2 py-3 text-center"
           >
             <p className="text-xl font-bold tabular-nums leading-none">
               {item.value}

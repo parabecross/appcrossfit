@@ -51,7 +51,7 @@ export function AthleteRankingSnapshot({
         </Link>
       </div>
 
-      <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/8 px-3 py-3 flex items-center justify-between gap-3">
+      <div className="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-2xl font-bold tabular-nums leading-none">
             {summary?.month_rank != null

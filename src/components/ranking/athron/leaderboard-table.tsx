@@ -15,9 +15,11 @@ import type { LeaderboardRow } from "@/lib/ranking/aggregate";
 export function LeaderboardTable({
   rows,
   locale,
+  viewerProfileId = null,
 }: {
   rows: LeaderboardRow[];
   locale: string;
+  viewerProfileId?: string | null;
 }) {
   const t = useTranslations("rankingAthron");
   const tl = useTranslations("legacy");
@@ -45,9 +47,15 @@ export function LeaderboardTable({
         {rows.map((row) => {
           const isExpanded = expandedId === row.usuario_id;
           const canExpand = hasPointBreakdown(row.point_breakdown);
+          const isViewer = viewerProfileId === row.usuario_id;
 
           return (
-            <div key={row.usuario_id}>
+            <div
+              key={row.usuario_id}
+              className={cn(
+                isViewer && "bg-orange-500/[0.06] ring-1 ring-inset ring-orange-500/25"
+              )}
+            >
               <div
                 className={cn(
                   "grid grid-cols-[3rem_1fr_auto] md:grid-cols-[3rem_1fr_6rem_5rem_5rem_4rem] gap-3 items-center px-4 py-3 hover:bg-white/[0.02] transition-colors",

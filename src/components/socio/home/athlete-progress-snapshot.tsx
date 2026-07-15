@@ -55,7 +55,7 @@ export function AthleteProgressSnapshot({
         </Link>
       </div>
 
-      <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/8 px-3 py-3 space-y-3">
+      <div className="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-3 space-y-3">
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <p className="text-lg font-bold tabular-nums">{snapshot.prCount}</p>

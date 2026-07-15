@@ -74,11 +74,11 @@ export async function AthleteMembershipCard({
       </div>
       <div
         className={cn(
-          "rounded-xl ring-1 px-3 py-3 space-y-1.5",
-          tone === "danger" && "ring-red-500/20 bg-red-500/[0.04]",
-          tone === "warning" && "ring-orange-500/15 bg-orange-500/[0.03]",
-          tone === "success" && "ring-white/8 bg-white/[0.03]",
-          tone === "muted" && "ring-white/8 bg-white/[0.03]"
+          "rounded-xl border px-3 py-3 space-y-1.5",
+          tone === "danger" && "border-red-500/20 bg-red-500/[0.04]",
+          tone === "warning" && "border-orange-500/15 bg-orange-500/[0.03]",
+          tone === "success" && "border-white/10 bg-white/[0.03]",
+          tone === "muted" && "border-white/10 bg-white/[0.03]"
         )}
       >
         <div className="flex items-center justify-between gap-2">

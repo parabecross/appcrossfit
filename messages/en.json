@@ -1362,6 +1362,9 @@
         "rank_improved_large": "Moved up in WOD (large)",
         "generic": "Personal evolution bonus"
       }
-    }
+    },
+    "monthCurrentBadge": "Current",
+    "monthCurrentShort": "Current",
+    "monthHistorical": "Historical ranking"
   }
 }

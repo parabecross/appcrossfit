@@ -1361,6 +1361,9 @@
         "rank_improved_large": "Subió puestos en el WOD (grande)",
         "generic": "Bonus por evolución personal"
       }
-    }
+    },
+    "monthCurrentBadge": "Actual",
+    "monthCurrentShort": "Actual",
+    "monthHistorical": "Ranking histórico"
   }
 }

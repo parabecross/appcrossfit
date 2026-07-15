@@ -8,6 +8,10 @@ import type {
   PointBreakdownTotals,
 } from "./point-breakdown";
 import { getRankingConfig } from "./engine";
+import {
+  currentMonthKeyInTimezone,
+  isValidMonthKey,
+} from "./month";
 import type {
   AthleticLevel,
   Profile,
@@ -62,10 +66,48 @@ export type AthronRankingData = {
   };
   config: Awaited<ReturnType<typeof getRankingConfig>>;
   month_key: string;
+  /** Current calendar month in the box timezone (YYYY-MM). */
+  current_month_key: string;
   category: AthleticLevel;
   leaderboard: LeaderboardRow[];
   daily_history: DailyHistoryDay[];
 };
+
+/**
+ * Lightweight list of months that have ranking events, always including the
+ * current month. Does not load full leaderboard data.
+ */
+export async function listAvailableRankingMonthKeys(params: {
+  boxId: string;
+  timezone: string;
+}): Promise<string[]> {
+  const admin = createAdminClient();
+  const current = currentMonthKeyInTimezone(params.timezone);
+
+  const { data } = await admin
+    .from("ranking_point_events")
+    .select("month_key")
+    .eq("box_id", params.boxId)
+    .order("month_key", { ascending: false })
+    .limit(3000);
+
+  const keys = new Set<string>([current]);
+  for (const row of data ?? []) {
+    if (isValidMonthKey(row.month_key)) keys.add(row.month_key);
+  }
+
+  return Array.from(keys).sort((a, b) => b.localeCompare(a));
+}
+
+function resolveMonthKey(
+  requested: string | undefined,
+  timezone: string
+): { month_key: string; current_month_key: string } {
+  const current_month_key = currentMonthKeyInTimezone(timezone);
+  const month_key =
+    isValidMonthKey(requested) ? requested : current_month_key;
+  return { month_key, current_month_key };
+}
 
 function sumPoints(events: RankingPointEvent[]): number {
   return events.reduce((acc, e) => acc + e.points, 0);
@@ -96,8 +138,10 @@ export async function getAthronRankingForBox(params: {
   if (!box || box.status !== "active") return null;
 
   const timezone = box.timezone ?? "America/Mexico_City";
-  const month_key =
-    params.monthKey ?? todayInTimezone(timezone).slice(0, 7);
+  const { month_key, current_month_key } = resolveMonthKey(
+    params.monthKey,
+    timezone
+  );
   const category = params.category ?? "intermediate";
   const config = await getRankingConfig(box.id, admin);
 
@@ -221,6 +265,7 @@ export async function getAthronRankingForBox(params: {
     },
     config,
     month_key,
+    current_month_key,
     category,
     leaderboard,
     daily_history,
@@ -386,8 +431,9 @@ export async function getUserAthronSummary(params: {
 }): Promise<UserAthronSummary> {
   const admin = createAdminClient();
   const timezone = params.timezone ?? "America/Mexico_City";
-  const month_key =
-    params.monthKey ?? todayInTimezone(timezone).slice(0, 7);
+  const month_key = isValidMonthKey(params.monthKey)
+    ? params.monthKey
+    : currentMonthKeyInTimezone(timezone);
   const today = todayInTimezone(timezone);
 
   const [{ data: events }, { data: perfil }, { data: asistioReservas }] =
