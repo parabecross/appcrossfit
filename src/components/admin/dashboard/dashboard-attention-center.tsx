@@ -183,9 +183,9 @@ export function DashboardAttentionCenter({
     followUpNeverContacted: string;
     followUpOverdue: string;
     followUpToday: string;
-    formatMoreAthletes: (remaining: number, total: number) => string;
   };
 }) {
+  const tAttention = useTranslations("adminDashboard.attention");
   const total = casesTotal ?? cases.length;
   const remaining = Math.max(0, total - cases.length);
   const hasOps =
@@ -339,7 +339,7 @@ export function DashboardAttentionCenter({
                 href={USUARIOS_DEEP_LINKS.needsAttention}
                 text={
                   remaining > 0
-                    ? labels.formatMoreAthletes(remaining, total)
+                    ? tAttention("moreAthletes", { count: remaining, total })
                     : null
                 }
               />
@@ -389,12 +389,13 @@ export function DashboardRetentionCases({
     membershipStatuses: Record<string, string>;
     loadError: string;
     empty: string;
-    formatMoreAthletes: (remaining: number, total: number) => string;
     seeInbox: string;
   };
   advancedEnabled: boolean;
   loadError?: boolean;
 }) {
+  const tAttention = useTranslations("adminDashboard.attention");
+
   if (!advancedEnabled) return null;
 
   if (loadError) {
@@ -443,7 +444,7 @@ export function DashboardRetentionCases({
           href={USUARIOS_DEEP_LINKS.inactive}
           text={
             remaining > 0
-              ? labels.formatMoreAthletes(remaining, total)
+              ? tAttention("moreAthletes", { count: remaining, total })
               : null
           }
         />

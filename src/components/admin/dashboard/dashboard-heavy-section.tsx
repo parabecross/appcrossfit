@@ -92,8 +92,6 @@ export async function DashboardHeavySection({
           membershipStatuses,
           loadError: td("alerts.loadError"),
           empty: td("alerts.emptyPremium"),
-          formatMoreAthletes: (count, total) =>
-            td("attention.moreAthletes", { count, total }),
           seeInbox: td("attention.seeInbox"),
         }}
       />

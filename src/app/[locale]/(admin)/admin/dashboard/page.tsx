@@ -158,8 +158,6 @@ export default async function AdminDashboardPage({
           followUpNeverContacted: td("attention.followUpNeverContacted"),
           followUpOverdue: td("attention.followUpOverdue"),
           followUpToday: td("attention.followUpToday"),
-          formatMoreAthletes: (count, total) =>
-            td("attention.moreAthletes", { count, total }),
         }}
       />
 
