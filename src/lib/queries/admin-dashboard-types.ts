@@ -9,7 +9,7 @@ import {
   computeDemandStats,
   computeTrendStats,
 } from "@/lib/queries/stats";
-import type { AlertaMembresia, Clase } from "@/types/database";
+import type { AlertaMembresia, AccountStatus, Clase } from "@/types/database";
 import type { partitionMembershipAlerts } from "@/lib/admin/dashboard-helpers";
 
 export interface AdminDashboardTodayClass extends Clase {
@@ -24,7 +24,9 @@ export interface AdminDashboardEssentialData {
     reservationsToday: number;
     attendanceToday: number;
     avgOccupancyToday: number;
+    availableSpotsToday: number;
     expiringSoon: number;
+    expiredMemberships: number;
     pendingPayment: number;
   };
   boxStatus: {
@@ -38,14 +40,29 @@ export interface AdminDashboardEssentialData {
   kpis: Awaited<ReturnType<typeof getKpis>>;
   alertas: AlertaMembresia[];
   membershipAlerts: ReturnType<typeof partitionMembershipAlerts>;
+  pendingPaymentAthletes: Array<{
+    id: string;
+    nombre_completo: string;
+    telefono: string | null;
+    foto_url: string | null;
+    estado_cuenta: AccountStatus;
+    created_at: string;
+  }>;
   todayClasses: AdminDashboardTodayClass[];
   lowOccupancyClasses: AdminDashboardTodayClass[];
+  fullClasses: AdminDashboardTodayClass[];
   birthdayAlerts: BirthdayAlert[];
 }
 
 export interface AdminDashboardHeavyData {
   inactiveAthletesHigh: InactiveAthleteAlert[];
-  athletesWithoutWeekBooking: { id: string; nombre: string }[];
+  athletesWithoutWeekBooking: {
+    id: string;
+    nombre: string;
+    telefono: string | null;
+    fotoUrl: string | null;
+    created_at: string | null;
+  }[];
   weeklySummary: WeeklySummaryData;
   recentPrs: Array<{
     id: string;

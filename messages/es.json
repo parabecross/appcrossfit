@@ -554,6 +554,130 @@
     "expired": "Vencidos",
     "socioStatusPorVencer": "Por vencer",
     "createUser": "Crear socio",
+    "joinedOn": "Ingreso: {date}",
+    "athletesInbox": {
+      "subtitle": "Bandeja operativa de atletas: filtra por atención, membresía o asistencia.",
+      "searchPlaceholder": "Buscar por nombre o teléfono…",
+      "clearFilters": "Limpiar filtros",
+      "showingCount": "{count} atletas",
+      "openProfile": "Abrir expediente",
+      "daysSince": "Hace {days} días sin asistir",
+      "noAttendance": "Sin asistencias registradas",
+      "fields": {
+        "name": "Nombre",
+        "email": "Email",
+        "password": "Contraseña"
+      },
+      "columns": {
+        "athlete": "Atleta",
+        "attention": "Atención",
+        "membership": "Membresía",
+        "attendance": "Asistencia",
+        "nextClass": "Próxima clase"
+      },
+      "views": {
+        "all": "Todos",
+        "attention_high": "Atención alta",
+        "attention_medium": "Atención media",
+        "membership_expired": "Vencidas",
+        "membership_expiring": "Por vencer",
+        "payment_pending": "Pago pendiente",
+        "inactive": "Inactivos",
+        "no_reservation": "Sin reserva",
+        "follow_up_overdue": "Seguimiento vencido",
+        "follow_up_today": "Seguimiento hoy",
+        "never_contacted": "Sin contactar",
+        "recently_contacted": "Contactados reciente"
+      },
+      "empty": {
+        "all": "Aún no hay atletas registrados.",
+        "search": "No encontramos atletas con estos filtros.",
+        "attention_high": "No hay atletas con atención alta.",
+        "attention_medium": "No hay atletas con atención media.",
+        "membership_expired": "No hay membresías vencidas por ahora.",
+        "membership_expiring": "No hay membresías próximas a vencer.",
+        "payment_pending": "No hay atletas con pago pendiente.",
+        "inactive": "No hay atletas inactivos en este momento.",
+        "no_reservation": "Todos los atletas activos tienen reserva esta semana.",
+        "follow_up_overdue": "No hay seguimientos vencidos.",
+        "follow_up_today": "No hay seguimientos programados para hoy.",
+        "never_contacted": "Todos los atletas ya tienen al menos un contacto registrado.",
+        "recently_contacted": "No hay contactos recientes."
+      },
+      "followUp": {
+        "lastContact": "Último contacto",
+        "next": "Próximo seguimiento",
+        "contactedDaysAgo": "Hace {days, plural, =0 {hoy} =1 {1 día} other {# días}}",
+        "badgeNeverContacted": "Sin contactar",
+        "badgeOverdue": "Seguimiento vencido",
+        "badgeToday": "Seguimiento hoy",
+        "badgeScheduled": "Seguimiento programado",
+        "badgeResolvedRecently": "Resuelto recientemente"
+      },
+      "seguimiento": {
+        "sectionTitle": "Seguimiento y notas",
+        "privacyNotice": "Esta información solo es visible para el personal autorizado del box.",
+        "register": "Registrar seguimiento",
+        "registerTitle": "Registrar seguimiento — {name}",
+        "registerAsContacted": "Registrar como contactado",
+        "type": "Tipo de interacción",
+        "outcome": "Resultado",
+        "note": "Nota interna",
+        "optional": "opcional",
+        "occurredAt": "Fecha y hora del contacto",
+        "requiresFollowUp": "Requiere seguimiento",
+        "followUpAt": "Fecha de seguimiento",
+        "save": "Guardar seguimiento",
+        "saved": "Seguimiento registrado",
+        "summaryTitle": "Resumen",
+        "lastContact": "Último contacto",
+        "nextFollowUp": "Próximo seguimiento",
+        "author": "Registrado por",
+        "emptyHistory": "Aún no hay seguimientos ni notas internas.",
+        "showingLatest": "Mostrando los más recientes. El historial completo crece con el tiempo.",
+        "tableMissing": "La bitácora aún no está disponible. Aplica la migración de seguimientos.",
+        "status": {
+          "overdue": "Vencido",
+          "today": "Hoy",
+          "scheduled": "Programado",
+          "neverContacted": "Sin contactar",
+          "none": "Sin seguimiento pendiente"
+        },
+        "types": {
+          "whatsapp": "WhatsApp",
+          "phone_call": "Llamada",
+          "in_person": "En persona",
+          "internal_note": "Nota interna",
+          "email": "Email",
+          "other": "Otro"
+        },
+        "outcomes": {
+          "contacted": "Contactado",
+          "no_response": "Sin respuesta",
+          "responded": "Respondió",
+          "renewal_pending": "Renovación pendiente",
+          "renewed": "Renovó",
+          "not_interested": "No interesado",
+          "follow_up_required": "Requiere seguimiento",
+          "resolved": "Resuelto",
+          "note_only": "Solo nota"
+        }
+      },
+      "expediente": {
+        "attentionTitle": "Estado de atención",
+        "signals": "Señales detectadas",
+        "scoreHint": "Puntuación operativa",
+        "backToInbox": "Volver a la bandeja",
+        "progressTitle": "Progreso deportivo",
+        "progressDesc": "Resumen de PRs y skills recientes",
+        "recentPrs": "PRs recientes",
+        "recentSkills": "Skills recientes",
+        "noProgress": "Todavía no hay progreso registrado.",
+        "viewMisAtletas": "Ver en Mis atletas",
+        "hasWeekBooking": "Con reserva esta semana",
+        "noWeekBooking": "Sin reserva esta semana"
+      }
+    },
     "createUserSuccess": "Socio creado. Ya puede iniciar sesión con el correo y contraseña asignados.",
     "createCoach": "Crear coach",
     "createCoachDesc": "Define correo y contraseña. El coach recibirá un email para confirmar su cuenta y podrá entrar con esas credenciales.",
@@ -611,15 +735,18 @@
     "header": {
       "poweredBy": "Operado con",
       "platformTagline": "Train. Track. Progress.",
-      "controlPanel": "Panel de control · Hoy"
+      "controlPanel": "Centro de control · Hoy"
     },
     "todayHero": {
       "title": "Hoy en tu box",
       "reservationsToday": "Reservas hoy",
       "attendanceToday": "Asistencias hoy",
       "classesToday": "Clases hoy",
+      "avgOccupancy": "Ocupación promedio",
+      "availableSpots": "Cupos disponibles",
       "membershipsAttention": "Membresías por atender",
-      "membershipsHint": "{expired} vencidas · {expiring} por vencer"
+      "membershipsHint": "{expired} vencidas · {expiring} por vencer",
+      "pendingPayment": "Pendientes de pago"
     },
     "executive": {
       "title": "Resumen ejecutivo",
@@ -637,7 +764,45 @@
       "newClass": "Nueva clase",
       "newAthlete": "Nuevo atleta",
       "newCoach": "Nuevo coach",
-      "assignMembership": "Asignar membresía"
+      "assignMembership": "Asignar membresía",
+      "needsAttention": "Requiere atención"
+    },
+    "attention": {
+      "title": "Centro de atención y retención",
+      "subtitle": "Prioridades operativas para retener atletas y cubrir el día",
+      "retentionTitle": "Seguimiento de asistencia",
+      "priorityInfo": "Informativo",
+      "levelHigh": "Atención alta",
+      "levelMedium": "Atención media",
+      "levelLow": "Seguimiento",
+      "seeMore": "Ver más en atletas",
+      "openProfile": "Abrir expediente",
+      "lastAttendance": "Última asistencia",
+      "membership": "Membresía",
+      "fullClasses": "Clases llenas hoy",
+      "followUpNeverContacted": "Atención sin contactar",
+      "followUpOverdue": "Seguimientos vencidos",
+      "followUpToday": "Seguimientos hoy",
+      "membershipStatuses": {
+        "pendiente_pago": "Pago pendiente",
+        "sin_membresia": "Sin membresía",
+        "vencida": "Vencida",
+        "por_vencer": "Por vencer",
+        "activo": "Activa"
+      },
+      "reasons": {
+        "membership_expired": "Membresía vencida",
+        "membership_expiring": "Membresía próxima a vencer",
+        "pending_payment": "Pago pendiente",
+        "account_inactive": "Cuenta inactiva",
+        "inactive_7": "7+ días sin asistir",
+        "inactive_10": "10+ días sin asistir",
+        "inactive_15": "15+ días sin asistir",
+        "never_attended": "Sin asistencias registradas",
+        "no_week_booking": "Sin reserva esta semana",
+        "attendance_drop": "Bajó su frecuencia reciente",
+        "new_athlete": "Atleta nuevo"
+      }
     },
     "planCard": {
       "currentPlan": "Tu plan actual",
@@ -662,11 +827,13 @@
       "noData": "Sin datos"
     },
     "upcomingClasses": {
-      "title": "Próximas clases",
+      "title": "Clases de hoy",
       "empty": "No hay clases programadas para hoy.",
       "createClass": "Crear clase",
       "viewCalendar": "Ver calendario completo",
       "cupo": "Cupo",
+      "available": "Disponibles",
+      "lowOccupancyHint": "Baja ocupación",
       "status": {
         "available": "Disponible",
         "almostFull": "Casi llena",
@@ -714,8 +881,11 @@
       "subtitle": "Comparativa y logros de la semana en curso",
       "attendance": "Asistencias esta semana",
       "attendanceVsLast": "Semana pasada: {last}",
-      "topClass": "Clase más reservada",
+      "topClass": "Clase con mayor demanda",
       "topClassBookings": "{count} reservas",
+      "lowClass": "Clase con menor demanda",
+      "lowClassBookings": "{count} reservas",
+      "avgOccupancy": "Ocupación promedio de la semana",
       "prs": "PRs registrados",
       "goals": "Objetivos cumplidos",
       "memberships": "Membresías renovadas",

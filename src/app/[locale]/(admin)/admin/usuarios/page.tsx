@@ -7,21 +7,33 @@ import { FeatureGate } from "@/components/plans/feature-gate";
 import { createClient } from "@/lib/supabase/server";
 import { UsuariosTable } from "@/components/admin/usuarios-table";
 import { getMembresiasMapForUsuarios } from "@/lib/queries/memberships";
+import { buildAdminUsuariosInbox } from "@/lib/queries/admin-usuarios-inbox";
+import { loadBoxSeguimientosSnapshot } from "@/lib/queries/seguimientos";
+import {
+  countInboxViews,
+  parseUsuariosInboxFilters,
+} from "@/lib/admin/usuarios-filters";
 import type { Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsuariosPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
   const adminProfile = await requireAdmin(locale);
   const boxConfig = await getBoxConfig(adminProfile.box_id);
   const entitlements = await getBoxEntitlements(adminProfile.box_id!);
   const t = await getTranslations("nav");
+  const tinbox = await getTranslations("admin.athletesInbox");
   const supabase = await createClient();
+
+  const filters = parseUsuariosInboxFilters(sp);
 
   const { data: profiles } = await supabase
     .from("profiles")
@@ -32,10 +44,20 @@ export default async function AdminUsuariosPage({
 
   const socios = (profiles ?? []) as Profile[];
   const memMap = await getMembresiasMapForUsuarios(socios.map((p) => p.id));
-  const users = socios.map((p) => ({
-    ...p,
-    membresia: memMap.get(p.id) ?? null,
-  }));
+
+  const seguimientos = await loadBoxSeguimientosSnapshot(
+    adminProfile.box_id!,
+    socios.map((s) => s.id)
+  );
+
+  const rows = await buildAdminUsuariosInbox(
+    socios,
+    memMap,
+    boxConfig.timezone,
+    seguimientos.byAthlete
+  );
+
+  const viewCounts = countInboxViews(rows);
 
   return (
     <FeatureGate
@@ -45,11 +67,19 @@ export default async function AdminUsuariosPage({
       description={t("users")}
     >
       <div className="space-y-6">
-        <h1 className="text-3xl font-black brand-text">{t("users")}</h1>
+        <div>
+          <h1 className="text-3xl font-black brand-text">{t("users")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {tinbox("subtitle")}
+          </p>
+        </div>
         <UsuariosTable
-          users={users}
+          rows={rows}
           locale={locale}
           gymTimezone={boxConfig.timezone}
+          boxName={boxConfig.name}
+          initialFilters={filters}
+          viewCounts={viewCounts}
         />
       </div>
     </FeatureGate>

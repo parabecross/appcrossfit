@@ -310,6 +310,46 @@ export interface AtletaPerfilDeportivo {
   updated_at: string;
 }
 
+export type SeguimientoTipoInteraccion =
+  | "whatsapp"
+  | "phone_call"
+  | "in_person"
+  | "internal_note"
+  | "email"
+  | "other";
+
+export type SeguimientoResultado =
+  | "contacted"
+  | "no_response"
+  | "responded"
+  | "renewal_pending"
+  | "renewed"
+  | "not_interested"
+  | "follow_up_required"
+  | "resolved"
+  | "note_only";
+
+export interface SeguimientoAtleta {
+  id: string;
+  box_id: string;
+  usuario_id: string;
+  autor_id: string;
+  tipo_interaccion: SeguimientoTipoInteraccion;
+  resultado: SeguimientoResultado;
+  nota: string | null;
+  occurred_at: string;
+  follow_up_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SeguimientoFollowUpStatus =
+  | "none"
+  | "overdue"
+  | "today"
+  | "scheduled"
+  | "never_contacted";
+
 export interface Database {
   public: {
     Tables: {
@@ -343,6 +383,11 @@ export interface Database {
         Row: AtletaPerfilDeportivo;
         Insert: Partial<AtletaPerfilDeportivo>;
         Update: Partial<AtletaPerfilDeportivo>;
+      };
+      seguimientos_atleta: {
+        Row: SeguimientoAtleta;
+        Insert: Partial<SeguimientoAtleta>;
+        Update: Partial<SeguimientoAtleta>;
       };
       clase_scores: {
         Row: ClaseScore;

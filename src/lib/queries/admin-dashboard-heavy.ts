@@ -21,6 +21,9 @@ const EMPTY_WEEKLY_SUMMARY: WeeklySummaryData = {
   attendanceDelta: 0,
   topClassName: null,
   topClassBookings: 0,
+  lowClassName: null,
+  lowClassBookings: 0,
+  avgOccupancyThisWeek: null,
   prsThisWeek: 0,
   goalsCompleted: 0,
   membershipsRenewed: 0,
@@ -96,6 +99,14 @@ export async function buildAdminDashboardHeavyData(
     if (uid) bookedThisWeek.add(uid);
   }
 
+  const telefonoMap = new Map(
+    ctx.socios.map((s) => [s.id, s.telefono ?? null])
+  );
+  const fotoMap = new Map(ctx.socios.map((s) => [s.id, s.foto_url ?? null]));
+  const createdMap = new Map(
+    ctx.socios.map((s) => [s.id, s.created_at ?? null])
+  );
+
   const athletesWithoutWeekBooking = findAthletesWithoutWeekBooking(
     activeSocioIds,
     bookedThisWeek
@@ -103,6 +114,9 @@ export async function buildAdminDashboardHeavyData(
     .map((id) => ({
       id,
       nombre: nombreMap.get(id) ?? "—",
+      telefono: telefonoMap.get(id) ?? null,
+      fotoUrl: fotoMap.get(id) ?? null,
+      created_at: createdMap.get(id) ?? null,
     }))
     .slice(0, 12);
 

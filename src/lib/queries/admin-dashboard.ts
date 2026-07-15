@@ -1,6 +1,9 @@
 import { cache } from "react";
 import {
   computeAverageOccupancy,
+  computeAvailableSpots,
+  filterFullClasses,
+  filterLowOccupancyClasses,
   partitionMembershipAlerts,
 } from "@/lib/admin/dashboard-helpers";
 import { getClasesByDateRange } from "@/lib/queries/clases";
@@ -109,13 +112,21 @@ export const getAdminDashboardEssentialData = cache(
     })) as AdminDashboardTodayClass[];
 
     const avgOccupancyToday = computeAverageOccupancy(classesWithCupo);
+    const availableSpotsToday = computeAvailableSpots(classesWithCupo);
     const membershipAlerts = partitionMembershipAlerts(alertas);
+    const lowOccupancyClasses = filterLowOccupancyClasses(classesWithCupo);
+    const fullClasses = filterFullClasses(classesWithCupo);
 
-    const lowOccupancyClasses = classesWithCupo.filter((c) => {
-      if (c.cupo_maximo <= 0) return false;
-      const pct = (c.cupo_ocupado / c.cupo_maximo) * 100;
-      return pct < 40 && pct >= 0;
-    });
+    const pendingPaymentAthletes = snapshot.socios
+      .filter((s) => s.estado_cuenta === "pendiente_pago")
+      .map((s) => ({
+        id: s.id,
+        nombre_completo: s.nombre_completo,
+        telefono: s.telefono,
+        foto_url: s.foto_url,
+        estado_cuenta: s.estado_cuenta,
+        created_at: s.created_at,
+      }));
 
     return {
       today: ctx.today,
@@ -125,7 +136,9 @@ export const getAdminDashboardEssentialData = cache(
         reservationsToday,
         attendanceToday,
         avgOccupancyToday,
+        availableSpotsToday,
         expiringSoon: membershipAlerts.porVencer.length,
+        expiredMemberships: membershipAlerts.vencidas.length,
         pendingPayment: kpis.pendientes,
       },
       boxStatus: {
@@ -139,10 +152,12 @@ export const getAdminDashboardEssentialData = cache(
       kpis,
       alertas,
       membershipAlerts,
+      pendingPaymentAthletes,
       todayClasses: classesWithCupo.sort((a, b) =>
         a.hora_inicio.localeCompare(b.hora_inicio)
       ),
       lowOccupancyClasses,
+      fullClasses,
       birthdayAlerts,
     };
   }

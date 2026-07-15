@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
 import { computeFechaFin, syncMembresiaEstadoLocal } from "@/lib/membresias/helpers";
-import { useRouter } from "@/i18n/routing";
+import { useRouter, Link } from "@/i18n/routing";
 import type { Profile, Membresia, Plan } from "@/types/database";
 import type { AthleteClassHistoryItem } from "@/lib/queries/athlete-history";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
@@ -40,6 +40,8 @@ export function UserDetailClient({
   planes,
   locale,
   entitlements,
+  progressSummary,
+  attendanceMeta,
 }: {
   user: Profile;
   email: string | null;
@@ -48,12 +50,29 @@ export function UserDetailClient({
   planes: Plan[];
   locale: string;
   entitlements: BoxEntitlements;
+  progressSummary?: {
+    recentPrs: Array<{
+      ejercicio: string;
+      valor: number;
+      unidad: string;
+      fecha: string;
+    }>;
+    recentSkills: Array<{ skill: string; estado: string }>;
+    misAtletasHref: string;
+  };
+  attendanceMeta?: {
+    lastAttendanceDate: string | null;
+    daysSinceAttendance: number | null;
+    hasWeekBooking: boolean;
+  };
 }) {
   const t = useTranslations("membership");
   const tm = useTranslations("membership.status");
   const ta = useTranslations("admin");
+  const tinbox = useTranslations("admin.athletesInbox");
   const tc = useTranslations("common");
   const tauth = useTranslations("auth");
+  const tp = useTranslations("progress");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -240,8 +259,7 @@ export function UserDetailClient({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black">{user.nombre_completo}</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {email || "—"} · {telefono || ta("noPhoneForWhatsApp")}
           </p>
           {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
@@ -352,19 +370,31 @@ export function UserDetailClient({
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{ta("attendanceCount")}</p>
-            <p className="text-2xl font-black">{attended}</p>
+            <p className="text-2xl font-black tabular-nums">{attended}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceMeta?.daysSinceAttendance != null
+                ? tinbox("daysSince", {
+                    days: attendanceMeta.daysSinceAttendance,
+                  })
+                : tinbox("noAttendance")}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{ta("noShowCount")}</p>
-            <p className="text-2xl font-black">{noShow}</p>
+            <p className="text-2xl font-black tabular-nums">{noShow}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{ta("upcomingBookings")}</p>
-            <p className="text-2xl font-black">{upcoming}</p>
+            <p className="text-2xl font-black tabular-nums">{upcoming}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceMeta?.hasWeekBooking
+                ? tinbox("expediente.hasWeekBooking")
+                : tinbox("expediente.noWeekBooking")}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -389,6 +419,66 @@ export function UserDetailClient({
           </CardContent>
         </Card>
       </div>
+
+      {progressSummary ? (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+            <div>
+              <CardTitle>{tinbox("expediente.progressTitle")}</CardTitle>
+              <CardDescription>
+                {tinbox("expediente.progressDesc")}
+              </CardDescription>
+            </div>
+            <Link
+              href={progressSummary.misAtletasHref}
+              className="text-xs font-medium text-orange-400 hover:text-orange-300 min-h-11 inline-flex items-center"
+            >
+              {tinbox("expediente.viewMisAtletas")}
+            </Link>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                {tinbox("expediente.recentPrs")}
+              </p>
+              {progressSummary.recentPrs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {tinbox("expediente.noProgress")}
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {progressSummary.recentPrs.map((p, idx) => (
+                    <li key={`${p.ejercicio}-${idx}`} className="text-sm">
+                      {tp(`exercises.${p.ejercicio}` as never)} ·{" "}
+                      <span className="tabular-nums font-medium">
+                        {p.valor} {p.unidad}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                {tinbox("expediente.recentSkills")}
+              </p>
+              {progressSummary.recentSkills.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {tinbox("expediente.noProgress")}
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {progressSummary.recentSkills.map((s) => (
+                    <li key={`${s.skill}-${s.estado}`} className="text-sm">
+                      {tp(`skills.${s.skill}` as never)} · {s.estado}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

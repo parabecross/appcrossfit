@@ -555,6 +555,130 @@
     "expired": "Expired",
     "socioStatusPorVencer": "Expiring soon",
     "createUser": "Create member",
+    "joinedOn": "Joined: {date}",
+    "athletesInbox": {
+      "subtitle": "Operational athlete inbox: filter by attention, membership, or attendance.",
+      "searchPlaceholder": "Search by name or phone…",
+      "clearFilters": "Clear filters",
+      "showingCount": "{count} athletes",
+      "openProfile": "Open profile",
+      "daysSince": "{days} days without attending",
+      "noAttendance": "No attendance recorded",
+      "fields": {
+        "name": "Name",
+        "email": "Email",
+        "password": "Password"
+      },
+      "columns": {
+        "athlete": "Athlete",
+        "attention": "Attention",
+        "membership": "Membership",
+        "attendance": "Attendance",
+        "nextClass": "Next class"
+      },
+      "views": {
+        "all": "All",
+        "attention_high": "High attention",
+        "attention_medium": "Medium attention",
+        "membership_expired": "Expired",
+        "membership_expiring": "Expiring soon",
+        "payment_pending": "Pending payment",
+        "inactive": "Inactive",
+        "no_reservation": "No booking",
+        "follow_up_overdue": "Overdue follow-up",
+        "follow_up_today": "Follow-up today",
+        "never_contacted": "Never contacted",
+        "recently_contacted": "Recently contacted"
+      },
+      "empty": {
+        "all": "No athletes registered yet.",
+        "search": "We couldn't find athletes with these filters.",
+        "attention_high": "No athletes need high attention.",
+        "attention_medium": "No athletes need medium attention.",
+        "membership_expired": "No expired memberships right now.",
+        "membership_expiring": "No memberships expiring soon.",
+        "payment_pending": "No athletes with pending payment.",
+        "inactive": "No inactive athletes right now.",
+        "no_reservation": "All active athletes have a booking this week.",
+        "follow_up_overdue": "No overdue follow-ups.",
+        "follow_up_today": "No follow-ups scheduled for today.",
+        "never_contacted": "Every athlete already has at least one logged contact.",
+        "recently_contacted": "No recent contacts."
+      },
+      "followUp": {
+        "lastContact": "Last contact",
+        "next": "Next follow-up",
+        "contactedDaysAgo": "{days, plural, =0 {Today} =1 {1 day ago} other {# days ago}}",
+        "badgeNeverContacted": "Never contacted",
+        "badgeOverdue": "Overdue follow-up",
+        "badgeToday": "Follow-up today",
+        "badgeScheduled": "Scheduled follow-up",
+        "badgeResolvedRecently": "Recently resolved"
+      },
+      "seguimiento": {
+        "sectionTitle": "Follow-up and notes",
+        "privacyNotice": "This information is only visible to authorized box staff.",
+        "register": "Log follow-up",
+        "registerTitle": "Log follow-up — {name}",
+        "registerAsContacted": "Log as contacted",
+        "type": "Interaction type",
+        "outcome": "Outcome",
+        "note": "Internal note",
+        "optional": "optional",
+        "occurredAt": "Contact date and time",
+        "requiresFollowUp": "Requires follow-up",
+        "followUpAt": "Follow-up date",
+        "save": "Save follow-up",
+        "saved": "Follow-up saved",
+        "summaryTitle": "Summary",
+        "lastContact": "Last contact",
+        "nextFollowUp": "Next follow-up",
+        "author": "Logged by",
+        "emptyHistory": "No follow-ups or internal notes yet.",
+        "showingLatest": "Showing the latest entries. The full history grows over time.",
+        "tableMissing": "The follow-up log is not available yet. Apply the seguimientos migration.",
+        "status": {
+          "overdue": "Overdue",
+          "today": "Today",
+          "scheduled": "Scheduled",
+          "neverContacted": "Never contacted",
+          "none": "No pending follow-up"
+        },
+        "types": {
+          "whatsapp": "WhatsApp",
+          "phone_call": "Phone call",
+          "in_person": "In person",
+          "internal_note": "Internal note",
+          "email": "Email",
+          "other": "Other"
+        },
+        "outcomes": {
+          "contacted": "Contacted",
+          "no_response": "No response",
+          "responded": "Responded",
+          "renewal_pending": "Renewal pending",
+          "renewed": "Renewed",
+          "not_interested": "Not interested",
+          "follow_up_required": "Follow-up required",
+          "resolved": "Resolved",
+          "note_only": "Note only"
+        }
+      },
+      "expediente": {
+        "attentionTitle": "Attention status",
+        "signals": "Detected signals",
+        "scoreHint": "Operational score",
+        "backToInbox": "Back to inbox",
+        "progressTitle": "Athletic progress",
+        "progressDesc": "Summary of recent PRs and skills",
+        "recentPrs": "Recent PRs",
+        "recentSkills": "Recent skills",
+        "noProgress": "No progress recorded yet.",
+        "viewMisAtletas": "View in My athletes",
+        "hasWeekBooking": "Booked this week",
+        "noWeekBooking": "No booking this week"
+      }
+    },
     "createUserSuccess": "Member created. They can sign in immediately with the email and password you set.",
     "createCoach": "Create coach",
     "createCoachDesc": "Set email and password. The coach will receive a confirmation email and can sign in with those credentials.",
@@ -612,15 +736,18 @@
     "header": {
       "poweredBy": "Powered by",
       "platformTagline": "Train. Track. Progress.",
-      "controlPanel": "Control panel · Today"
+      "controlPanel": "Control center · Today"
     },
     "todayHero": {
       "title": "Today at your box",
       "reservationsToday": "Bookings today",
       "attendanceToday": "Attendance today",
       "classesToday": "Classes today",
+      "avgOccupancy": "Avg. occupancy",
+      "availableSpots": "Spots available",
       "membershipsAttention": "Memberships to review",
-      "membershipsHint": "{expired} expired · {expiring} expiring"
+      "membershipsHint": "{expired} expired · {expiring} expiring",
+      "pendingPayment": "Pending payment"
     },
     "executive": {
       "title": "Executive summary",
@@ -638,7 +765,45 @@
       "newClass": "New class",
       "newAthlete": "New athlete",
       "newCoach": "New coach",
-      "assignMembership": "Assign membership"
+      "assignMembership": "Assign membership",
+      "needsAttention": "Needs attention"
+    },
+    "attention": {
+      "title": "Attention & retention center",
+      "subtitle": "Operational priorities to retain athletes and cover the day",
+      "retentionTitle": "Attendance follow-up",
+      "priorityInfo": "Informative",
+      "levelHigh": "High attention",
+      "levelMedium": "Medium attention",
+      "levelLow": "Follow-up",
+      "seeMore": "See more athletes",
+      "openProfile": "Open profile",
+      "lastAttendance": "Last attendance",
+      "membership": "Membership",
+      "fullClasses": "Full classes today",
+      "followUpNeverContacted": "Attention not contacted",
+      "followUpOverdue": "Overdue follow-ups",
+      "followUpToday": "Follow-ups today",
+      "membershipStatuses": {
+        "pendiente_pago": "Pending payment",
+        "sin_membresia": "No membership",
+        "vencida": "Expired",
+        "por_vencer": "Expiring soon",
+        "activo": "Active"
+      },
+      "reasons": {
+        "membership_expired": "Membership expired",
+        "membership_expiring": "Membership expiring soon",
+        "pending_payment": "Pending payment",
+        "account_inactive": "Inactive account",
+        "inactive_7": "7+ days without attending",
+        "inactive_10": "10+ days without attending",
+        "inactive_15": "15+ days without attending",
+        "never_attended": "No recorded attendance",
+        "no_week_booking": "No booking this week",
+        "attendance_drop": "Recent attendance dropped",
+        "new_athlete": "New athlete"
+      }
     },
     "planCard": {
       "currentPlan": "Your current plan",
@@ -663,11 +828,13 @@
       "noData": "No data"
     },
     "upcomingClasses": {
-      "title": "Upcoming classes",
+      "title": "Today's classes",
       "empty": "No classes scheduled for today.",
       "createClass": "Create class",
       "viewCalendar": "View full calendar",
       "cupo": "Spots",
+      "available": "Available",
+      "lowOccupancyHint": "Low occupancy",
       "status": {
         "available": "Available",
         "almostFull": "Almost full",
@@ -715,8 +882,11 @@
       "subtitle": "Comparison and wins for the current week",
       "attendance": "Attendance this week",
       "attendanceVsLast": "Last week: {last}",
-      "topClass": "Most booked class",
+      "topClass": "Highest-demand class",
       "topClassBookings": "{count} bookings",
+      "lowClass": "Lowest-demand class",
+      "lowClassBookings": "{count} bookings",
+      "avgOccupancy": "Weekly avg. occupancy",
       "prs": "PRs logged",
       "goals": "Goals completed",
       "memberships": "Memberships renewed",

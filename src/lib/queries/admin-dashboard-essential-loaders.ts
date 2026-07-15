@@ -23,6 +23,8 @@ export type BoxSociosMembershipSnapshot = {
     telefono: string | null;
     user_id: string;
     estado_cuenta: AccountStatus;
+    foto_url: string | null;
+    created_at: string;
   }>;
   memMap: Map<string, MembresiaWithPlan>;
 };
@@ -45,7 +47,7 @@ export const loadBoxSociosMembershipSnapshot = cache(
     const supabase = await createClient();
     const { data: socios } = await supabase
       .from("profiles")
-      .select("id, nombre_completo, telefono, user_id, estado_cuenta")
+      .select("id, nombre_completo, telefono, user_id, estado_cuenta, foto_url, created_at")
       .eq("box_id", resolvedBoxId)
       .eq("rol", "socio")
       .order("nombre_completo");

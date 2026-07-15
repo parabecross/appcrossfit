@@ -4,8 +4,6 @@ import {
   isDateBeforeToday,
   todayInTimezone,
 } from "@/lib/dates/date-only";
-import { formatDate } from "@/lib/utils";
-
 export function formatPhoneForWhatsApp(phone: string | null | undefined): string | null {
   if (!phone) return null;
   const digits = phone.replace(/\D/g, "");
@@ -53,15 +51,95 @@ export function buildRenewalReminderMessage(
   boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
 ): string {
   const firstName = nombre.split(" ")[0];
-  const fecha = formatDate(fechaFin, locale);
+  void fechaFin;
 
   if (type === "vencida") {
     return locale === "es"
-      ? `Hola ${firstName}! 👋 Tu mensualidad en ${boxName} venció el ${fecha}. Renueva para seguir reservando clases. ¡Te extrañamos en el box! 💪`
-      : `Hi ${firstName}! 👋 Your ${boxName} membership expired on ${fecha}. Renew to keep booking classes. We miss you at the box! 💪`;
+      ? `Hola, ${firstName}. Tu membresía de ${boxName} venció recientemente. Escríbenos y con gusto te ayudamos a renovarla para que continúes entrenando.`
+      : `Hi, ${firstName}. Your ${boxName} membership recently expired. Message us and we'll gladly help you renew so you can keep training.`;
   }
 
   return locale === "es"
-    ? `Hola ${firstName}! 👋 Te recordamos que tu mensualidad en ${boxName} vence el ${fecha}. No te quedes sin entrenar — renueva a tiempo. ¡Nos vemos en el box! 💪`
-    : `Hi ${firstName}! 👋 Your ${boxName} membership expires on ${fecha}. Don't miss your training — renew on time. See you at the box! 💪`;
+    ? `Hola, ${firstName}. Te recordamos que tu membresía de ${boxName} está próxima a vencer. Escríbenos para ayudarte con tu renovación.`
+    : `Hi, ${firstName}. Reminder that your ${boxName} membership is about to expire. Message us and we'll help with your renewal.`;
+}
+
+export function buildInactiveAthleteMessage(
+  nombre: string,
+  locale: string,
+  boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
+): string {
+  const firstName = nombre.split(" ")[0];
+  return locale === "es"
+    ? `Hola, ${firstName}. Te extrañamos en ${boxName}. Vimos que llevas algunos días sin entrenar y queríamos saber cómo estás. Cuando estés listo, aquí te esperamos.`
+    : `Hi, ${firstName}. We miss you at ${boxName}. We noticed you haven't trained in a few days and wanted to check in. Whenever you're ready, we're here for you.`;
+}
+
+export function buildPendingPaymentMessage(
+  nombre: string,
+  locale: string,
+  boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
+): string {
+  const firstName = nombre.split(" ")[0];
+  return locale === "es"
+    ? `Hola, ${firstName}. Te escribimos de ${boxName} para ayudarte a regularizar el estado de tu membresía. Cuando puedas, escríbenos y con gusto te orientamos.`
+    : `Hi, ${firstName}. We're reaching out from ${boxName} to help you sort out your membership status. Message us whenever you can and we'll gladly guide you.`;
+}
+
+export function buildNoReservationMessage(
+  nombre: string,
+  locale: string,
+  boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
+): string {
+  const firstName = nombre.split(" ")[0];
+  return locale === "es"
+    ? `Hola, ${firstName}. En ${boxName} todavía no te vemos reservado esta semana. Si quieres, te ayudamos a agendar tu próxima clase.`
+    : `Hi, ${firstName}. We haven't seen a booking from you at ${boxName} this week. If you'd like, we can help you schedule your next class.`;
+}
+
+export function buildGeneralFollowUpMessage(
+  nombre: string,
+  locale: string,
+  boxName: string = APP_CONFIG.DEFAULT_BOX_NAME
+): string {
+  const firstName = nombre.split(" ")[0];
+  return locale === "es"
+    ? `Hola, ${firstName}. Te saludamos de ${boxName}. Queríamos dar seguimiento y saber cómo te podemos apoyar.`
+    : `Hi, ${firstName}. Greetings from ${boxName}. We wanted to follow up and see how we can support you.`;
+}
+
+export type WhatsAppMessageType =
+  | "por_vencer"
+  | "vencida"
+  | "inactive"
+  | "pending_payment"
+  | "no_reservation"
+  | "general";
+
+export function buildContextualWhatsAppMessage(
+  type: WhatsAppMessageType,
+  nombre: string,
+  locale: string,
+  boxName?: string,
+  fechaFin?: string | null
+): string {
+  switch (type) {
+    case "vencida":
+    case "por_vencer":
+      return buildRenewalReminderMessage(
+        nombre,
+        fechaFin ?? "",
+        locale,
+        type,
+        boxName
+      );
+    case "inactive":
+      return buildInactiveAthleteMessage(nombre, locale, boxName);
+    case "pending_payment":
+      return buildPendingPaymentMessage(nombre, locale, boxName);
+    case "no_reservation":
+      return buildNoReservationMessage(nombre, locale, boxName);
+    default:
+      return buildGeneralFollowUpMessage(nombre, locale, boxName);
+  }
 }

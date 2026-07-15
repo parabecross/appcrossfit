@@ -2,7 +2,9 @@ import {
   CalendarCheck,
   CreditCard,
   Dumbbell,
+  Gauge,
   Target,
+  TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import type { WeeklySummaryData } from "@/lib/admin/dashboard-helpers";
@@ -34,7 +36,7 @@ function SummaryRow({
       />
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-semibold mt-0.5">{value}</p>
+        <p className="text-sm font-semibold mt-0.5 tabular-nums">{value}</p>
         {detail ? (
           <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>
         ) : null}
@@ -57,6 +59,9 @@ export function DashboardWeeklySummary({
     attendanceDetail: string;
     topClass: string;
     topClassBookingsDetail?: string;
+    lowClass?: string;
+    lowClassBookingsDetail?: string;
+    avgOccupancy?: string;
     prs: string;
     goals: string;
     memberships: string;
@@ -94,12 +99,27 @@ export function DashboardWeeklySummary({
           detail={labels.attendanceDetail}
           accent="orange"
         />
+        {labels.avgOccupancy && data.avgOccupancyThisWeek != null ? (
+          <SummaryRow
+            icon={Gauge}
+            label={labels.avgOccupancy}
+            value={`${data.avgOccupancyThisWeek}%`}
+          />
+        ) : null}
         <SummaryRow
           icon={CalendarCheck}
           label={labels.topClass}
           value={data.topClassName ?? labels.noTopClass}
           detail={labels.topClassBookingsDetail}
         />
+        {labels.lowClass ? (
+          <SummaryRow
+            icon={TrendingDown}
+            label={labels.lowClass}
+            value={data.lowClassName ?? labels.noTopClass}
+            detail={labels.lowClassBookingsDetail}
+          />
+        ) : null}
         <SummaryRow
           icon={Dumbbell}
           label={labels.prs}

@@ -54,6 +54,35 @@ export function computeAverageOccupancy(
   return Math.round(sum / classes.length);
 }
 
+/** Remaining bookable spots across classes with a positive capacity. */
+export function computeAvailableSpots(
+  classes: { cupo_ocupado: number; cupo_maximo: number }[]
+): number {
+  return classes.reduce((acc, c) => {
+    if (c.cupo_maximo <= 0) return acc;
+    return acc + Math.max(0, c.cupo_maximo - c.cupo_ocupado);
+  }, 0);
+}
+
+export function filterFullClasses<
+  T extends { cupo_ocupado: number; cupo_maximo: number },
+>(classes: T[]): T[] {
+  return classes.filter(
+    (c) => c.cupo_maximo > 0 && c.cupo_ocupado >= c.cupo_maximo
+  );
+}
+
+/** Low occupancy: under 40% filled (same threshold as dashboard alerts). */
+export function filterLowOccupancyClasses<
+  T extends { cupo_ocupado: number; cupo_maximo: number },
+>(classes: T[], thresholdPct = 40): T[] {
+  return classes.filter((c) => {
+    if (c.cupo_maximo <= 0) return false;
+    const pct = (c.cupo_ocupado / c.cupo_maximo) * 100;
+    return pct < thresholdPct && pct >= 0;
+  });
+}
+
 export function countAttendanceInRange(
   reservas: Array<{
     estado: string;
@@ -77,6 +106,9 @@ export interface WeeklySummaryData {
   attendanceDelta: number;
   topClassName: string | null;
   topClassBookings: number;
+  lowClassName: string | null;
+  lowClassBookings: number;
+  avgOccupancyThisWeek: number | null;
   prsThisWeek: number;
   goalsCompleted: number;
   membershipsRenewed: number;
@@ -94,7 +126,8 @@ export function computeWeeklySummary(
   prevTo: string,
   prsThisWeek: number,
   goalsCompleted: number,
-  membershipsRenewed: number
+  membershipsRenewed: number,
+  weekClasses?: { cupo_ocupado: number; cupo_maximo: number }[]
 ): WeeklySummaryData {
   const attendanceThisWeek = countAttendanceInRange(
     reservas,
@@ -122,11 +155,34 @@ export function computeWeeklySummary(
 
   let topClassName: string | null = null;
   let topClassBookings = 0;
+  let lowClassName: string | null = null;
+  let lowClassBookings = Number.POSITIVE_INFINITY;
+
   for (const { name, count } of Array.from(classBookings.values())) {
     if (count > topClassBookings) {
       topClassBookings = count;
       topClassName = name;
     }
+    if (count < lowClassBookings) {
+      lowClassBookings = count;
+      lowClassName = name;
+    }
+  }
+
+  if (lowClassBookings === Number.POSITIVE_INFINITY) {
+    lowClassBookings = 0;
+    lowClassName = null;
+  }
+
+  // Avoid presenting the same class as both highest and lowest demand.
+  if (
+    topClassName &&
+    lowClassName &&
+    topClassName === lowClassName &&
+    classBookings.size <= 1
+  ) {
+    lowClassName = null;
+    lowClassBookings = 0;
   }
 
   return {
@@ -135,6 +191,12 @@ export function computeWeeklySummary(
     attendanceDelta: attendanceThisWeek - attendanceLastWeek,
     topClassName,
     topClassBookings,
+    lowClassName,
+    lowClassBookings,
+    avgOccupancyThisWeek:
+      weekClasses && weekClasses.length > 0
+        ? computeAverageOccupancy(weekClasses)
+        : null,
     prsThisWeek,
     goalsCompleted,
     membershipsRenewed,
@@ -196,10 +258,17 @@ export interface InactiveAthleteAlert {
   profileId: string;
   nombre: string;
   daysSinceAttendance: number;
+  telefono?: string | null;
+  fotoUrl?: string | null;
 }
 
 export function findInactiveAthletes(
-  socios: { id: string; nombre_completo: string }[],
+  socios: {
+    id: string;
+    nombre_completo: string;
+    telefono?: string | null;
+    foto_url?: string | null;
+  }[],
   lastAttendanceByUser: Map<string, string>,
   today: string,
   minDays = 7
@@ -216,6 +285,8 @@ export function findInactiveAthletes(
         profileId: s.id,
         nombre: s.nombre_completo,
         daysSinceAttendance: days,
+        telefono: s.telefono ?? null,
+        fotoUrl: s.foto_url ?? null,
       });
     }
   }

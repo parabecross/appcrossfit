@@ -14,7 +14,7 @@ async function getSocioProfiles(boxId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, nombre_completo, estado_cuenta")
+    .select("id, nombre_completo, estado_cuenta, telefono, foto_url, created_at")
     .eq("box_id", boxId)
     .eq("rol", "socio")
     .order("nombre_completo");
