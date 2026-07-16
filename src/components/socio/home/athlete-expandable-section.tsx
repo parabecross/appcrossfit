@@ -37,7 +37,7 @@ export function AthleteExpandableSection({
       <button
         type="button"
         onClick={toggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        className="flex w-full min-h-11 items-center justify-between gap-3 px-4 py-4 text-left hover:bg-white/[0.02] transition-colors"
         aria-expanded={open}
       >
         <div className="min-w-0">

@@ -1,12 +1,8 @@
 /**
- * Pure helpers for the socio Home snapshots (progress, badges, available classes).
+ * Pure helpers for the socio Home snapshots (progress, badges).
  * No Supabase calls — safe for unit tests and client use.
  */
 
-import {
-  canBookClass,
-  filterClassesForSocio,
-} from "@/lib/clases/helpers";
 import {
   computeBadges,
   type BadgeInput,
@@ -14,12 +10,9 @@ import {
   type BadgeStatus,
 } from "@/lib/progreso/badges";
 import { getRecordTipo } from "@/lib/progreso/helpers";
-import { isActiveReserva } from "@/lib/reservas/helpers";
 import type {
   AtletaPrMarca,
   AtletaSkill,
-  Clase,
-  Reserva,
 } from "@/types/database";
 
 export type HomeProgressSnapshot = {
@@ -73,39 +66,26 @@ export function buildHomeProgressSnapshot(
   };
 }
 
-export function pickAvailableClassesForHome(
-  clases: Clase[],
-  reservas: Reserva[],
-  profileId: string,
-  timeZone: string,
-  limit = 5
-): Clase[] {
-  const booked = new Set(
-    reservas
-      .filter(
-        (r) =>
-          r.usuario_id === profileId && isActiveReserva(r.estado)
-      )
-      .map((r) => r.clase_id)
-  );
-
-  return filterClassesForSocio(clases, timeZone)
-    .filter((c) => !booked.has(c.id))
-    .filter((c) => canBookClass(c.fecha, c.hora_inicio, timeZone))
-    .filter((c) => (c.cupo_ocupado ?? 0) < c.cupo_maximo)
-    .sort(
-      (a, b) =>
-        a.fecha.localeCompare(b.fecha) ||
-        a.hora_inicio.localeCompare(b.hora_inicio)
-    )
-    .slice(0, limit);
-}
-
 export function hasTrainingToday(
   nextClassFecha: string | null,
   today: string
 ): boolean {
   return nextClassFecha === today;
+}
+
+/**
+ * Single source of truth for header context + next-class visibility.
+ * Driven by the same next upcoming booking used for “Próxima clase”.
+ */
+export type HomeBookingContext = "today" | "upcoming" | "none";
+
+export function resolveHomeBookingContext(
+  nextClassFecha: string | null,
+  today: string
+): HomeBookingContext {
+  if (!nextClassFecha) return "none";
+  if (nextClassFecha === today) return "today";
+  return "upcoming";
 }
 
 export function greetingPeriodFromHour(hour: number): "morning" | "afternoon" | "evening" {

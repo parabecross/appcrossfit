@@ -354,6 +354,7 @@
     },
     "context": {
       "hasTraining": "Tienes entrenamiento hoy",
+      "hasUpcoming": "Tienes una reserva próxima",
       "noBooking": "No tienes reservas"
     },
     "constancy": {
@@ -380,13 +381,6 @@
       "title": "Insignias",
       "viewAll": "Ver todas",
       "empty": "Todavía no tienes insignias desbloqueadas."
-    },
-    "available": {
-      "title": "Clases disponibles",
-      "book": "Reservar",
-      "spots": "{count, plural, =0 {Llena} =1 {1 lugar} other {# lugares}}",
-      "empty": "No hay clases disponibles por ahora.",
-      "cannotBook": "No disponible"
     },
     "share": {
       "copied": "Texto copiado",

@@ -4,20 +4,15 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { MembershipBanner } from "@/components/membresias/membership-banner";
 import { AthleteHomeHeader } from "@/components/socio/home/athlete-home-header";
-import {
-  AthleteNextClassCard,
-  AthleteNextClassEmpty,
-} from "@/components/socio/home/athlete-next-class-card";
-import { AthleteAvailableClasses } from "@/components/socio/home/athlete-available-classes";
+import { AthleteNextClassCard } from "@/components/socio/home/athlete-next-class-card";
 import { AthleteExpandableSection } from "@/components/socio/home/athlete-expandable-section";
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import { findNextBookedClass } from "@/lib/reservas/next-booking";
 import {
   greetingPeriodFromHour,
-  hasTrainingToday,
   hourInTimezone,
-  pickAvailableClassesForHome,
+  resolveHomeBookingContext,
 } from "@/lib/socio/home-snapshot";
 import { todayInTimezone } from "@/lib/dates/date-only";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
@@ -74,28 +69,19 @@ export function AthleteHomeDashboard({
     [clases, localReservas, profileId, gymTimezone]
   );
 
-  const trainingToday = hasTrainingToday(
+  const bookingContext = resolveHomeBookingContext(
     localNextBooking?.clase.fecha ?? null,
     today
   );
 
   const period = greetingPeriodFromHour(hourInTimezone(gymTimezone));
   const greeting = t(`greetingPeriods.${period}`);
-  const contextLine = trainingToday
-    ? t("context.hasTraining")
-    : t("context.noBooking");
-
-  const available = useMemo(
-    () =>
-      pickAvailableClassesForHome(
-        clases,
-        localReservas,
-        profileId,
-        gymTimezone,
-        5
-      ),
-    [clases, localReservas, profileId, gymTimezone]
-  );
+  const contextLine =
+    bookingContext === "today"
+      ? t("context.hasTraining")
+      : bookingContext === "upcoming"
+        ? t("context.hasUpcoming")
+        : t("context.noBooking");
 
   return (
     <div className="space-y-6 pb-6 md:space-y-8 md:pb-8 max-w-xl md:max-w-2xl">
@@ -104,7 +90,7 @@ export function AthleteHomeDashboard({
         firstName={firstName}
         boxName={boxName}
         contextLine={contextLine}
-        hasTrainingToday={trainingToday}
+        hasTrainingToday={bookingContext !== "none"}
         fotoUrl={fotoUrl}
         fullName={fullName}
       />
@@ -133,46 +119,36 @@ export function AthleteHomeDashboard({
               profileId={profileId}
               onReservationsChange={setLocalReservas}
             />
-          ) : (
-            <AthleteNextClassEmpty canBook={canBook} />
-          )}
+          ) : null}
 
           {secondary}
 
-          <AthleteAvailableClasses
-            classes={available}
-            locale={locale}
-            canBook={canBook}
-            reservas={localReservas}
-            serverReservas={serverReservas}
-            profileId={profileId}
-            onReservationsChange={setLocalReservas}
-          />
-
-          <AthleteExpandableSection
-            title={t("sections.bookingTitle")}
-            subtitle={
-              localNextBooking
-                ? t("sections.bookingSubtitleBooked")
-                : t("sections.bookingSubtitle")
-            }
-            defaultOpen={false}
-            expandLabel={t("sections.expand")}
-            collapseLabel={t("sections.collapse")}
-          >
-            <WeeklyCalendar
-              clases={clases}
-              reservas={localReservas}
-              serverReservas={serverReservas}
-              profileId={profileId}
-              canBook={canBook}
-              locale={locale}
-              gymTimezone={gymTimezone}
-              hideRankingWidget
-              socioCompact
-              onReservationsChange={setLocalReservas}
-            />
-          </AthleteExpandableSection>
+          <div id="horario" className="scroll-mt-24">
+            <AthleteExpandableSection
+              title={t("sections.bookingTitle")}
+              subtitle={
+                localNextBooking
+                  ? t("sections.bookingSubtitleBooked")
+                  : t("sections.bookingSubtitle")
+              }
+              defaultOpen={!localNextBooking}
+              expandLabel={t("sections.expand")}
+              collapseLabel={t("sections.collapse")}
+            >
+              <WeeklyCalendar
+                clases={clases}
+                reservas={localReservas}
+                serverReservas={serverReservas}
+                profileId={profileId}
+                canBook={canBook}
+                locale={locale}
+                gymTimezone={gymTimezone}
+                hideRankingWidget
+                socioCompact
+                onReservationsChange={setLocalReservas}
+              />
+            </AthleteExpandableSection>
+          </div>
         </div>
       </FeatureGate>
 

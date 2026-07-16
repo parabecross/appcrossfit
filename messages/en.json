@@ -354,6 +354,7 @@
     },
     "context": {
       "hasTraining": "You have training today",
+      "hasUpcoming": "You have an upcoming booking",
       "noBooking": "You have no bookings"
     },
     "constancy": {
@@ -380,13 +381,6 @@
       "title": "Badges",
       "viewAll": "View all",
       "empty": "No badges unlocked yet."
-    },
-    "available": {
-      "title": "Available classes",
-      "book": "Book",
-      "spots": "{count, plural, =0 {Full} =1 {1 spot} other {# spots}}",
-      "empty": "No classes available right now.",
-      "cannotBook": "Unavailable"
     },
     "share": {
       "copied": "Text copied",
