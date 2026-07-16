@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# QA scenario local snapshots
+scripts/lib/parabellum-10-qa-snapshot.json
+scripts/lib/load-test-*-snapshot.json
