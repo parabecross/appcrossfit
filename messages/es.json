@@ -339,7 +339,7 @@
       "progress": "Ver progreso"
     },
     "sections": {
-      "bookingTitle": "Horario completo",
+      "bookingTitle": "Todas las clases",
       "bookingSubtitle": "Elige día y hora en el calendario",
       "bookingSubtitleBooked": "Tu reserva confirmada — puedes cancelar o elegir otra clase",
       "historyTitle": "Historial resumido",

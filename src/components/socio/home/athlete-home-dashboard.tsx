@@ -121,8 +121,6 @@ export function AthleteHomeDashboard({
             />
           ) : null}
 
-          {secondary}
-
           <div id="horario" className="scroll-mt-24">
             <AthleteExpandableSection
               title={t("sections.bookingTitle")}
@@ -131,7 +129,7 @@ export function AthleteHomeDashboard({
                   ? t("sections.bookingSubtitleBooked")
                   : t("sections.bookingSubtitle")
               }
-              defaultOpen={!localNextBooking}
+              defaultOpen
               expandLabel={t("sections.expand")}
               collapseLabel={t("sections.collapse")}
             >
@@ -149,6 +147,8 @@ export function AthleteHomeDashboard({
               />
             </AthleteExpandableSection>
           </div>
+
+          {secondary}
         </div>
       </FeatureGate>
 

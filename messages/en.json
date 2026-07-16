@@ -339,7 +339,7 @@
       "progress": "View progress"
     },
     "sections": {
-      "bookingTitle": "Full schedule",
+      "bookingTitle": "All classes",
       "bookingSubtitle": "Pick a day and time on the calendar",
       "bookingSubtitleBooked": "Your booking is confirmed — cancel or choose another class",
       "historyTitle": "History summary",
