@@ -311,6 +311,7 @@ export function ClassHistoryList({
                                       reservaId={r.id}
                                       usuarioId={profileId}
                                       existing={score}
+                                      entrenamiento={r.clase.entrenamiento}
                                       onSaved={(saved) => {
                                         setScores((prev) =>
                                           new Map(prev).set(r.clase_id, saved)

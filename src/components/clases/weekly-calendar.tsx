@@ -538,6 +538,7 @@ export function WeeklyCalendar({
               reservaId={(reservation ?? anyReservation)!.id}
               usuarioId={profileId}
               existing={myScore ?? null}
+              entrenamiento={clase.entrenamiento}
               onSaved={() => setScoreEditClaseId(null)}
               onCancel={
                 hasScoreResponse(myScore)

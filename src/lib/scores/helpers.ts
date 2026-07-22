@@ -75,6 +75,67 @@ export function scoreTypeHasRxScaled(tipo: ClaseScoreTipo): boolean {
   return tipo !== "cals";
 }
 
+/**
+ * Infere score_tipo desde el texto libre del WOD (`clases.entrenamiento`).
+ * No hay metadata estructurada en BD; esto es heurística best-effort.
+ * Devuelve null si no hay señal clara (el atleta elige manualmente).
+ */
+export function inferScoreTipoFromWorkout(
+  entrenamiento: string | null | undefined
+): ClaseScoreTipo | null {
+  if (!entrenamiento?.trim()) return null;
+  const text = entrenamiento.toLowerCase();
+
+  // Orden: señales más específicas primero.
+  if (
+    /\b(amrap|emom)\b/.test(text) ||
+    /\brondas?\s*\+?\s*reps?\b/.test(text) ||
+    /\brounds?\s*\+?\s*reps?\b/.test(text)
+  ) {
+    return "rondas";
+  }
+  if (
+    /\bfor\s*time\b/.test(text) ||
+    /\bpor\s*tiempo\b/.test(text) ||
+    /\btiempo\s*cap\b/.test(text) ||
+    /\btime\s*cap\b/.test(text)
+  ) {
+    return "tiempo";
+  }
+  if (
+    /\b(1\s*rm|1rm|3\s*rm|5\s*rm|max\s*lift|fuerza)\b/.test(text) ||
+    /\b(back\s*squat|front\s*squat|deadlift|clean|snatch|thruster|press)\b/.test(
+      text
+    )
+  ) {
+    return "peso";
+  }
+  if (/\b(cal(?:orie)?s?|calor[ií]as?)\b/.test(text)) {
+    return "cals";
+  }
+  if (
+    /\b(max\s*reps?|max\s*rep|repeticiones?|reps?\s*for\s*quality)\b/.test(text)
+  ) {
+    return "reps";
+  }
+
+  return null;
+}
+
+export type ScoreMode = ClaseScoreTipo | "sin_score";
+
+/** Modo inicial del formulario: score existente > inferencia WOD > tiempo. */
+export function resolveInitialScoreMode(
+  existing?: Pick<ClaseScore, "sin_score" | "score_tipo"> | null,
+  entrenamiento?: string | null
+): ScoreMode {
+  if (existing?.sin_score) return "sin_score";
+  if (existing?.score_tipo && existing.score_tipo !== "otro") {
+    return existing.score_tipo;
+  }
+  return inferScoreTipoFromWorkout(entrenamiento) ?? "tiempo";
+}
+
 export function isScoreSkipped(
   score: Pick<ClaseScore, "sin_score"> | null | undefined
 ): boolean {

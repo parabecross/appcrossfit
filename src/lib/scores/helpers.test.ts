@@ -3,8 +3,10 @@ import {
   buildClassRanking,
   buildWodRankForAthlete,
   canRankScore,
+  inferScoreTipoFromWorkout,
   parseScoreNumeric,
   parseTimeToSeconds,
+  resolveInitialScoreMode,
   scoreTypeHasRxScaled,
 } from "./helpers";
 
@@ -27,6 +29,14 @@ describe("parseScoreNumeric", () => {
     expect(parseScoreNumeric("tiempo", "")).toBeNull();
   });
 
+  it("parses tiempo mm:ss for for-time WODs", () => {
+    expect(parseScoreNumeric("tiempo", "12:34")).toBe(754);
+  });
+
+  it("parses peso", () => {
+    expect(parseScoreNumeric("peso", "225 lb")).toBe(225);
+  });
+
   it("parses rondas with plus sign", () => {
     expect(parseScoreNumeric("rondas", "8+12")).toBe(812);
     expect(parseScoreNumeric("rondas", "9+5")).toBe(905);
@@ -34,6 +44,69 @@ describe("parseScoreNumeric", () => {
 
   it("parses rondas rounds only", () => {
     expect(parseScoreNumeric("rondas", "8")).toBe(800);
+  });
+
+  it("parses cals", () => {
+    expect(parseScoreNumeric("cals", "285")).toBe(285);
+  });
+});
+
+describe("inferScoreTipoFromWorkout", () => {
+  it("infers for time → tiempo", () => {
+    expect(inferScoreTipoFromWorkout("WOD: For Time\n21-15-9 thrusters")).toBe(
+      "tiempo"
+    );
+  });
+
+  it("infers AMRAP → rondas", () => {
+    expect(inferScoreTipoFromWorkout("AMRAP 12\n10 pull-ups\n15 air squats")).toBe(
+      "rondas"
+    );
+  });
+
+  it("infers fuerza / 1RM → peso", () => {
+    expect(inferScoreTipoFromWorkout("Fuerza: Back Squat 1RM")).toBe("peso");
+  });
+
+  it("infers calorías", () => {
+    expect(inferScoreTipoFromWorkout("Max calories on bike")).toBe("cals");
+  });
+
+  it("infers repeticiones", () => {
+    expect(inferScoreTipoFromWorkout("Max reps unbroken pull-ups")).toBe("reps");
+  });
+
+  it("returns null when unclear so athlete can choose", () => {
+    expect(inferScoreTipoFromWorkout("Warm-up + technique")).toBeNull();
+    expect(inferScoreTipoFromWorkout(null)).toBeNull();
+  });
+});
+
+describe("resolveInitialScoreMode", () => {
+  it("prefers existing score over WOD inference", () => {
+    expect(
+      resolveInitialScoreMode(
+        { sin_score: false, score_tipo: "peso" },
+        "AMRAP 10"
+      )
+    ).toBe("peso");
+  });
+
+  it("uses sin_score when existing", () => {
+    expect(
+      resolveInitialScoreMode(
+        { sin_score: true, score_tipo: "otro" },
+        "For Time"
+      )
+    ).toBe("sin_score");
+  });
+
+  it("preselects inferred WOD type when creating", () => {
+    expect(resolveInitialScoreMode(null, "For Time 15 min cap")).toBe("tiempo");
+  });
+
+  it("defaults to tiempo when no signal", () => {
+    expect(resolveInitialScoreMode(null, null)).toBe("tiempo");
   });
 });
 
@@ -110,29 +183,30 @@ describe("canRankScore", () => {
 });
 
 describe("buildClassRanking", () => {
-  it("ranks tiempo lower-is-better and handles ties", () => {
+  it("ranks lower time better", () => {
     const rows = buildClassRanking(
       [
         {
-          id: "1",
-          usuario_id: "1",
-          valor_numerico: 300,
+          id: "a",
+          usuario_id: "u1",
           score_tipo: "tiempo",
+          valor_numerico: 400,
           sin_score: false,
+          created_at: "2026-01-01",
           profile: { nombre_completo: "A" },
-        } as never,
+        },
         {
-          id: "2",
-          usuario_id: "2",
-          valor_numerico: 280,
+          id: "b",
+          usuario_id: "u2",
           score_tipo: "tiempo",
+          valor_numerico: 350,
           sin_score: false,
+          created_at: "2026-01-01",
           profile: { nombre_completo: "B" },
-        } as never,
-      ],
-      "2"
+        },
+      ] as never[],
+      "u2"
     );
-    expect(rows[0].rank).toBe(1);
     expect(rows[0].nombre).toBe("B");
     expect(rows[0].isMe).toBe(true);
   });

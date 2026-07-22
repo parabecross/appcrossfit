@@ -1,23 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Check,
+  ChevronDown,
   CircleSlash,
   Dumbbell,
   Flame,
   Hash,
   RotateCcw,
   Timer,
-  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "@/i18n/routing";
-import { parseScoreNumeric, scoreTypeHasRxScaled } from "@/lib/scores/helpers";
+import {
+  inferScoreTipoFromWorkout,
+  parseScoreNumeric,
+  resolveInitialScoreMode,
+  scoreTypeHasRxScaled,
+  type ScoreMode,
+} from "@/lib/scores/helpers";
 import { cn } from "@/lib/utils";
 import type { ClaseScore, ClaseScoreTipo } from "@/types/database";
 
@@ -29,11 +35,7 @@ const SCORE_TYPES: ClaseScoreTipo[] = [
   "cals",
 ];
 
-type ScoreMode = ClaseScoreTipo | "sin_score";
-
-function inputModeForScoreTipo(
-  tipo: ClaseScoreTipo
-): "text" | "decimal" {
+function inputModeForScoreTipo(tipo: ClaseScoreTipo): "text" | "decimal" {
   if (tipo === "tiempo" || tipo === "rondas") return "text";
   return "decimal";
 }
@@ -47,17 +49,12 @@ const TYPE_ICONS: Record<ClaseScoreTipo, typeof Timer> = {
   otro: Timer,
 };
 
-function initialScoreMode(existing?: ClaseScore | null): ScoreMode {
-  if (existing?.sin_score) return "sin_score";
-  if (!existing?.score_tipo || existing.score_tipo === "otro") return "tiempo";
-  return existing.score_tipo;
-}
-
 export function ScoreEntryForm({
   claseId,
   reservaId,
   usuarioId,
   existing,
+  entrenamiento,
   onSaved,
   onCancel,
 }: {
@@ -65,19 +62,29 @@ export function ScoreEntryForm({
   reservaId: string;
   usuarioId: string;
   existing?: ClaseScore | null;
+  /** Texto libre del WOD; se usa solo para preseleccionar tipo. */
+  entrenamiento?: string | null;
   onSaved?: (score: ClaseScore) => void;
   onCancel?: () => void;
 }) {
   const t = useTranslations("scores");
   const tc = useTranslations("common");
   const router = useRouter();
+  const savingRef = useRef(false);
 
-  const [mode, setMode] = useState<ScoreMode>(() => initialScoreMode(existing));
+  const inferredTipo = inferScoreTipoFromWorkout(entrenamiento);
+  const [mode, setMode] = useState<ScoreMode>(() =>
+    resolveInitialScoreMode(existing, entrenamiento)
+  );
+  const [typeLocked, setTypeLocked] = useState(
+    () => !existing && inferredTipo != null
+  );
   const [display, setDisplay] = useState(
     existing?.sin_score ? "" : (existing?.score_display ?? "")
   );
   const [rx, setRx] = useState(existing?.rx ?? true);
   const [notas, setNotas] = useState(existing?.notas ?? "");
+  const [notesOpen, setNotesOpen] = useState(() => Boolean(existing?.notas?.trim()));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -85,10 +92,11 @@ export function ScoreEntryForm({
   const isNoScoreMode = mode === "sin_score";
   const tipo: ClaseScoreTipo = isNoScoreMode ? "otro" : mode;
   const showRxStep = !isNoScoreMode && scoreTypeHasRxScaled(tipo);
-  const resultStep = showRxStep ? 3 : 2;
+  const isEdit = Boolean(existing);
 
   const selectMode = (next: ScoreMode) => {
     setMode(next);
+    setTypeLocked(false);
     setError(null);
     setSaved(false);
   };
@@ -128,6 +136,8 @@ export function ScoreEntryForm({
   };
 
   const save = async () => {
+    if (savingRef.current || loading) return;
+    savingRef.current = true;
     setError(null);
     setSaved(false);
 
@@ -158,12 +168,14 @@ export function ScoreEntryForm({
     } else {
       const trimmed = display.trim();
       if (!trimmed) {
+        savingRef.current = false;
         setError(t("displayRequired"));
         return;
       }
 
       const valor = parseScoreNumeric(tipo, trimmed);
       if (valor === null) {
+        savingRef.current = false;
         setError(t("invalidScore"));
         return;
       }
@@ -183,32 +195,31 @@ export function ScoreEntryForm({
 
     setLoading(true);
 
-    const res = await fetch("/api/scores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const bodyJson = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      score?: ClaseScore;
-    };
-
-    if (!res.ok) {
-      setLoading(false);
-      setError(
-        bodyJson.error === "SCORE_WINDOW_CLOSED"
-          ? t("windowClosed")
-          : (bodyJson.error ?? tc("error"))
-      );
-      return;
-    }
-
-    const data = bodyJson.score;
-    if (data) {
-      onSaved?.(data);
-    }
-
     try {
+      const res = await fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const bodyJson = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        score?: ClaseScore;
+      };
+
+      if (!res.ok) {
+        setError(
+          bodyJson.error === "SCORE_WINDOW_CLOSED"
+            ? t("windowClosed")
+            : (bodyJson.error ?? tc("error"))
+        );
+        return;
+      }
+
+      const data = bodyJson.score;
+      if (data) {
+        onSaved?.(data);
+      }
+
       const rankingRes = await fetch("/api/ranking/award-wod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -218,208 +229,288 @@ export function ScoreEntryForm({
         const rankingBody = (await rankingRes.json().catch(() => ({}))) as {
           error?: string;
         };
-        throw new Error(rankingBody.error ?? t("rankingSyncFailed"));
+        setError(rankingBody.error ?? t("rankingSyncFailed"));
+        return;
       }
+
+      setSaved(true);
+      router.refresh();
     } catch (syncError) {
-      setLoading(false);
       setError(
         syncError instanceof Error ? syncError.message : t("rankingSyncFailed")
       );
-      return;
+    } finally {
+      setLoading(false);
+      savingRef.current = false;
     }
-
-    setLoading(false);
-    setSaved(true);
-    router.refresh();
   };
 
   const saveLabel = loading
     ? tc("loading")
     : isNoScoreMode
       ? t("saveNoScore")
-      : existing
+      : isEdit
         ? t("updateScore")
-        : t("saveScore");
+        : t("saveScoreCompact");
+
+  const typeLabel =
+    mode === "sin_score"
+      ? t("noScoreOption")
+      : t(`typesFriendly.${mode as ClaseScoreTipo}`);
 
   return (
-    <div className="rounded-2xl border border-orange-500/25 bg-gradient-to-b from-orange-500/10 to-orange-500/[0.03] overflow-hidden">
-      <div className="px-4 pt-4 pb-3 border-b border-orange-500/15">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/20">
-            <Trophy className="h-5 w-5 text-orange-300" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-base font-bold text-foreground leading-snug">
-              {existing ? t("editScoreTitle") : t("logScoreTitle")}
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-              {t("logScoreSubtitle")}
-            </p>
-          </div>
-        </div>
+    <div className="rounded-2xl border border-orange-500/25 bg-gradient-to-b from-orange-500/10 to-orange-500/[0.03] overflow-hidden max-w-lg">
+      <div className="px-3 pt-3 pb-2 border-b border-orange-500/15">
+        <p className="text-sm font-bold text-foreground leading-snug">
+          {isEdit ? t("editScoreCompact") : t("logScoreCompact")}
+        </p>
       </div>
 
-      <div className="p-4 space-y-5">
-        <section className="space-y-2.5">
-          <Label className="text-sm font-semibold text-foreground">
-            {t("stepType")}
-          </Label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {SCORE_TYPES.map((st) => {
-              const Icon = TYPE_ICONS[st];
-              const selected = mode === st;
-              return (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => selectMode(st)}
-                  className={cn(
-                    "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all",
-                    selected
-                      ? "border-orange-500 bg-orange-500/15 ring-1 ring-orange-500/40"
-                      : "border-white/10 bg-black/20 hover:border-orange-500/30 hover:bg-white/[0.03]"
-                  )}
-                >
-                  <div className="flex w-full items-center justify-between gap-1">
+      <div className="p-3 space-y-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {/* Tipo */}
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {t("scoreType")}
+            </Label>
+            {typeLocked && inferredTipo && (
+              <button
+                type="button"
+                className="text-xs font-medium text-orange-300 hover:text-orange-200"
+                onClick={() => setTypeLocked(false)}
+              >
+                {t("changeType")}
+              </button>
+            )}
+          </div>
+
+          {typeLocked && inferredTipo && mode === inferredTipo ? (
+            <div
+              className="flex h-11 items-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-3"
+              role="status"
+            >
+              {(() => {
+                const Icon = TYPE_ICONS[inferredTipo];
+                return <Icon className="h-4 w-4 text-orange-300 shrink-0" />;
+              })()}
+              <span className="text-sm font-semibold">{typeLabel}</span>
+              <span className="ml-auto text-[10px] uppercase tracking-wide text-orange-300/80">
+                {t("inferredFromWod")}
+              </span>
+            </div>
+          ) : (
+            <div
+              className="grid grid-cols-3 gap-1.5"
+              role="radiogroup"
+              aria-label={t("scoreType")}
+            >
+              {SCORE_TYPES.map((st) => {
+                const Icon = TYPE_ICONS[st];
+                const selected = mode === st;
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => selectMode(st)}
+                    className={cn(
+                      "flex h-11 min-h-11 items-center justify-center gap-1.5 rounded-xl border px-1.5 text-center transition-all",
+                      selected
+                        ? "border-orange-500 bg-orange-500/15 ring-1 ring-orange-500/40"
+                        : "border-white/10 bg-black/20 hover:border-orange-500/30"
+                    )}
+                  >
                     <Icon
                       className={cn(
-                        "h-4 w-4 shrink-0",
+                        "h-3.5 w-3.5 shrink-0",
                         selected ? "text-orange-300" : "text-muted-foreground"
                       )}
+                      aria-hidden
                     />
+                    <span className="text-[11px] font-semibold leading-tight truncate">
+                      {t(`types.${st}`)}
+                    </span>
                     {selected && (
-                      <Check className="h-3.5 w-3.5 text-orange-300 shrink-0" />
+                      <Check
+                        className="h-3 w-3 text-orange-300 shrink-0 hidden sm:block"
+                        aria-hidden
+                      />
                     )}
-                  </div>
-                  <span className="text-sm font-semibold leading-tight">
-                    {t(`typesFriendly.${st}`)}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground leading-snug">
-                    {t(`typeExamples.${st}`)}
-                  </span>
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => selectMode("sin_score")}
-              className={cn(
-                "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all sm:col-span-3",
-                isNoScoreMode
-                  ? "border-white/25 bg-white/[0.06] ring-1 ring-white/20"
-                  : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.03]"
-              )}
-            >
-              <div className="flex w-full items-center justify-between gap-1">
-                <CircleSlash className="h-4 w-4 shrink-0 text-muted-foreground" />
-                {isNoScoreMode && (
-                  <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={isNoScoreMode}
+                onClick={() => selectMode("sin_score")}
+                className={cn(
+                  "col-span-3 flex h-11 min-h-11 items-center justify-center gap-2 rounded-xl border px-2 transition-all",
+                  isNoScoreMode
+                    ? "border-white/25 bg-white/[0.06] ring-1 ring-white/20"
+                    : "border-white/10 bg-black/20 hover:border-white/20"
                 )}
-              </div>
-              <span className="text-sm font-semibold leading-tight">
-                {t("noScoreOption")}
-              </span>
-              <span className="text-[11px] text-muted-foreground leading-snug">
-                {t("noScoreOptionHint")}
-              </span>
-            </button>
-          </div>
+              >
+                <CircleSlash
+                  className="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                  aria-hidden
+                />
+                <span className="text-xs font-semibold">{t("noScoreOption")}</span>
+              </button>
+            </div>
+          )}
         </section>
 
-        {isNoScoreMode ? (
-          <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("noScoreHint")}
+        {/* Resultado primero en jerarquía tras el tipo */}
+        {!isNoScoreMode && (
+          <section className="space-y-1.5">
+            <Label
+              htmlFor={`score-display-${claseId}`}
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              {t("yourResult")}
+            </Label>
+            <Input
+              id={`score-display-${claseId}`}
+              value={display}
+              onChange={(e) => setDisplay(e.target.value)}
+              placeholder={placeholderFor(tipo)}
+              className="h-12 rounded-xl text-lg font-bold text-center tracking-wide"
+              inputMode={inputModeForScoreTipo(tipo)}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-describedby={`score-example-${claseId}`}
+            />
+            <p
+              id={`score-example-${claseId}`}
+              className="text-[11px] text-center text-muted-foreground leading-snug"
+            >
+              {exampleFor(tipo)}
             </p>
-          </div>
-        ) : (
-          <>
-            {showRxStep && (
-              <section className="space-y-2.5">
-                <div>
-                  <Label className="text-sm font-semibold text-foreground">
-                    {t("stepRx")}
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t("rxHint")}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRx(true)}
-                    className={cn(
-                      "rounded-xl border px-3 py-3 text-left transition-all",
-                      rx
-                        ? "border-orange-500 bg-orange-500/15 ring-1 ring-orange-500/40"
-                        : "border-white/10 bg-black/20 hover:border-orange-500/30"
-                    )}
-                  >
-                    <p className="text-sm font-semibold">{t("rxYes")}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {t("rxYesHint")}
-                    </p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRx(false)}
-                    className={cn(
-                      "rounded-xl border px-3 py-3 text-left transition-all",
-                      !rx
-                        ? "border-orange-500 bg-orange-500/15 ring-1 ring-orange-500/40"
-                        : "border-white/10 bg-black/20 hover:border-orange-500/30"
-                    )}
-                  >
-                    <p className="text-sm font-semibold">{t("rxNo")}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {t("rxNoHint")}
-                    </p>
-                  </button>
-                </div>
-              </section>
-            )}
-
-            <section className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">
-                {t("stepResultLabel", { step: resultStep })}
-              </Label>
-              <Input
-                value={display}
-                onChange={(e) => setDisplay(e.target.value)}
-                placeholder={placeholderFor(tipo)}
-                className="h-14 rounded-xl text-xl font-bold text-center tracking-wide"
-                inputMode={inputModeForScoreTipo(tipo)}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-              <p className="text-sm text-center text-muted-foreground">
-                {exampleFor(tipo)}
-              </p>
-            </section>
-          </>
+          </section>
         )}
 
-        <section className="space-y-2">
-          <Label className="text-sm font-semibold text-foreground">
-            {t("notesOptional")}
-          </Label>
-          <Textarea
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={2}
-            className="rounded-xl text-sm"
-            placeholder={
-              isNoScoreMode ? t("noScoreNotesPlaceholder") : t("notesPlaceholder")
-            }
-          />
+        {/* RX / Scaled compacto */}
+        {showRxStep && (
+          <section className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {t("rxScaled")}
+            </Label>
+            <div
+              className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/25 p-1"
+              role="radiogroup"
+              aria-label={t("rxScaled")}
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={rx}
+                onClick={() => setRx(true)}
+                className={cn(
+                  "h-10 rounded-lg text-sm font-semibold transition-all",
+                  rx
+                    ? "bg-orange-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                RX
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!rx}
+                onClick={() => setRx(false)}
+                className={cn(
+                  "h-10 rounded-lg text-sm font-semibold transition-all",
+                  !rx
+                    ? "bg-orange-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t("scaled")}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              {rx ? t("rxYesHintShort") : t("rxNoHintShort")}
+            </p>
+          </section>
+        )}
+
+        {isNoScoreMode && (
+          <p className="text-xs text-muted-foreground leading-snug rounded-lg bg-black/25 px-3 py-2">
+            {t("noScoreHintCompact")}
+          </p>
+        )}
+
+        {/* Notas colapsables */}
+        <section>
+          {!notesOpen ? (
+            <button
+              type="button"
+              onClick={() => setNotesOpen(true)}
+              className="flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-dashed border-white/15 text-xs font-medium text-muted-foreground hover:border-orange-500/30 hover:text-foreground"
+            >
+              {t("addNote")}
+            </button>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label
+                  htmlFor={`score-notes-${claseId}`}
+                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                >
+                  {t("notesOptional")}
+                </Label>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setNotesOpen(false)}
+                >
+                  <ChevronDown className="h-3.5 w-3.5 rotate-180" aria-hidden />
+                  {t("hideNote")}
+                </button>
+              </div>
+              <Textarea
+                id={`score-notes-${claseId}`}
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={2}
+                className="min-h-[64px] rounded-xl text-sm"
+                placeholder={
+                  isNoScoreMode
+                    ? t("noScoreNotesPlaceholder")
+                    : t("notesPlaceholder")
+                }
+              />
+            </div>
+          )}
         </section>
 
-        <div className="flex flex-col gap-2 pt-1">
+        {error && (
+          <p
+            className="text-sm text-red-400 text-center rounded-lg bg-red-500/10 px-3 py-2"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+        {saved && (
+          <p
+            className="text-sm text-green-400 text-center rounded-lg bg-green-500/10 px-3 py-2"
+            role="status"
+          >
+            {isNoScoreMode ? t("savedNoScore") : t("saved")}
+          </p>
+        )}
+
+        <div className="sticky bottom-0 z-10 -mx-3 px-3 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#121212] via-[#121212]/95 to-transparent space-y-1.5">
           <Button
-            className="w-full h-12 rounded-xl text-base font-semibold"
+            className="w-full h-11 rounded-xl text-sm font-semibold"
             onClick={() => void save()}
             disabled={loading}
+            aria-busy={loading}
           >
             {saveLabel}
           </Button>
@@ -427,7 +518,7 @@ export function ScoreEntryForm({
             <Button
               type="button"
               variant="ghost"
-              className="w-full h-10 rounded-xl text-muted-foreground"
+              className="w-full h-9 rounded-xl text-xs text-muted-foreground"
               onClick={onCancel}
               disabled={loading}
             >
@@ -435,17 +526,6 @@ export function ScoreEntryForm({
             </Button>
           )}
         </div>
-
-        {error && (
-          <p className="text-sm text-red-400 text-center rounded-lg bg-red-500/10 px-3 py-2">
-            {error}
-          </p>
-        )}
-        {saved && (
-          <p className="text-sm text-green-400 text-center rounded-lg bg-green-500/10 px-3 py-2">
-            {isNoScoreMode ? t("savedNoScore") : t("saved")}
-          </p>
-        )}
       </div>
     </div>
   );
