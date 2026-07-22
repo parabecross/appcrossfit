@@ -20,9 +20,11 @@ import { cn } from "@/lib/utils";
 type SubscriptionData = {
   displayPlanName: string;
   planCode: PlanCode;
+  effectivePlanCode?: PlanCode;
   status: string;
   statusLabelSuperAdmin: string;
   priceMxn: number;
+  isPromotional?: boolean;
   startedAt: string;
   currentPeriodEnd: string | null;
   promotionalDaysRemaining: number | null;
@@ -33,6 +35,7 @@ type SubscriptionData = {
   adminUsed: number;
   adminLimit: number | null;
   notes: string | null;
+  canceledAt?: string | null;
   features: Array<{
     key: FeatureKey;
     label: string;
@@ -165,7 +168,6 @@ export function BoxSubscriptionPanel({
   const changePlan = (planCode: PlanCode) =>
     call(`/api/admin-athron/boxes/${boxId}/subscription`, "PATCH", {
       planCode,
-      status: "active",
     });
 
   const limitText = (used: number, max: number | null) =>
@@ -209,9 +211,11 @@ export function BoxSubscriptionPanel({
                 {labels.saasPlan}
               </p>
               <div className="flex items-center gap-2">
-                <PlanBadge code={data.planCode} />
+                <PlanBadge code={data.effectivePlanCode ?? data.planCode} />
                 <span className="text-sm text-muted-foreground">
-                  ${data.priceMxn.toLocaleString("es-MX")}/mes
+                  {data.isPromotional
+                    ? `${data.displayPlanName} · plan ${data.planCode} $${data.priceMxn.toLocaleString("es-MX")}/mes`
+                    : `$${data.priceMxn.toLocaleString("es-MX")}/mes`}
                 </span>
               </div>
             </div>

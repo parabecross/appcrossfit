@@ -6,6 +6,7 @@ import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
+import { todayInTimezone } from "@/lib/dates/date-only";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
@@ -36,6 +37,7 @@ export default async function MisReservasPage({
   const tHome = await getTranslations("socioHome");
 
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
+  const today = todayInTimezone(boxConfig.timezone);
 
   const supabase = await createClient();
   const [clases, membership, { data: reservas }, historyAll, scoresUsuario] =
@@ -49,10 +51,11 @@ export default async function MisReservasPage({
 
   const classScores = await getScoresForClases(clases.map((c) => c.id));
 
-  /** Historial: excluye el rango reciente del calendario para no duplicar. */
-  const historyItems = historyAll.filter(
-    (item) => item.clase.fecha < from || item.clase.fecha > to
-  );
+  /**
+   * Historial: todas las clases anteriores a hoy (zona del box).
+   * Hoy y futuras viven en el calendario (no duplicar reservas activas).
+   */
+  const historyItems = historyAll.filter((item) => item.clase.fecha < today);
 
   const reserveCheck = canReserve(profile, membership);
   const showBanner =

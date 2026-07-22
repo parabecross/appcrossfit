@@ -25,6 +25,7 @@
     "qa:parabellum10:verify": "tsx scripts/verify-parabellum-10-qa-athletes.ts",
     "qa:parabellum10:teardown": "tsx scripts/teardown-parabellum-10-qa-athletes.ts",
     "test": "vitest run",
+    "audit:plans": "tsx scripts/audit-athron-plans.ts",
     "reset-parabellum": "tsx scripts/reset-parabellum-demo.ts",
     "create-super-admin": "tsx scripts/create-athron-super-admin.ts",
     "process-logo": "node scripts/process-athron-logo.mjs",

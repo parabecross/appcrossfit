@@ -10,6 +10,10 @@ import {
   type SubscriptionStatus,
 } from "@/lib/entitlements/features";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import {
+  addDaysIso,
+  promotionalEndBase,
+} from "@/lib/entitlements/compute";
 import { getSuperAdminFeatureLabel } from "@/lib/entitlements/feature-deps";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
 
@@ -33,9 +37,13 @@ export type BoxSubscriptionSummary = {
   isPromotional: boolean;
 };
 
+/**
+ * Nombre/precio no engañosos durante promoción:
+ * se muestra acceso promocional Elite, pero el precio es el del plan comercial contratado.
+ */
 function displayPlanName(ent: BoxEntitlements): string {
-  if (ent.isPromotional || ent.effectivePlanCode === "elite") {
-    return PLAN_LABELS.elite;
+  if (ent.isPromotional) {
+    return "Acceso promocional (Elite)";
   }
   return PLAN_LABELS[ent.plan.code];
 }
@@ -43,7 +51,7 @@ function displayPlanName(ent: BoxEntitlements): string {
 export function toSubscriptionSummary(ent: BoxEntitlements): BoxSubscriptionSummary {
   const display = displayPlanName(ent);
   return {
-    planCode: ent.effectivePlanCode,
+    planCode: ent.isPromotional ? ent.plan.code : ent.effectivePlanCode,
     planName: ent.plan.name,
     displayPlanName: display,
     status: ent.subscription.status,
@@ -70,6 +78,8 @@ export function serializeEntitlementsForSuperAdmin(ent: BoxEntitlements) {
 
   return {
     ...summary,
+    /** Plan efectivo de límites/funciones (Elite durante promo vigente). */
+    effectivePlanCode: ent.effectivePlanCode,
     subscriptionId: ent.subscription.id,
     startedAt: ent.subscription.started_at,
     currentPeriodStart: ent.subscription.current_period_start,
@@ -99,7 +109,7 @@ export function serializeEntitlementsForBox(ent: BoxEntitlements) {
 
   return {
     plan: {
-      code: ent.effectivePlanCode,
+      code: ent.isPromotional ? ent.plan.code : ent.effectivePlanCode,
       name: summary.displayPlanName,
       priceMxn: ent.plan.price_mxn,
     },
@@ -116,6 +126,7 @@ export function serializeEntitlementsForBox(ent: BoxEntitlements) {
     isPromotional: ent.isPromotional,
     canWrite: ent.canWrite,
     displayPlanName: summary.displayPlanName,
+    effectivePlanCode: ent.effectivePlanCode,
   };
 }
 
@@ -143,6 +154,15 @@ async function getPlanIdByCode(code: PlanCode): Promise<string> {
   return data.id;
 }
 
+/** Campos obsoletos a limpiar al cambiar plan o reactivar. */
+function clearedLifecycleFields() {
+  return {
+    trial_ends_at: null as null,
+    grace_ends_at: null as null,
+    canceled_at: null as null,
+  };
+}
+
 export async function changeBoxPlan(boxId: string, planCode: PlanCode) {
   const admin = createAdminClient();
   const planId = await getPlanIdByCode(planCode);
@@ -151,11 +171,16 @@ export async function changeBoxPlan(boxId: string, planCode: PlanCode) {
     .update({
       plan_id: planId,
       status: "active",
-      trial_ends_at: null,
+      ...clearedLifecycleFields(),
       updated_at: new Date().toISOString(),
     })
     .eq("box_id", boxId);
   if (error) throw error;
+
+  await admin
+    .from("boxes")
+    .update({ status: "active", updated_at: new Date().toISOString() })
+    .eq("id", boxId);
 }
 
 export async function updateBoxSubscription(
@@ -174,6 +199,10 @@ export async function updateBoxSubscription(
     updated_at: new Date().toISOString(),
   };
 
+  const changingPlan = Boolean(patch.planCode);
+  const reactivating = patch.status === "active";
+  const startingPromo = patch.status === "trialing";
+
   if (patch.planCode) {
     update.plan_id = await getPlanIdByCode(patch.planCode);
   }
@@ -185,6 +214,16 @@ export async function updateBoxSubscription(
   if (patch.graceEndsAt !== undefined) update.grace_ends_at = patch.graceEndsAt;
   if (patch.notes !== undefined) update.notes = patch.notes;
 
+  // Cambiar plan, reactivar o abrir promo limpia canceled_at y campos obsoletos.
+  if (changingPlan || reactivating) {
+    if (patch.trialEndsAt === undefined) update.trial_ends_at = null;
+    if (patch.graceEndsAt === undefined) update.grace_ends_at = null;
+    update.canceled_at = null;
+  } else if (startingPromo) {
+    update.canceled_at = null;
+    if (patch.graceEndsAt === undefined) update.grace_ends_at = null;
+  }
+
   const { error } = await admin
     .from("box_subscriptions")
     .update(update)
@@ -192,25 +231,38 @@ export async function updateBoxSubscription(
   if (error) throw error;
 }
 
+/**
+ * Activa promoción Elite temporal SIN sobrescribir el plan comercial.
+ * Así, al vencer, el box vuelve a límites/funciones de su plan contratado.
+ */
 export async function activatePromotionalAccess(boxId: string, days = 30) {
   const admin = createAdminClient();
-  const planId = await getPlanIdByCode("elite");
-  const endsAt = new Date();
-  endsAt.setDate(endsAt.getDate() + days);
+  const endsAt = addDaysIso(new Date(), days);
 
-  const { error } = await admin
+  const { data: existing } = await admin
     .from("box_subscriptions")
-    .upsert(
-      {
-        box_id: boxId,
-        plan_id: planId,
-        status: "trialing",
-        trial_ends_at: endsAt.toISOString(),
-        current_period_end: endsAt.toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "box_id" }
-    );
+    .select("plan_id")
+    .eq("box_id", boxId)
+    .maybeSingle();
+
+  let planId = existing?.plan_id as string | undefined;
+  if (!planId) {
+    planId = await getPlanIdByCode("start");
+  }
+
+  const { error } = await admin.from("box_subscriptions").upsert(
+    {
+      box_id: boxId,
+      plan_id: planId,
+      status: "trialing",
+      trial_ends_at: endsAt,
+      current_period_end: endsAt,
+      canceled_at: null,
+      grace_ends_at: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "box_id" }
+  );
   if (error) throw error;
 
   await admin
@@ -220,21 +272,32 @@ export async function activatePromotionalAccess(boxId: string, days = 30) {
 }
 
 export async function extendPromotionalAccess(boxId: string, days: number) {
-  const ent = await getBoxEntitlements(boxId);
-  const base = ent.subscription.trial_ends_at
-    ? new Date(ent.subscription.trial_ends_at)
-    : new Date();
-  base.setDate(base.getDate() + days);
+  const admin = createAdminClient();
+  const { data: raw } = await admin
+    .from("box_subscriptions")
+    .select("trial_ends_at")
+    .eq("box_id", boxId)
+    .maybeSingle();
+
+  // Si la promo ya venció, partir de ahora (no de una fecha antigua).
+  const endsAt = addDaysIso(promotionalEndBase(raw?.trial_ends_at ?? null), days);
   await updateBoxSubscription(boxId, {
     status: "trialing",
-    trialEndsAt: base.toISOString(),
-    currentPeriodEnd: base.toISOString(),
+    trialEndsAt: endsAt,
+    currentPeriodEnd: endsAt,
   });
 }
 
 export async function suspendBoxSubscription(boxId: string) {
-  await updateBoxSubscription(boxId, { status: "suspended" });
   const admin = createAdminClient();
+  const { error } = await admin
+    .from("box_subscriptions")
+    .update({
+      status: "suspended",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("box_id", boxId);
+  if (error) throw error;
   await admin
     .from("boxes")
     .update({ status: "inactive", updated_at: new Date().toISOString() })
@@ -257,6 +320,8 @@ export async function cancelBoxSubscription(boxId: string) {
     .update({
       status: "canceled",
       canceled_at: new Date().toISOString(),
+      trial_ends_at: null,
+      grace_ends_at: null,
       updated_at: new Date().toISOString(),
     })
     .eq("box_id", boxId);

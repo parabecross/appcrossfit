@@ -568,7 +568,7 @@
     "historyMonthSummary": "{count, plural, one {# class} other {# classes}} · {attended} attended",
     "historyNoResults": "No classes match these filters",
     "historyNoScore": "No score",
-    "historyDescription": "Classes older than the calendar window",
+    "historyDescription": "Classes before today",
     "noHistory": "No class history yet",
     "addResult": "Log result",
     "editResult": "Edit result",

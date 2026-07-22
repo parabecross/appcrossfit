@@ -567,7 +567,7 @@
     "historyMonthSummary": "{count, plural, one {# clase} other {# clases}} · {attended} asistencias",
     "historyNoResults": "No hay clases con estos filtros",
     "historyNoScore": "Sin score",
-    "historyDescription": "Clases anteriores a la ventana del calendario",
+    "historyDescription": "Clases anteriores a hoy",
     "noHistory": "Aún no hay historial de clases",
     "addResult": "Apuntar resultado",
     "editResult": "Editar resultado",

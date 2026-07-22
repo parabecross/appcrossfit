@@ -31,8 +31,13 @@ export function assertFeatureEnabled(
   featureKey: FeatureKey
 ) {
   if (!entitlements.canWrite) {
+    const status = entitlements.subscription.status;
     throw new EntitlementError(
-      "Tu box está suspendido. Contacta a soporte ATHRON para reactivar el acceso."
+      status === "expired"
+        ? "Tu acceso finalizó. Contacta a soporte ATHRON o elige un plan."
+        : status === "canceled"
+          ? "Tu suscripción está cancelada. Reactiva el acceso para continuar."
+          : "Tu box está suspendido. Contacta a soporte ATHRON para reactivar el acceso."
     );
   }
   if (!canUseFeature(entitlements, featureKey)) {

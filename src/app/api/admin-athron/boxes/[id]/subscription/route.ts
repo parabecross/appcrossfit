@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSuperAdminApi } from "@/lib/auth/super-admin-api";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
+import { resolveSuperAdminSubscriptionAction } from "@/lib/queries/subscription-actions";
 import {
+  cancelBoxSubscription,
+  changeBoxPlan,
   serializeEntitlementsForSuperAdmin,
   updateBoxSubscription,
 } from "@/lib/queries/subscriptions";
@@ -67,7 +70,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
 
-  await updateBoxSubscription(id, {
+  const action = resolveSuperAdminSubscriptionAction({
     planCode,
     status,
     currentPeriodEnd,
@@ -75,6 +78,33 @@ export async function PATCH(
     graceEndsAt,
     notes,
   });
+
+  if (action.type === "cancel") {
+    await cancelBoxSubscription(id);
+  } else if (action.type === "change_plan") {
+    await changeBoxPlan(id, action.planCode);
+    if (
+      notes !== undefined ||
+      currentPeriodEnd !== undefined ||
+      trialEndsAt !== undefined ||
+      graceEndsAt !== undefined
+    ) {
+      await updateBoxSubscription(id, {
+        currentPeriodEnd,
+        trialEndsAt,
+        graceEndsAt,
+        notes,
+      });
+    }
+  } else {
+    await updateBoxSubscription(id, {
+      status: action.status,
+      currentPeriodEnd: action.currentPeriodEnd,
+      trialEndsAt: action.trialEndsAt,
+      graceEndsAt: action.graceEndsAt,
+      notes: action.notes,
+    });
+  }
 
   const ent = await getBoxEntitlements(id);
   return NextResponse.json(serializeEntitlementsForSuperAdmin(ent));

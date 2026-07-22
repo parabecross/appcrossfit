@@ -1,77 +1,28 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
-  FEATURE_KEYS,
-  type FeatureKey,
-  type PlanCode,
-  type ResourceType,
-} from "./features";
-import { enrichFeatureDetails } from "./feature-deps";
+  computeBoxEntitlements,
+  wouldExceedPlanLimit,
+} from "./compute";
+import type { PlanCode, ResourceType } from "./features";
 import { canAccessPublicRanking } from "./permissions";
 import type {
   BoxEntitlements,
   BoxSubscriptionRow,
   BoxUsage,
-  FeatureEntitlement,
   FeatureOverrideRow,
   SaasPlan,
 } from "./types";
 import { EntitlementError } from "./types";
 
-function daysUntil(iso: string | null): number | null {
-  if (!iso) return null;
-  const end = new Date(iso).getTime();
-  const now = Date.now();
-  return Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-}
-
-function activeOverrides(rows: FeatureOverrideRow[]): FeatureOverrideRow[] {
-  const now = Date.now();
-  return rows.filter((row) => {
-    if (!row.expires_at) return true;
-    return new Date(row.expires_at).getTime() > now;
-  });
-}
-
-function resolveEffectivePlanCode(
-  plan: SaasPlan,
-  status: BoxSubscriptionRow["status"]
-): PlanCode {
-  if (status === "trialing") return "elite";
-  return plan.code;
-}
-
-function buildFeatureMap(
-  plan: SaasPlan,
-  overrides: FeatureOverrideRow[],
-  effectivePlanCode: PlanCode,
-  allPlans: SaasPlan[]
-): { features: Record<FeatureKey, boolean>; details: FeatureEntitlement[] } {
-  const effectivePlan =
-    allPlans.find((p) => p.code === effectivePlanCode) ?? plan;
-  const base = effectivePlan.features;
-  const active = activeOverrides(overrides);
-  const features = {} as Record<FeatureKey, boolean>;
-  const details: FeatureEntitlement[] = [];
-
-  for (const key of FEATURE_KEYS) {
-    const override = active.find((o) => o.feature_key === key);
-    if (override) {
-      features[key] = override.enabled;
-      details.push({ key, enabled: override.enabled, source: "override" });
-      continue;
-    }
-    const enabled = Boolean(base[key]);
-    features[key] = enabled;
-    details.push({
-      key,
-      enabled,
-      source: effectivePlanCode === "elite" && plan.code !== "elite" ? "promotional" : "plan",
-    });
-  }
-
-  return { features, details };
-}
+export {
+  OFFICIAL_PLAN_CATALOG,
+  computeBoxEntitlements,
+  resolveCanWrite,
+  resolveEffectivePlanCode,
+  resolveSubscriptionStatus,
+  wouldExceedPlanLimit,
+} from "./compute";
 
 export async function getUsageForBox(boxId: string): Promise<BoxUsage> {
   const admin = createAdminClient();
@@ -126,7 +77,6 @@ async function ensureDefaultSubscription(
     status: "active",
   });
 
-  // Otro request concurrente pudo crear la fila primero (unique box_id).
   if (insertError && insertError.code !== "23505") {
     throw insertError;
   }
@@ -151,6 +101,34 @@ type SubscriptionBundle = {
 };
 
 const subscriptionLoadCache = new Map<string, Promise<SubscriptionBundle>>();
+
+/**
+ * Persiste vencimiento de promoción / gracia detectado en lectura
+ * para no depender solo de un proceso manual.
+ */
+async function persistResolvedExpiry(
+  subscription: BoxSubscriptionRow,
+  resolvedStatus: BoxSubscriptionRow["status"]
+) {
+  if (
+    resolvedStatus !== "expired" ||
+    subscription.status === "expired" ||
+    (subscription.status !== "trialing" &&
+      subscription.status !== "grace_period")
+  ) {
+    return;
+  }
+
+  const admin = createAdminClient();
+  await admin
+    .from("box_subscriptions")
+    .update({
+      status: "expired",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", subscription.id)
+    .eq("status", subscription.status);
+}
 
 async function loadSubscription(boxId: string): Promise<SubscriptionBundle> {
   const cached = subscriptionLoadCache.get(boxId);
@@ -185,48 +163,27 @@ async function loadSubscription(boxId: string): Promise<SubscriptionBundle> {
 }
 
 export async function getBoxEntitlements(boxId: string): Promise<BoxEntitlements> {
+  const nowMs = Date.now();
   const [{ subscription, plan, overrides }, usage, allPlans] = await Promise.all([
     loadSubscription(boxId),
     getUsageForBox(boxId),
     loadPlans(),
   ]);
 
-  const effectivePlanCode = resolveEffectivePlanCode(plan, subscription.status);
-  const effectivePlan =
-    allPlans.find((p) => p.code === effectivePlanCode) ?? plan;
-  const { features, details } = buildFeatureMap(
-    plan,
-    overrides,
-    effectivePlanCode,
-    allPlans
-  );
-
-  const enriched = enrichFeatureDetails(features, details);
-
-  const promotionalDaysRemaining =
-    subscription.status === "trialing"
-      ? daysUntil(subscription.trial_ends_at)
-      : null;
-
-  const canWrite = !["suspended", "canceled"].includes(subscription.status);
-
-  return {
+  const entitlements = computeBoxEntitlements({
     boxId,
     plan,
-    effectivePlanCode,
     subscription,
     usage,
-    limits: {
-      max_atletas: effectivePlan.max_atletas,
-      max_coaches: effectivePlan.max_coaches,
-      max_admins: effectivePlan.max_admins,
-    },
-    features: enriched.features,
-    featureDetails: enriched.featureDetails,
-    promotionalDaysRemaining,
-    canWrite,
-    isPromotional: subscription.status === "trialing",
-  };
+    overrides,
+    allPlans,
+    nowMs,
+  });
+
+  // Best-effort: materializa vencimiento en DB (no bloquea la respuesta).
+  void persistResolvedExpiry(subscription, entitlements.subscription.status);
+
+  return entitlements;
 }
 
 export { assertFeatureEnabled, canAccessPublicRanking, canUseFeature } from "./permissions";
@@ -257,16 +214,23 @@ export async function getBoxSubscription(boxId: string) {
   return getBoxEntitlements(boxId);
 }
 
+function writeBlockedMessage(entitlements: BoxEntitlements): string {
+  const status = entitlements.subscription.status;
+  if (status === "suspended") {
+    return "Tu box está suspendido. No puedes crear nuevos registros.";
+  }
+  if (status === "canceled") {
+    return "Tu suscripción está cancelada. Reactiva o elige un plan para continuar.";
+  }
+  if (status === "expired") {
+    return "Tu acceso finalizó. Elige un plan para continuar creando registros.";
+  }
+  return "Tu box no permite escritura en este estado.";
+}
+
 export function assertCanCreateResources(entitlements: BoxEntitlements) {
   if (!entitlements.canWrite) {
-    throw new EntitlementError(
-      "Tu box está suspendido. No puedes crear nuevos registros."
-    );
-  }
-  if (["expired", "canceled"].includes(entitlements.subscription.status)) {
-    throw new EntitlementError(
-      "Tu acceso finalizó. Elige un plan para continuar creando registros."
-    );
+    throw new EntitlementError(writeBlockedMessage(entitlements));
   }
 }
 
@@ -274,16 +238,7 @@ export function assertWithinPlanLimit(
   entitlements: BoxEntitlements,
   resource: ResourceType
 ) {
-  if (!entitlements.canWrite) {
-    throw new EntitlementError(
-      "Tu box está suspendido. No puedes crear nuevos registros."
-    );
-  }
-  if (["expired", "canceled"].includes(entitlements.subscription.status)) {
-    throw new EntitlementError(
-      "Tu acceso finalizó. Elige un plan para continuar creando registros."
-    );
-  }
+  assertCanCreateResources(entitlements);
 
   const map = {
     atletas: {
@@ -304,7 +259,7 @@ export function assertWithinPlanLimit(
   } as const;
 
   const { max, used, label } = map[resource];
-  if (max != null && used >= max) {
+  if (wouldExceedPlanLimit(used, max)) {
     throw new EntitlementError(
       `Tu plan ${entitlements.plan.name} permite hasta ${max} ${label}. Actualiza tu plan para continuar.`
     );
