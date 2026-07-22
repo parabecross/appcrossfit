@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasClassEnded } from "@/lib/clases/helpers";
+import {
+  canBookClass,
+  canCancelReservation,
+  hasClassEnded,
+} from "@/lib/clases/helpers";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   assertFeatureEnabled,
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
 
   const { data: clase } = await supabase
     .from("clases")
-    .select("id")
+    .select("id, fecha, hora_inicio, estado")
     .eq("id", clase_id)
     .eq("box_id", profile!.box_id)
     .maybeSingle();
@@ -101,6 +105,13 @@ export async function POST(request: NextRequest) {
     .eq("id", profile!.box_id)
     .maybeSingle();
   const gymTimezone = boxRow?.timezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  if (
+    clase.estado !== "programada" ||
+    !canBookClass(clase.fecha, clase.hora_inicio, gymTimezone)
+  ) {
+    return NextResponse.json({ error: "RESERVA_CERRADA" }, { status: 400 });
+  }
 
   const membership = await getMembresiaActual(profile!.id);
   const check = canReserve(profile!, membership, gymTimezone);
@@ -193,12 +204,34 @@ export async function PATCH(request: NextRequest) {
 
   const { data: reserva, error: fetchError } = await supabase
     .from("reservas")
-    .select("id, usuario_id")
+    .select("id, usuario_id, clase:clases!inner(fecha, hora_inicio, box_id)")
     .eq("id", reserva_id)
     .single();
 
   if (fetchError || !reserva || reserva.usuario_id !== profile!.id) {
     return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
+  }
+
+  const { data: boxRow } = await supabase
+    .from("boxes")
+    .select("timezone")
+    .eq("id", profile!.box_id)
+    .maybeSingle();
+
+  const cancelTimezone = boxRow?.timezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  const claseData = reserva.clase as unknown as {
+    fecha: string;
+    hora_inicio: string;
+    box_id: string;
+  } | null;
+
+  if (
+    !claseData ||
+    claseData.box_id !== profile!.box_id ||
+    !canCancelReservation(claseData.fecha, claseData.hora_inicio, cancelTimezone)
+  ) {
+    return NextResponse.json({ error: "CANCELACION_CERRADA" }, { status: 400 });
   }
 
   const { error } = await supabase
