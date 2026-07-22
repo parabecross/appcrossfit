@@ -95,6 +95,13 @@ export default async function AdminDashboardPage({
         }}
       />
 
+      <Suspense fallback={<DashboardPlanCardSkeleton />}>
+        <DashboardPlanCardSection
+          boxId={profile.box_id!}
+          labels={planCardLabels}
+        />
+      </Suspense>
+
       <DashboardTodayHero
         data={{
           reservationsToday: data.executive.reservationsToday,
@@ -200,13 +207,6 @@ export default async function AdminDashboardPage({
           boxId={profile.box_id!}
           boxName={data.boxName}
           today={data.today}
-        />
-      </Suspense>
-
-      <Suspense fallback={<DashboardPlanCardSkeleton />}>
-        <DashboardPlanCardSection
-          boxId={profile.box_id!}
-          labels={planCardLabels}
         />
       </Suspense>
     </div>
