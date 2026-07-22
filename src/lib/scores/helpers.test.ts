@@ -7,6 +7,7 @@ import {
   parseScoreNumeric,
   parseTimeToSeconds,
   resolveInitialScoreMode,
+  resolveScoreNumeric,
   scoreTypeHasRxScaled,
 } from "./helpers";
 
@@ -209,5 +210,67 @@ describe("buildClassRanking", () => {
     );
     expect(rows[0].nombre).toBe("B");
     expect(rows[0].isMe).toBe(true);
+  });
+});
+
+describe("resolveScoreNumeric", () => {
+  it("allows sin_score with null valor_numerico", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "otro",
+        score_display: "—",
+        sin_score: true,
+      })
+    ).toEqual({ ok: true, score_tipo: "otro", valor_numerico: null });
+  });
+
+  it("keeps otro without numeric value", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "otro",
+        score_display: "Cualquier texto",
+        sin_score: false,
+      })
+    ).toEqual({ ok: true, score_tipo: "otro", valor_numerico: null });
+  });
+
+  it("derives tiempo seconds from score_display", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "tiempo",
+        score_display: "12:30",
+        sin_score: false,
+      })
+    ).toEqual({ ok: true, score_tipo: "tiempo", valor_numerico: 750 });
+  });
+
+  it("rejects unparsable tiempo display", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "tiempo",
+        score_display: "abc",
+        sin_score: false,
+      })
+    ).toEqual({ ok: false });
+  });
+
+  it("derives peso from score_display", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "peso",
+        score_display: "100",
+        sin_score: false,
+      })
+    ).toEqual({ ok: true, score_tipo: "peso", valor_numerico: 100 });
+  });
+
+  it("rejects invalid score_tipo even with sin_score", () => {
+    expect(
+      resolveScoreNumeric({
+        score_tipo: "inventado",
+        score_display: "—",
+        sin_score: true,
+      })
+    ).toEqual({ ok: false });
   });
 });

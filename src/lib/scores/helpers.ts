@@ -225,6 +225,31 @@ export const WOD_SCORE_TIPO_ORDER: ClaseScoreTipo[] = [
   "otro",
 ];
 
+export function isClaseScoreTipo(value: unknown): value is ClaseScoreTipo {
+  return WOD_SCORE_TIPO_ORDER.some((tipo) => tipo === value);
+}
+
+/** Deriva y valida el valor comparable desde el texto del score. Fuente de verdad del servidor. */
+export function resolveScoreNumeric(input: {
+  score_tipo: unknown;
+  score_display: string;
+  sin_score: boolean;
+}):
+  | { ok: true; score_tipo: ClaseScoreTipo; valor_numerico: number | null }
+  | { ok: false } {
+  if (!isClaseScoreTipo(input.score_tipo)) return { ok: false };
+
+  const scoreTipo = input.score_tipo;
+
+  if (input.sin_score) return { ok: true, score_tipo: scoreTipo, valor_numerico: null };
+  if (scoreTipo === "otro") return { ok: true, score_tipo: scoreTipo, valor_numerico: null };
+
+  const valor = parseScoreNumeric(scoreTipo, input.score_display);
+  if (valor === null) return { ok: false };
+
+  return { ok: true, score_tipo: scoreTipo, valor_numerico: valor };
+}
+
 /** Solo compite contra atletas que registraron el mismo tipo de resultado. */
 export function filterScoresSameTipo<T extends Pick<ClaseScore, "score_tipo">>(
   scores: T[],

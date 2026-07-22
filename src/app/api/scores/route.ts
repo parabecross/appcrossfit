@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canAthleteManageClassScore } from "@/lib/clases/athlete-score";
+import { resolveScoreNumeric } from "@/lib/scores/helpers";
 import { rateLimitOrNull } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ClaseScoreTipo } from "@/types/database";
 
 const SCORE_WINDOW_ERROR = "SCORE_WINDOW_CLOSED";
+const SCORE_INVALID_ERROR = "SCORE_INVALID";
 
 async function requireSocioScores() {
   const supabase = await createClient();
@@ -111,15 +113,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: SCORE_WINDOW_ERROR }, { status: 403 });
   }
 
+  const sinScore = body.sin_score ?? false;
+  const scoreTipo = body.score_tipo ?? "otro";
+  const scoreDisplay = body.score_display ?? "—";
+
+  const resolved = resolveScoreNumeric({
+    score_tipo: scoreTipo,
+    score_display: scoreDisplay,
+    sin_score: sinScore,
+  });
+
+  if (!resolved.ok) {
+    return NextResponse.json({ error: SCORE_INVALID_ERROR }, { status: 400 });
+  }
+
   const payload = {
     clase_id: claseId,
     usuario_id: profile!.id,
     reserva_id: reservaId,
-    score_display: body.score_display ?? "—",
-    score_tipo: body.score_tipo ?? "otro",
-    valor_numerico: body.valor_numerico ?? null,
+    score_display: scoreDisplay,
+    score_tipo: resolved.score_tipo,
+    valor_numerico: resolved.valor_numerico,
     rx: body.rx ?? true,
-    sin_score: body.sin_score ?? false,
+    sin_score: sinScore,
     notas: body.notas ?? null,
   };
 
