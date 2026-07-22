@@ -4,6 +4,7 @@ import {
   computeAttendanceStats,
   computeClassesInRange,
 } from "./attendance";
+import { addDaysToDateString, todayInTimezone } from "@/lib/dates/date-only";
 
 describe("computeAttendanceStreak", () => {
   it("returns 0 with no dates", () => {
@@ -32,14 +33,15 @@ describe("computeAttendanceStreak", () => {
   });
 
   it("dedupes same-day dates via unique set usage in stats", () => {
+    const tz = "America/Mexico_City";
+    const today = todayInTimezone(tz);
+    const yesterday = addDaysToDateString(today, -1);
+    const weekFrom = addDaysToDateString(today, -2);
+    const weekTo = addDaysToDateString(today, 4);
     const stats = computeAttendanceStats(
-      [
-        { fecha: "2026-07-15" },
-        { fecha: "2026-07-15" },
-        { fecha: "2026-07-14" },
-      ],
-      "America/Mexico_City",
-      { from: "2026-07-13", to: "2026-07-19" }
+      [{ fecha: today }, { fecha: today }, { fecha: yesterday }],
+      tz,
+      { from: weekFrom, to: weekTo }
     );
     // streak uses unique days
     expect(stats.streak).toBeGreaterThanOrEqual(1);

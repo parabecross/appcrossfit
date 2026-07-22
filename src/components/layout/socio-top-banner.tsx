@@ -1,11 +1,10 @@
 "use client";
 
-import { usePathname } from "@/i18n/routing";
 import { DailyMotivationBanner } from "@/components/layout/daily-motivation-banner";
 
 /**
- * On Home (/mis-reservas) we only keep birthday greetings —
- * never random motivational copy (Home has its own contextual status line).
+ * Frase motivadora diaria del atleta (o saludo de cumpleaños si aplica).
+ * Se muestra en todas las rutas socio, incluida Mis reservas.
  */
 export function SocioTopBanner({
   locale,
@@ -16,11 +15,6 @@ export function SocioTopBanner({
   today: string;
   birthdayGreeting: string | null;
 }) {
-  const pathname = usePathname();
-  const isHome = pathname.includes("/mis-reservas");
-
-  if (isHome && !birthdayGreeting) return null;
-
   return (
     <>
       <DailyMotivationBanner

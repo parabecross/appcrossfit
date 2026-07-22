@@ -7,8 +7,16 @@ export const APP_CONFIG = {
   CUPO_DEFAULT: 12,
   /** Días de alerta antes del vencimiento */
   ALERTA_VENCIMIENTO_DIAS: 3,
-  /** Días hacia adelante que ve el socio al reservar (mín. 4 días con clases) */
-  SOCIO_CLASES_HORIZON_DIAS: 14,
+  /** Días hacia atrás que ve el socio en Mis reservas (zona del box) */
+  SOCIO_CLASES_PAST_DAYS: 2,
+  /** Días hacia adelante que ve el socio en Mis reservas (zona del box) */
+  SOCIO_CLASES_FUTURE_DAYS: 5,
+  /**
+   * @deprecated Prefer SOCIO_CLASES_FUTURE_DAYS — kept for older references.
+   */
+  SOCIO_CLASES_HORIZON_DIAS: 5,
+  /** Ventana máxima (días calendario del box) para registrar/editar score */
+  ATHLETE_SCORE_EDIT_MAX_AGE_DAYS: 2,
   /** Reservas futuras simultáneas por socio (se libera cuando termina la clase) */
   MAX_SOCIO_FUTURE_RESERVAS: 3,
   /** Semanas en gráfica de tendencia */

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatTime, cn } from "@/lib/utils";
-import { hasClassEnded } from "@/lib/clases/helpers";
+import { canAthleteManageClassScore } from "@/lib/clases/athlete-score";
 import {
   countByStatus,
   filterHistoryItems,
@@ -242,17 +242,14 @@ export function ClassHistoryList({
                         <ul className="space-y-0.5">
                           {day.items.map((r) => {
                             const score = scores.get(r.clase_id);
-                            const classEnded =
-                              !!gymTimezone &&
-                              hasClassEnded(
-                                r.clase.fecha,
-                                r.clase.hora_fin,
-                                gymTimezone
-                              );
                             const canScore =
                               canEnterScores &&
-                              classEnded &&
-                              r.estado !== "no_asistio";
+                              canAthleteManageClassScore({
+                                classDate: r.clase.fecha,
+                                classEndTime: r.clase.hora_fin,
+                                reservationStatus: r.estado,
+                                timezone: gymTimezone!,
+                              });
                             const isExpanded = expandedClaseId === r.clase_id;
                             const responded = hasScoreResponse(score);
 
@@ -285,7 +282,7 @@ export function ClassHistoryList({
                                       variant={responded ? "outline" : "default"}
                                       size="sm"
                                       className={cn(
-                                        "h-8 shrink-0 rounded-lg text-xs font-semibold gap-1.5 ml-auto",
+                                        "min-h-11 shrink-0 rounded-lg text-xs font-semibold gap-1.5 ml-auto",
                                         !responded &&
                                           "bg-orange-500 hover:bg-orange-600 text-white border-0"
                                       )}

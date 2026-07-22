@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { parseScoreNumeric, scoreTypeHasRxScaled } from "@/lib/scores/helpers";
 import { cn } from "@/lib/utils";
@@ -72,7 +71,6 @@ export function ScoreEntryForm({
   const t = useTranslations("scores");
   const tc = useTranslations("common");
   const router = useRouter();
-  const supabase = createClient();
 
   const [mode, setMode] = useState<ScoreMode>(() => initialScoreMode(existing));
   const [display, setDisplay] = useState(
@@ -185,27 +183,29 @@ export function ScoreEntryForm({
 
     setLoading(true);
 
-    const { data, error: upsertError } = existing
-      ? await supabase
-          .from("clase_scores")
-          .update(payload)
-          .eq("id", existing.id)
-          .select()
-          .single()
-      : await supabase
-          .from("clase_scores")
-          .upsert(payload, { onConflict: "clase_id,usuario_id" })
-          .select()
-          .single();
+    const res = await fetch("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const bodyJson = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      score?: ClaseScore;
+    };
 
-    if (upsertError) {
+    if (!res.ok) {
       setLoading(false);
-      setError(upsertError.message);
+      setError(
+        bodyJson.error === "SCORE_WINDOW_CLOSED"
+          ? t("windowClosed")
+          : (bodyJson.error ?? tc("error"))
+      );
       return;
     }
 
+    const data = bodyJson.score;
     if (data) {
-      onSaved?.(data as ClaseScore);
+      onSaved?.(data);
     }
 
     try {
@@ -215,10 +215,10 @@ export function ScoreEntryForm({
         body: JSON.stringify({ claseId, usuarioId }),
       });
       if (!rankingRes.ok) {
-        const body = (await rankingRes.json().catch(() => ({}))) as {
+        const rankingBody = (await rankingRes.json().catch(() => ({}))) as {
           error?: string;
         };
-        throw new Error(body.error ?? t("rankingSyncFailed"));
+        throw new Error(rankingBody.error ?? t("rankingSyncFailed"));
       }
     } catch (syncError) {
       setLoading(false);

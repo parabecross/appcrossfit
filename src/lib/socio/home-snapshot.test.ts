@@ -7,6 +7,7 @@ import {
   resolveHomeBookingContext,
 } from "./home-snapshot";
 import { findNextBookedClass } from "@/lib/reservas/next-booking";
+import { addDaysToDateString, todayInTimezone } from "@/lib/dates/date-only";
 import type { AtletaPrMarca, Clase, Reserva } from "@/types/database";
 
 const baseMarca = {
@@ -23,17 +24,21 @@ const baseMarca = {
   rm_reps: null,
 };
 
-const baseClase = (id: string, fecha: string, hora = "18:00"): Clase =>
-  ({
+const baseClase = (id: string, fecha: string, hora = "18:00"): Clase => {
+  const [hh, mm] = hora.slice(0, 5).split(":").map(Number);
+  const endH = Math.min(hh + 1, 23);
+  const horaFin = `${String(endH).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  return {
     id,
     nombre: `Class ${id}`,
     fecha,
     hora_inicio: hora,
-    hora_fin: "19:00",
+    hora_fin: horaFin,
     estado: "programada",
     cupo_maximo: 12,
     cupo_ocupado: 0,
-  }) as Clase;
+  } as Clase;
+};
 
 const reserva = (claseId: string, userId: string): Reserva =>
   ({
@@ -115,18 +120,15 @@ describe("home-snapshot", () => {
  * “Clases disponibles” was removed; booking lives in WeeklyCalendar.
  */
 describe("athlete home class sections", () => {
-  const today = "2026-07-15";
+  const tz = "America/Mexico_City";
+  const today = todayInTimezone(tz);
   const userId = "u1";
 
   it("with one future booking: shows next class context, not noBooking", () => {
-    const clases = [baseClase("c1", "2026-07-16", "06:00")];
+    const tomorrow = addDaysToDateString(today, 1);
+    const clases = [baseClase("c1", tomorrow, "06:00")];
     const reservas = [reserva("c1", userId)];
-    const next = findNextBookedClass(
-      clases,
-      reservas,
-      userId,
-      "America/Mexico_City"
-    );
+    const next = findNextBookedClass(clases, reservas, userId, tz);
     expect(next?.clase.id).toBe("c1");
     expect(
       resolveHomeBookingContext(next?.clase.fecha ?? null, today)
@@ -137,35 +139,25 @@ describe("athlete home class sections", () => {
   });
 
   it("without future bookings: no next class and noBooking context", () => {
-    const clases = [baseClase("c1", "2026-07-16")];
+    const clases = [baseClase("c1", addDaysToDateString(today, 1))];
     const reservas: Reserva[] = [];
-    const next = findNextBookedClass(
-      clases,
-      reservas,
-      userId,
-      "America/Mexico_City"
-    );
+    const next = findNextBookedClass(clases, reservas, userId, tz);
     expect(next).toBeNull();
     expect(resolveHomeBookingContext(null, today)).toBe("none");
   });
 
   it("with several future bookings: next class is the earliest", () => {
     const clases = [
-      baseClase("later", "2026-07-18", "18:00"),
-      baseClase("soon", "2026-07-16", "06:00"),
-      baseClase("mid", "2026-07-17", "09:00"),
+      baseClase("later", addDaysToDateString(today, 3), "18:00"),
+      baseClase("soon", addDaysToDateString(today, 1), "06:00"),
+      baseClase("mid", addDaysToDateString(today, 2), "09:00"),
     ];
     const reservas = [
       reserva("later", userId),
       reserva("soon", userId),
       reserva("mid", userId),
     ];
-    const next = findNextBookedClass(
-      clases,
-      reservas,
-      userId,
-      "America/Mexico_City"
-    );
+    const next = findNextBookedClass(clases, reservas, userId, tz);
     expect(next?.clase.id).toBe("soon");
     const bookedIds = new Set(
       reservas.filter((r) => r.estado === "confirmada").map((r) => r.clase_id)
@@ -176,14 +168,9 @@ describe("athlete home class sections", () => {
   });
 
   it("today booking uses hasTraining context, not noBooking", () => {
-    const clases = [baseClase("today", today, "20:00")];
+    const clases = [baseClase("today", today, "23:30")];
     const reservas = [reserva("today", userId)];
-    const next = findNextBookedClass(
-      clases,
-      reservas,
-      userId,
-      "America/Mexico_City"
-    );
+    const next = findNextBookedClass(clases, reservas, userId, tz);
     expect(next?.clase.id).toBe("today");
     expect(
       resolveHomeBookingContext(next?.clase.fecha ?? null, today)

@@ -17,6 +17,7 @@ import {
 import { todayInTimezone } from "@/lib/dates/date-only";
 import type { BoxEntitlements } from "@/lib/entitlements/types";
 import type { Clase, Reserva } from "@/types/database";
+import type { ClaseScoreWithProfile } from "@/lib/queries/class-scores";
 
 export function AthleteHomeDashboard({
   firstName,
@@ -28,13 +29,14 @@ export function AthleteHomeDashboard({
   showBanner,
   bannerType,
   membershipExpiry,
-  membershipCard,
   entitlements,
   canBook,
   clases,
   reservas,
   profileId,
-  secondary,
+  classScores = [],
+  constancy,
+  history,
 }: {
   firstName: string;
   fullName: string;
@@ -45,14 +47,16 @@ export function AthleteHomeDashboard({
   showBanner: boolean;
   bannerType: "pending" | "expired" | null;
   membershipExpiry?: string;
-  membershipCard: ReactNode;
   entitlements: BoxEntitlements;
   canBook: boolean;
   clases: Clase[];
   reservas: Reserva[];
   profileId: string;
-  /** Ranking / progress / constancy / badges — Suspense slot */
-  secondary: ReactNode;
+  classScores?: ClaseScoreWithProfile[];
+  /** Constancy only */
+  constancy: ReactNode;
+  /** Class history (older than the calendar window) */
+  history: ReactNode;
 }) {
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
@@ -141,6 +145,7 @@ export function AthleteHomeDashboard({
                 canBook={canBook}
                 locale={locale}
                 gymTimezone={gymTimezone}
+                classScores={classScores}
                 hideRankingWidget
                 socioCompact
                 onReservationsChange={setLocalReservas}
@@ -148,11 +153,11 @@ export function AthleteHomeDashboard({
             </AthleteExpandableSection>
           </div>
 
-          {secondary}
+          {constancy}
+
+          {history}
         </div>
       </FeatureGate>
-
-      {membershipCard}
     </div>
   );
 }

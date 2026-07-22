@@ -172,14 +172,42 @@ export function getWeekDates(baseDate: Date = new Date()): Date[] {
   });
 }
 
-/** Rango de fechas para que el socio vea clases futuras (no solo la semana calendario). */
+/** Rango de fechas para Mis reservas del socio: hoy-2 … hoy+5 (zona del box). */
 export function getSocioClasesDateRange(timeZone?: string): {
   from: string;
   to: string;
 } {
-  const from = timeZone ? todayInTimezone(timeZone) : toDateString(new Date());
-  const to = addDaysToDateString(from, APP_CONFIG.SOCIO_CLASES_HORIZON_DIAS);
+  const today = timeZone ? todayInTimezone(timeZone) : toDateString(new Date());
+  const from = addDaysToDateString(today, -APP_CONFIG.SOCIO_CLASES_PAST_DAYS);
+  const to = addDaysToDateString(today, APP_CONFIG.SOCIO_CLASES_FUTURE_DAYS);
   return { from, to };
+}
+
+/**
+ * Clases visibles en Mis reservas:
+ * - hoy y futuras (calendario del box): todas las programadas
+ * - días anteriores: solo si el atleta tuvo alguna reserva
+ */
+export function filterClassesForSocioMisReservas<
+  T extends { id: string; fecha: string; hora_fin?: string; estado: string },
+>(
+  clases: T[],
+  reservas: { clase_id: string; usuario_id: string }[],
+  profileId: string,
+  timeZone: string
+): T[] {
+  const today = todayInTimezone(timeZone);
+  const bookedIds = new Set(
+    reservas
+      .filter((r) => r.usuario_id === profileId)
+      .map((r) => r.clase_id)
+  );
+
+  return clases.filter((c) => {
+    if (c.estado !== "programada") return false;
+    if (c.fecha < today) return bookedIds.has(c.id);
+    return true;
+  });
 }
 
 export function getClassDates(

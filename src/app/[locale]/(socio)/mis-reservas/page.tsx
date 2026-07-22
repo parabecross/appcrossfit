@@ -1,20 +1,26 @@
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth/get-profile";
 
 import { getBoxConfig } from "@/lib/box/config";
 import { getMembresiaActual } from "@/lib/queries/memberships";
 import { getClasesByDateRange } from "@/lib/queries/clases";
 import { getSocioClasesDateRange } from "@/lib/clases/helpers";
-import { todayInTimezone } from "@/lib/dates/date-only";
 import { canReserve } from "@/lib/membresias/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { AthleteHomeDashboard } from "@/components/socio/home/athlete-home-dashboard";
-import { AthleteMembershipCard } from "@/components/socio/home/athlete-membership-card";
 import {
-  AthleteHomeSecondary,
-  AthleteHomeSecondaryFallback,
-} from "@/components/socio/home/athlete-home-secondary";
+  AthleteHomeConstancy,
+  AthleteHomeConstancyFallback,
+} from "@/components/socio/home/athlete-home-constancy";
+import { AthleteHomeHistorySection } from "@/components/socio/home/athlete-home-history-section";
+import { getAthleteClassHistory } from "@/lib/queries/athlete-history";
+import {
+  getScoresByUsuario,
+  getScoresForClases,
+  scoresByClaseId,
+} from "@/lib/queries/class-scores";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +33,26 @@ export default async function MisReservasPage({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const entitlements = await getBoxEntitlements(profile.box_id!);
-  const today = todayInTimezone(boxConfig.timezone);
+  const tHome = await getTranslations("socioHome");
 
   const { from, to } = getSocioClasesDateRange(boxConfig.timezone);
 
   const supabase = await createClient();
-  const [clases, membership, { data: reservas }] = await Promise.all([
-    getClasesByDateRange(from, to),
-    getMembresiaActual(profile.id),
-    supabase.from("reservas").select("*").eq("usuario_id", profile.id),
-  ]);
+  const [clases, membership, { data: reservas }, historyAll, scoresUsuario] =
+    await Promise.all([
+      getClasesByDateRange(from, to),
+      getMembresiaActual(profile.id),
+      supabase.from("reservas").select("*").eq("usuario_id", profile.id),
+      getAthleteClassHistory(profile.id, profile.box_id!),
+      getScoresByUsuario(profile.id),
+    ]);
+
+  const classScores = await getScoresForClases(clases.map((c) => c.id));
+
+  /** Historial: excluye el rango reciente del calendario para no duplicar. */
+  const historyItems = historyAll.filter(
+    (item) => item.clase.fecha < from || item.clase.fecha > to
+  );
 
   const reserveCheck = canReserve(profile, membership);
   const showBanner =
@@ -52,6 +68,9 @@ export default async function MisReservasPage({
         ? ("expired" as const)
         : null;
 
+  const attended = historyItems.filter((r) => r.estado === "asistio").length;
+  const noShow = historyItems.filter((r) => r.estado === "no_asistio").length;
+
   return (
     <AthleteHomeDashboard
       firstName={firstName}
@@ -63,30 +82,32 @@ export default async function MisReservasPage({
       showBanner={showBanner}
       bannerType={bannerType}
       membershipExpiry={membership?.fecha_fin}
-      membershipCard={
-        <AthleteMembershipCard
-          profile={profile}
-          membership={membership}
-          today={today}
-          locale={locale}
-        />
-      }
       entitlements={entitlements}
       canBook={reserveCheck.ok}
       clases={clases}
       reservas={reservas ?? []}
       profileId={profile.id}
-      secondary={
-        <Suspense fallback={<AthleteHomeSecondaryFallback />}>
-          <AthleteHomeSecondary
+      classScores={classScores}
+      constancy={
+        <Suspense fallback={<AthleteHomeConstancyFallback />}>
+          <AthleteHomeConstancy
             profileId={profile.id}
-            boxId={profile.box_id!}
-            boxSlug={boxConfig.slug}
             timezone={boxConfig.timezone}
-            locale={locale}
-            entitlements={entitlements}
           />
         </Suspense>
+      }
+      history={
+        <AthleteHomeHistorySection
+          items={historyItems}
+          locale={locale}
+          gymTimezone={boxConfig.timezone}
+          profileId={profile.id}
+          scoresByClaseId={scoresByClaseId(scoresUsuario)}
+          summary={tHome("sections.historySubtitle", {
+            attended,
+            noShow,
+          })}
+        />
       }
     />
   );

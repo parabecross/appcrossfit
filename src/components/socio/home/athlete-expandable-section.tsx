@@ -59,7 +59,7 @@ export function AthleteExpandableSection({
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-0 border-t border-white/5">{children}</div>
+        <div className="px-4 pb-4 pt-3 border-t border-white/5">{children}</div>
       )}
     </section>
   );

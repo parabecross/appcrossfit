@@ -11,9 +11,10 @@ import {
   addDaysToDateString,
   canCancelReservation,
   canBookClass,
-  filterClassesForSocio,
+  filterClassesForSocioMisReservas,
   hasClassEnded,
 } from "@/lib/clases/helpers";
+import { canAthleteManageClassScore } from "@/lib/clases/athlete-score";
 import {
   getClassTimeBlock,
   getSocioDayPeriod,
@@ -104,22 +105,35 @@ export function WeeklyCalendar({
     ? todayInTimezone(gymTimezone)
     : toDateString(new Date());
   const tomorrow = addDaysToDateString(today, 1);
-  const displayClases = useMemo(
-    () => (isAdmin ? clases : filterClassesForSocio(clases, gymTimezone)),
-    [clases, isAdmin, gymTimezone]
-  );
-  const daysWithClasses = useMemo(() => getClassDates(displayClases), [displayClases]);
-  const [selected, setSelected] = useState(today);
   const controlled = !!onReservationsChange;
   const [uncontrolledReservas, setUncontrolledReservas] = useState(reservas);
   const [loading, setLoading] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [bookError, setBookError] = useState<string | null>(null);
   const [openPeriods, setOpenPeriods] = useState<Set<SocioDayPeriod>>(new Set());
+  const [scoreEditClaseId, setScoreEditClaseId] = useState<string | null>(null);
 
   const localReservas = controlled ? reservas : uncontrolledReservas;
   const updateReservas = controlled ? onReservationsChange! : setUncontrolledReservas;
   const effectiveTimezone = gymTimezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  const displayClases = useMemo(
+    () =>
+      isAdmin
+        ? clases
+        : filterClassesForSocioMisReservas(
+            clases,
+            localReservas,
+            profileId,
+            effectiveTimezone
+          ),
+    [clases, isAdmin, localReservas, profileId, effectiveTimezone]
+  );
+  const daysWithClasses = useMemo(
+    () => getClassDates(displayClases),
+    [displayClases]
+  );
+  const [selected, setSelected] = useState(today);
 
   const clasesById = useMemo(
     () =>
@@ -404,7 +418,15 @@ export function WeeklyCalendar({
   const renderSocioClassCard = (clase: Clase) => {
     const occupied = occupiedForSocio(clase.id, clase.cupo_ocupado ?? 0);
     const full = occupied >= clase.cupo_maximo;
-    const reservation = myReservation(clase.id);
+    const anyReservation = localReservas.find(
+      (r) => r.clase_id === clase.id && r.usuario_id === profileId
+    );
+    const reservation = localReservas.find(
+      (r) =>
+        r.clase_id === clase.id &&
+        r.usuario_id === profileId &&
+        isActiveReserva(r.estado)
+    );
     const booked = !!reservation;
     const canCancel = booked
       ? canCancelReservation(clase.fecha, clase.hora_inicio, gymTimezone)
@@ -420,12 +442,18 @@ export function WeeklyCalendar({
       gymTimezone
     );
     const myScore = myScoreForClase(clase.id);
-    const canLogScore =
-      booked &&
-      classEnded &&
-      reservation &&
-      reservation.estado !== "no_asistio" &&
-      !hasScoreResponse(myScore);
+    const canManageScore =
+      !!gymTimezone &&
+      canAthleteManageClassScore({
+        classDate: clase.fecha,
+        classEndTime: clase.hora_fin,
+        reservationStatus: (reservation ?? anyReservation)?.estado,
+        timezone: gymTimezone,
+      });
+    const scoreOpen =
+      canManageScore &&
+      (scoreEditClaseId === clase.id || !hasScoreResponse(myScore));
+    const statusForBadge = (reservation ?? anyReservation)?.estado;
 
     return (
       <Card
@@ -436,7 +464,7 @@ export function WeeklyCalendar({
             "ring-2 ring-green-500/40 border-green-500/30 bg-green-500/[0.03]"
         )}
       >
-        {booked && (
+        {booked && !classEnded && (
           <div className="bg-green-600/90 px-4 py-1.5 text-center text-xs font-semibold text-white">
             {t("booked")}
           </div>
@@ -447,10 +475,30 @@ export function WeeklyCalendar({
               {clase.nombre}
             </CardTitle>
             <Badge
-              variant={full ? "destructive" : booked ? "success" : "secondary"}
+              variant={
+                statusForBadge === "no_asistio"
+                  ? "destructive"
+                  : statusForBadge === "asistio"
+                    ? "success"
+                    : full
+                      ? "destructive"
+                      : booked
+                        ? "success"
+                        : "secondary"
+              }
               className="shrink-0"
             >
-              {full ? t("full") : booked ? t("booked") : t("status.programada")}
+              {statusForBadge === "asistio"
+                ? t("attended")
+                : statusForBadge === "no_asistio"
+                  ? t("noShow")
+                  : statusForBadge === "cancelada"
+                    ? t("status.cancelada")
+                    : full
+                      ? t("full")
+                      : booked
+                        ? t("booked")
+                        : t("status.programada")}
             </Badge>
           </div>
           <p className="text-base font-medium text-foreground/90">
@@ -466,17 +514,44 @@ export function WeeklyCalendar({
           <WorkoutBlock entrenamiento={clase.entrenamiento} />
         </CardHeader>
         <CardContent className="space-y-4 pb-5">
-          <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
-          {canLogScore && reservation && (
+          {!classEnded && (
+            <CupoProgress occupied={occupied} max={clase.cupo_maximo} />
+          )}
+          {canManageScore &&
+            hasScoreResponse(myScore) &&
+            scoreEditClaseId !== clase.id && (
+              <div className="space-y-2">
+                <ScoreResponseSummary score={myScore!} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full min-h-11 rounded-xl"
+                  onClick={() => setScoreEditClaseId(clase.id)}
+                >
+                  {t("editResult")}
+                </Button>
+              </div>
+            )}
+          {scoreOpen && (reservation ?? anyReservation) && (
             <ScoreEntryForm
               claseId={clase.id}
-              reservaId={reservation.id}
+              reservaId={(reservation ?? anyReservation)!.id}
               usuarioId={profileId}
+              existing={myScore ?? null}
+              onSaved={() => setScoreEditClaseId(null)}
+              onCancel={
+                hasScoreResponse(myScore)
+                  ? () => setScoreEditClaseId(null)
+                  : undefined
+              }
             />
           )}
-          {booked && classEnded && myScore && hasScoreResponse(myScore) && (
-            <ScoreResponseSummary score={myScore} />
-          )}
+          {!canManageScore &&
+            classEnded &&
+            myScore &&
+            hasScoreResponse(myScore) && (
+              <ScoreResponseSummary score={myScore} />
+            )}
           {booked && !classEnded ? (
             <div className="space-y-2">
               <Button
@@ -503,7 +578,7 @@ export function WeeklyCalendar({
                 </p>
               )}
             </div>
-          ) : !booked ? (
+          ) : !booked && !classEnded ? (
             <div className="space-y-2">
               <Button
                 className="w-full h-12 rounded-xl text-base font-semibold"
