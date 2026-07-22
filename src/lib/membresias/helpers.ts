@@ -56,7 +56,7 @@ export function socioDisplayStatusBadgeVariant(
 }
 
 export function canReserve(
-  profile: Profile,
+  profile: Pick<Profile, "estado_cuenta">,
   membership: Pick<Membresia, "estado" | "fecha_fin"> | null,
   timeZone?: string
 ): { ok: boolean; reason?: "pending" | "expired" | "none" } {

@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  canReserve,
   computeFechaFin,
   isMembresiaVencida,
   syncMembresiaEstadoLocal,
 } from "./helpers";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("computeFechaFin", () => {
   it("adds duration days from start date", () => {
@@ -29,5 +34,54 @@ describe("syncMembresiaEstadoLocal", () => {
 describe("isMembresiaVencida", () => {
   it("returns true for past dates", () => {
     expect(isMembresiaVencida("2000-01-01")).toBe(true);
+  });
+});
+
+describe("canReserve", () => {
+  const activeProfile = { estado_cuenta: "activo" as const };
+
+  it("rejects pendiente_pago", () => {
+    expect(
+      canReserve(
+        { estado_cuenta: "pendiente_pago" },
+        { estado: "vigente", fecha_fin: "2099-12-31" }
+      )
+    ).toEqual({ ok: false, reason: "pending" });
+  });
+
+  it("rejects expired membership by fecha_fin", () => {
+    expect(
+      canReserve(activeProfile, {
+        estado: "vigente",
+        fecha_fin: "2000-01-01",
+      })
+    ).toEqual({ ok: false, reason: "expired" });
+  });
+
+  it("rejects missing membership", () => {
+    expect(canReserve(activeProfile, null)).toEqual({
+      ok: false,
+      reason: "none",
+    });
+  });
+
+  it("uses box calendar day for expiry across timezones", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T12:30:00.000Z"));
+
+    try {
+      const membership = {
+        estado: "vigente" as const,
+        fecha_fin: "2026-07-22",
+      };
+
+      expect(canReserve(activeProfile, membership)).toEqual({ ok: true });
+
+      expect(
+        canReserve(activeProfile, membership, "Pacific/Auckland")
+      ).toEqual({ ok: false, reason: "expired" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

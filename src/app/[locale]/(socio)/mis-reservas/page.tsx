@@ -57,7 +57,7 @@ export default async function MisReservasPage({
    */
   const historyItems = historyAll.filter((item) => item.clase.fecha < today);
 
-  const reserveCheck = canReserve(profile, membership);
+  const reserveCheck = canReserve(profile, membership, boxConfig.timezone);
   const showBanner =
     profile.estado_cuenta === "pendiente_pago" ||
     reserveCheck.reason === "expired";

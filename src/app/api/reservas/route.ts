@@ -6,6 +6,8 @@ import {
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
+import { canReserve } from "@/lib/membresias/helpers";
+import { getMembresiaActual } from "@/lib/queries/memberships";
 import {
   ACTIVE_RESERVA_ESTADOS,
   RESERVA_LIMITE_MAX_CODE,
@@ -26,7 +28,7 @@ async function requireSocioReservas() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, rol, box_id")
+    .select("id, rol, box_id, estado_cuenta")
     .eq("user_id", user.id)
     .single();
 
@@ -99,6 +101,23 @@ export async function POST(request: NextRequest) {
     .eq("id", profile!.box_id)
     .maybeSingle();
   const gymTimezone = boxRow?.timezone ?? APP_CONFIG.GYM_TIMEZONE;
+
+  const membership = await getMembresiaActual(profile!.id);
+  const check = canReserve(profile!, membership, gymTimezone);
+
+  if (!check.ok) {
+    return NextResponse.json(
+      {
+        error:
+          check.reason === "pending"
+            ? "MEMBRESIA_PENDIENTE_PAGO"
+            : check.reason === "expired"
+              ? "MEMBRESIA_VENCIDA"
+              : "MEMBRESIA_INEXISTENTE",
+      },
+      { status: 403 }
+    );
+  }
 
   const admin = createAdminClient();
   const { data: activeReservas } = await admin
