@@ -43,7 +43,7 @@ export function SocioClassHistory({
         </CardDescription>
       </CardHeader>
       )}
-      <CardContent className={compact ? "p-0" : undefined}>
+      <CardContent className={compact ? "p-0 pt-1" : undefined}>
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         ) : (

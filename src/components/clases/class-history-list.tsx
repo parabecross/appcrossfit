@@ -148,9 +148,9 @@ export function ClassHistoryList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-1">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
           {STATUS_FILTERS.map((key) => {
             const count =
               key === "all" ? counts.all : counts[key];
