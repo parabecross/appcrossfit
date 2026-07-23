@@ -33,6 +33,7 @@ export type WeeklyReportRawData = {
   socios: ReportSocioRow[];
   membershipByUser: Map<string, ReportMembershipRow>;
   prs: ReportPrRow[];
+  prsPrevWeek: ReportPrRow[];
 };
 
 /**
@@ -61,7 +62,7 @@ export async function fetchWeeklyReportData(
     admin
       .from("clases")
       .select(
-        "id, nombre, fecha, hora_inicio, hora_fin, cupo_maximo, estado, box_id"
+        "id, nombre, fecha, hora_inicio, hora_fin, cupo_maximo, estado, box_id, coach_id"
       )
       .eq("box_id", boxId)
       .gte("fecha", prevBounds.fromInclusive)
@@ -84,6 +85,25 @@ export async function fetchWeeklyReportData(
       estado_cuenta: s.estado_cuenta,
       created_at: s.created_at,
     }));
+
+  const coachIds = Array.from(
+    new Set(
+      clases
+        .map((c) => c.coach_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  );
+  const coachMap = new Map<string, string>();
+  if (coachIds.length > 0) {
+    const { data: coaches } = await admin
+      .from("profiles")
+      .select("id, nombre_completo, box_id")
+      .eq("box_id", boxId)
+      .in("id", coachIds);
+    for (const c of coaches ?? []) {
+      if (c.box_id === boxId) coachMap.set(c.id, c.nombre_completo);
+    }
+  }
 
   const claseIds = clases.map((c) => c.id);
   let cupoMap = new Map<string, number>();
@@ -108,6 +128,7 @@ export async function fetchWeeklyReportData(
     cupo_maximo: c.cupo_maximo,
     cupo_ocupado: cupoMap.get(c.id) ?? 0,
     estado: c.estado,
+    coach_nombre: c.coach_id ? (coachMap.get(c.coach_id) ?? null) : null,
   });
 
   const classesThisWeek = clases
@@ -133,9 +154,11 @@ export async function fetchWeeklyReportData(
         ? Promise.resolve({ data: [] as never[] })
         : admin
             .from("membresias")
-            .select("usuario_id, estado, fecha_fin")
+            .select(
+              "usuario_id, estado, fecha_inicio, fecha_fin, plan:planes(nombre)"
+            )
             .in("usuario_id", socioIds)
-            .in("estado", ["vigente", "vencida"])
+            .in("estado", ["vigente", "vencida", "cancelada"])
             .order("fecha_fin", { ascending: false }),
       socioIds.length === 0
         ? Promise.resolve({ data: [] as never[] })
@@ -143,7 +166,7 @@ export async function fetchWeeklyReportData(
             .from("atleta_pr_marcas")
             .select("usuario_id, fecha")
             .in("usuario_id", socioIds)
-            .gte("fecha", week.from)
+            .gte("fecha", previousWeek.from)
             .lte("fecha", week.to),
     ]);
 
@@ -205,18 +228,26 @@ export async function fetchWeeklyReportData(
   const membershipByUser = new Map<string, ReportMembershipRow>();
   for (const m of membRows ?? []) {
     if (!membershipByUser.has(m.usuario_id)) {
+      const planRaw = (m as { plan?: { nombre: string } | { nombre: string }[] | null })
+        .plan;
+      const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
       membershipByUser.set(m.usuario_id, {
         usuario_id: m.usuario_id,
         estado: m.estado,
+        fecha_inicio: m.fecha_inicio,
         fecha_fin: m.fecha_fin,
+        plan_nombre: plan?.nombre ?? null,
       });
     }
   }
 
-  const prs: ReportPrRow[] = (prRows ?? []).map((p) => ({
+  const allPrs: ReportPrRow[] = (prRows ?? []).map((p) => ({
     usuario_id: p.usuario_id,
     fecha: p.fecha,
   }));
+  const prs = allPrs.filter(
+    (p) => p.fecha >= week.from && p.fecha <= week.to
+  );
 
   return {
     boxId,
@@ -234,5 +265,8 @@ export async function fetchWeeklyReportData(
     socios,
     membershipByUser,
     prs,
+    prsPrevWeek: allPrs.filter(
+      (p) => p.fecha >= previousWeek.from && p.fecha <= previousWeek.to
+    ),
   };
 }

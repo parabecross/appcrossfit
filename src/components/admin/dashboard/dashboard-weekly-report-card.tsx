@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDisplayDate } from "@/lib/dates/format-display";
@@ -82,10 +82,10 @@ export function DashboardWeeklyReportCard({
 
     try {
       const params = new URLSearchParams({ from, to });
-      const res = await fetch(`/api/admin/reporte-semanal?${params}`, {
-        method: "GET",
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `/api/admin/reporte-ejecutivo/excel?${params}`,
+        { method: "GET", cache: "no-store" }
+      );
 
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as {
@@ -109,7 +109,10 @@ export function DashboardWeeklyReportCard({
       }
 
       const contentType = res.headers.get("Content-Type") ?? "";
-      if (!contentType.includes("application/pdf")) {
+      if (
+        !contentType.includes("spreadsheetml") &&
+        !contentType.includes("octet-stream")
+      ) {
         throw new Error(labels.error);
       }
 
@@ -120,7 +123,7 @@ export function DashboardWeeklyReportCard({
 
       const disposition = res.headers.get("Content-Disposition") ?? "";
       const match = disposition.match(/filename="([^"]+)"/);
-      const filename = match?.[1] ?? "athron-reporte-ejecutivo.pdf";
+      const filename = match?.[1] ?? "athron-reporte-ejecutivo.xlsx";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -143,7 +146,7 @@ export function DashboardWeeklyReportCard({
       <div className="space-y-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 shrink-0 text-orange-400/90" />
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-orange-400/90" />
             <h2 className="text-sm font-black tracking-tight">{labels.title}</h2>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
@@ -214,7 +217,7 @@ export function DashboardWeeklyReportCard({
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
+                <FileSpreadsheet className="h-4 w-4" />
                 {labels.download}
               </>
             )}

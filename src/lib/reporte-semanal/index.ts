@@ -22,3 +22,10 @@ export {
   formatPeriodLabel,
 } from "./period-range";
 export { createDownloadGuard } from "./download-guard";
+export { buildExecutiveExcelReport } from "./build-excel-report";
+export {
+  buildExecutiveExcelFilename,
+  assertExcelBufferLooksValid,
+  EXECUTIVE_EXCEL_CONTENT_TYPE,
+} from "./generate-excel";
+export { SHEET_NAMES } from "./excel-styles";

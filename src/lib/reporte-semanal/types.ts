@@ -101,6 +101,7 @@ export type ReportClassRow = {
   cupo_maximo: number;
   cupo_ocupado: number;
   estado: "programada" | "cancelada";
+  coach_nombre: string | null;
 };
 
 export type ReportReservaRow = {
@@ -121,7 +122,9 @@ export type ReportSocioRow = {
 export type ReportMembershipRow = {
   usuario_id: string;
   estado: "vigente" | "vencida" | "cancelada";
+  fecha_inicio: string;
   fecha_fin: string;
+  plan_nombre: string | null;
 };
 
 export type ReportPrRow = {

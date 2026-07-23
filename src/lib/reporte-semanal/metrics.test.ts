@@ -30,6 +30,7 @@ function clase(
     cupo_maximo: 12,
     cupo_ocupado: 6,
     estado: "programada",
+    coach_nombre: null,
     ...partial,
   };
 }
@@ -203,6 +204,7 @@ describe("reporte-semanal metrics", () => {
           cupo_maximo: 12,
           hora_inicio: "19:00:00",
           hora_fin: "20:00:00",
+          coach_nombre: null,
         }),
       ],
       classesPrevWeek: [],
@@ -239,7 +241,9 @@ describe("reporte-semanal metrics", () => {
           {
             usuario_id: "u1",
             estado: "vigente",
+            fecha_inicio: "2026-01-01",
             fecha_fin: "2026-08-01",
+            plan_nombre: "Mensual",
           },
         ],
       ]),
