@@ -1,4 +1,4 @@
-import { isMobileExportDevice } from "@/lib/legacy/resolve-card-images";
+import { isMobileExportDevice } from "@/lib/legacy/legacy-device";
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoxConfig } from "@/lib/box/get-box-config";
 import { addDaysToDateString } from "@/lib/dates/date-only";

@@ -1,6 +1,9 @@
 /** Convierte URL remota a data URL. En servidor usa Storage API de Supabase. */
 
+import { isMobileExportDevice } from "@/lib/legacy/legacy-device";
 import { loadImageAsDataUrl } from "@/lib/legacy/load-storage-image";
+
+export { isMobileExportDevice };
 
 export async function remoteImageToDataUrl(
   url: string | null | undefined
@@ -36,9 +39,4 @@ export async function remoteImageToDataUrl(
       return null;
     }
   }
-}
-
-export function isMobileExportDevice(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }

@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // server-only throws outside Next RSC; tests need a no-op stub.
+      "server-only": path.resolve(__dirname, "./src/test/server-only-stub.js"),
     },
   },
 });

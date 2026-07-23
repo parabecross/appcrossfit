@@ -3,7 +3,7 @@ import {
   embedImagesForExport,
   getLegacyCardCaptureRoot,
 } from "@/lib/legacy/embed-export-images";
-import { isMobileExportDevice } from "@/lib/legacy/resolve-card-images";
+import { isMobileExportDevice } from "@/lib/legacy/legacy-device";
 import {
   devLog,
   preloadImage,
