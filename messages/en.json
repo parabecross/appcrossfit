@@ -961,16 +961,21 @@
       "deltaSame": "Same as last week"
     },
     "weeklyReport": {
-      "title": "Weekly report",
-      "description": "Review your box’s key operational results. Pick a week and download the PDF.",
+      "title": "Executive report",
+      "description": "Select the period you want to analyze and download the PDF report.",
       "period": "Period",
+      "from": "From",
+      "to": "To",
       "selectPeriod": "Report week",
       "thisWeekSuffix": "(this week)",
       "download": "Download report",
       "downloading": "Generating PDF…",
       "error": "Could not download the report. Please try again.",
       "emptyHint": "The report has no content to download.",
-      "periodInvalid": "The selected week is not valid."
+      "periodInvalid": "The selected period is not valid.",
+      "rangeTooLong": "The range cannot exceed {max} days.",
+      "rangeInverted": "The end date cannot be earlier than the start date.",
+      "rangeFuture": "Future dates are not allowed."
     },
     "charts": {
       "title": "Trends and demand",

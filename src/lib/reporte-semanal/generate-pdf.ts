@@ -113,11 +113,12 @@ export async function generateWeeklyReportPdf(
       .fontSize(10)
       .fillColor("#444444")
       .text(`Periodo: ${model.weekLabel}`);
+    doc.text(`Comparación: ${model.previousWeekLabel}`);
     doc.text(`Generado: ${model.generatedAtLabel} (${model.timezone})`);
 
     const m = model.metrics;
 
-    drawSectionTitle(doc, "Resumen semanal");
+    drawSectionTitle(doc, "Resumen del periodo");
     kv(doc, "Atletas únicos con asistencia", String(m.uniqueAthletesAttended));
     kv(doc, "Clases impartidas", String(m.classesHeld));
     kv(doc, "Total de reservas", String(m.totalReservations));
@@ -204,7 +205,7 @@ export async function generateWeeklyReportPdf(
     );
 
     ensureSpace(doc, 140);
-    drawSectionTitle(doc, "Comparación vs semana anterior");
+    drawSectionTitle(doc, "Comparación vs periodo anterior");
     const cmp = m.comparison;
     kv(
       doc,

@@ -960,16 +960,21 @@
       "deltaSame": "Igual que la semana pasada"
     },
     "weeklyReport": {
-      "title": "Reporte semanal",
-      "description": "Consulta los principales resultados operativos de tu box. Elige la semana y descarga el PDF.",
+      "title": "Reporte ejecutivo",
+      "description": "Selecciona el periodo que deseas analizar y descarga el reporte en PDF.",
       "period": "Periodo",
+      "from": "Desde",
+      "to": "Hasta",
       "selectPeriod": "Semana del reporte",
       "thisWeekSuffix": "(esta semana)",
       "download": "Descargar reporte",
       "downloading": "Generando PDF…",
       "error": "No se pudo descargar el reporte. Intenta de nuevo.",
       "emptyHint": "El reporte no tiene contenido para descargar.",
-      "periodInvalid": "La semana seleccionada no es válida."
+      "periodInvalid": "El periodo seleccionado no es válido.",
+      "rangeTooLong": "El rango no puede superar {max} días.",
+      "rangeInverted": "La fecha final no puede ser anterior a la inicial.",
+      "rangeFuture": "No puedes seleccionar fechas futuras."
     },
     "charts": {
       "title": "Tendencias y demanda",

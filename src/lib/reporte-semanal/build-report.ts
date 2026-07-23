@@ -3,35 +3,43 @@ import { computeWeeklyReportMetrics } from "./metrics";
 import { fetchWeeklyReportData } from "./fetch-data";
 import {
   formatGeneratedAt,
-  formatWeekRangeForReport,
-  getCurrentWeekRange,
-  resolveRequestedWeekRange,
 } from "./week-range";
+import {
+  formatPeriodLabel,
+  previousPeriodOfEqualDuration,
+  resolveReportPeriod,
+  type ReportPeriodErrorCode,
+} from "./period-range";
 import type { WeeklyReportModel, WeekRange } from "./types";
 
 /**
  * Orquesta fetch (solo lectura) + cálculo puro.
  * boxId DEBE provenir de la sesión autenticada.
- * weekStart opcional: lunes YYYY-MM-DD validado en TZ del box.
+ *
+ * Preferir from+to. Solo `from` (lunes) se acepta como fallback legacy de semana.
  */
 export async function buildWeeklyReport(
   boxId: string,
-  weekStart?: string | null
+  weekStartOrFrom?: string | null,
+  to?: string | null
 ): Promise<WeeklyReportModel> {
   const box = await getBoxConfig(boxId);
-  const resolved = resolveRequestedWeekRange(box.timezone, weekStart);
+  const resolved = resolveReportPeriod(box.timezone, {
+    from: weekStartOrFrom,
+    to,
+  });
   if (!resolved.ok) {
     throw new WeeklyReportPeriodError(resolved.error);
   }
 
-  return buildWeeklyReportForRange(boxId, resolved.week);
+  return buildWeeklyReportForRange(boxId, resolved.range);
 }
 
 export async function buildWeeklyReportForRange(
   boxId: string,
-  week: WeekRange
+  range: WeekRange
 ): Promise<WeeklyReportModel> {
-  const raw = await fetchWeeklyReportData(boxId, week);
+  const raw = await fetchWeeklyReportData(boxId, range);
   const metrics = computeWeeklyReportMetrics({
     timeZone: raw.timezone,
     today: raw.today,
@@ -58,10 +66,11 @@ export async function buildWeeklyReportForRange(
     boxName: raw.boxName,
     timezone: raw.timezone,
     logoUrl: raw.logoUrl,
-    title: "Reporte semanal",
+    title: "Reporte ejecutivo",
     week: raw.week,
     previousWeek: raw.previousWeek,
-    weekLabel: formatWeekRangeForReport(raw.week, "es"),
+    weekLabel: formatPeriodLabel(raw.week, "es"),
+    previousWeekLabel: formatPeriodLabel(raw.previousWeek, "es"),
     generatedAtLabel: formatGeneratedAt(raw.timezone, "es"),
     metrics,
     hasOperationalData,
@@ -69,13 +78,13 @@ export async function buildWeeklyReportForRange(
 }
 
 export class WeeklyReportPeriodError extends Error {
-  readonly code: "invalid" | "future" | "too_old";
+  readonly code: ReportPeriodErrorCode;
 
-  constructor(code: "invalid" | "future" | "too_old") {
+  constructor(code: ReportPeriodErrorCode) {
     super(`Invalid report period: ${code}`);
     this.name = "WeeklyReportPeriodError";
     this.code = code;
   }
 }
 
-export { getCurrentWeekRange };
+export { previousPeriodOfEqualDuration };

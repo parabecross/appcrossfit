@@ -25,9 +25,10 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
-    const weekStart = url.searchParams.get("from");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
 
-    const report = await buildWeeklyReport(auth.boxId, weekStart);
+    const report = await buildWeeklyReport(auth.boxId, from, to);
     const pdf = await generateWeeklyReportPdf(report);
     const filename = buildWeeklyReportFilename(report.week);
 
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
   } catch (e) {
     if (e instanceof WeeklyReportPeriodError) {
       return NextResponse.json(
-        { error: "PERIOD_INVALID" },
+        { error: "PERIOD_INVALID", code: e.code },
         { status: 400 }
       );
     }

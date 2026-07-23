@@ -13,9 +13,9 @@ import type {
 } from "./types";
 import {
   getTodayInBox,
-  previousWeekFromRange,
   weekRangeQueryBounds,
 } from "./week-range";
+import { previousPeriodOfEqualDuration } from "./period-range";
 
 export type WeeklyReportRawData = {
   boxId: string;
@@ -51,7 +51,7 @@ export async function fetchWeeklyReportData(
   const box = await getBoxConfig(boxId);
   const timezone = box.timezone;
   const today = getTodayInBox(timezone);
-  const previousWeek = previousWeekFromRange(week);
+  const previousWeek = previousPeriodOfEqualDuration(week);
   const weekBounds = weekRangeQueryBounds(week);
   const prevBounds = weekRangeQueryBounds(previousWeek);
 

@@ -9,12 +9,12 @@ export function buildWeeklyNarrative(m: WeeklyReportMetrics): string {
 
   const athletesCmp = m.comparison.uniqueAthletesAttended;
   if (m.uniqueAthletesAttended > 0) {
-    let sentence = `Esta semana asistieron ${m.uniqueAthletesAttended} atletas`;
+    let sentence = `En este periodo asistieron ${m.uniqueAthletesAttended} atletas`;
     if (athletesCmp.label === "ok" && athletesCmp.percentDelta !== null) {
       const dir = athletesCmp.percentDelta > 0 ? "más" : "menos";
-      sentence += `, un ${Math.abs(athletesCmp.percentDelta)}% ${dir} que la semana anterior`;
+      sentence += `, un ${Math.abs(athletesCmp.percentDelta)}% ${dir} que el periodo anterior`;
     } else if (athletesCmp.label === "nuevo") {
-      sentence += " (sin datos comparables la semana anterior)";
+      sentence += " (sin datos comparables el periodo anterior)";
     }
     sentence += ".";
     parts.push(sentence);
@@ -48,7 +48,7 @@ export function buildWeeklyNarrative(m: WeeklyReportMetrics): string {
   }
 
   if (parts.length === 0) {
-    return "Sin datos operativos suficientes para generar un resumen de esta semana.";
+    return "Sin datos operativos suficientes para generar un resumen de este periodo.";
   }
 
   return parts.join(" ");

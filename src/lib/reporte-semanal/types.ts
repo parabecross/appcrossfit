@@ -85,6 +85,7 @@ export type WeeklyReportModel = {
   week: WeekRange;
   previousWeek: WeekRange;
   weekLabel: string;
+  previousWeekLabel: string;
   generatedAtLabel: string;
   metrics: WeeklyReportMetrics;
   hasOperationalData: boolean;

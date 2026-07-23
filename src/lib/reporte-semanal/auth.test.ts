@@ -62,8 +62,8 @@ describe("reporte-semanal auth isolation", () => {
 describe("reporte-semanal filename", () => {
   it("builds the expected download name", () => {
     expect(
-      buildWeeklyReportFilename({ from: "2026-07-20", to: "2026-07-26" })
-    ).toBe("athron-reporte-semanal-2026-07-20-al-2026-07-26.pdf");
+      buildWeeklyReportFilename({ from: "2026-07-22", to: "2026-07-31" })
+    ).toBe("athron-reporte-ejecutivo-2026-07-22-al-2026-07-31.pdf");
   });
 });
 
@@ -84,10 +84,11 @@ describe("generateWeeklyReportPdf", () => {
       boxName: "Parabellum",
       timezone: "America/Mexico_City",
       logoUrl: null,
-      title: "Reporte semanal",
+      title: "Reporte ejecutivo",
       week: { from: "2026-07-20", to: "2026-07-26" },
       previousWeek: { from: "2026-07-13", to: "2026-07-19" },
       weekLabel: "20 de julio de 2026 – 26 de julio de 2026",
+      previousWeekLabel: "13 de julio de 2026 – 19 de julio de 2026",
       generatedAtLabel: "22 de julio de 2026, 16:00",
       hasOperationalData: true,
       metrics: {
@@ -156,7 +157,7 @@ describe("generateWeeklyReportPdf", () => {
             label: "sin_cambio",
           },
         },
-        narrative: "Esta semana asistieron 2 atletas.",
+        narrative: "En este periodo asistieron 2 atletas.",
       },
     };
 

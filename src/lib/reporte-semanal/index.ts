@@ -13,4 +13,12 @@ export {
   listRecentWeekOptions,
   resolveRequestedWeekRange,
 } from "./week-range";
+export {
+  MAX_REPORT_RANGE_DAYS,
+  validateReportDateRange,
+  resolveReportPeriod,
+  previousPeriodOfEqualDuration,
+  isReportRangeSelectable,
+  formatPeriodLabel,
+} from "./period-range";
 export { createDownloadGuard } from "./download-guard";
