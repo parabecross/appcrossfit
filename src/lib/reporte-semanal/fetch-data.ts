@@ -10,9 +10,8 @@ import type {
   WeekRange,
 } from "./types";
 import {
-  getCurrentWeekRange,
-  getPriorWeekRange,
   getTodayInBox,
+  previousWeekFromRange,
   weekRangeQueryBounds,
 } from "./week-range";
 
@@ -37,9 +36,11 @@ export type WeeklyReportRawData = {
 /**
  * Carga de solo lectura, aislada por boxId (debe venir de la sesión autenticada).
  * Usa service role únicamente después de que el caller validó rol + box.
+ * `week` debe estar ya validada (lunes–domingo en TZ del box).
  */
 export async function fetchWeeklyReportData(
-  boxId: string
+  boxId: string,
+  week: WeekRange
 ): Promise<WeeklyReportRawData> {
   if (!boxId) {
     throw new Error("box_id requerido");
@@ -48,8 +49,7 @@ export async function fetchWeeklyReportData(
   const box = await getBoxConfig(boxId);
   const timezone = box.timezone;
   const today = getTodayInBox(timezone);
-  const week = getCurrentWeekRange(timezone);
-  const previousWeek = getPriorWeekRange(timezone);
+  const previousWeek = previousWeekFromRange(week);
   const weekBounds = weekRangeQueryBounds(week);
   const prevBounds = weekRangeQueryBounds(previousWeek);
 

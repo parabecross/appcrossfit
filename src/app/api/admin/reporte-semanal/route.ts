@@ -5,6 +5,7 @@ import {
   buildWeeklyReport,
   buildWeeklyReportFilename,
   generateWeeklyReportPdf,
+  WeeklyReportPeriodError,
 } from "@/lib/reporte-semanal";
 
 export const runtime = "nodejs";
@@ -23,7 +24,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const report = await buildWeeklyReport(auth.boxId);
+    const url = new URL(request.url);
+    const weekStart = url.searchParams.get("from");
+
+    const report = await buildWeeklyReport(auth.boxId, weekStart);
     const pdf = await generateWeeklyReportPdf(report);
     const filename = buildWeeklyReportFilename(report.week);
 
@@ -38,6 +42,12 @@ export async function GET(request: Request) {
       },
     });
   } catch (e) {
+    if (e instanceof WeeklyReportPeriodError) {
+      return NextResponse.json(
+        { error: "PERIOD_INVALID" },
+        { status: 400 }
+      );
+    }
     console.error("[reporte-semanal]", e);
     return NextResponse.json(
       { error: "No se pudo generar el reporte" },

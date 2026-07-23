@@ -961,12 +961,15 @@
     },
     "weeklyReport": {
       "title": "Reporte semanal",
-      "description": "Consulta los principales resultados operativos de tu box durante esta semana.",
+      "description": "Consulta los principales resultados operativos de tu box. Elige la semana y descarga el PDF.",
       "period": "Periodo",
-      "download": "Descargar reporte de esta semana",
+      "selectPeriod": "Semana del reporte",
+      "thisWeekSuffix": "(esta semana)",
+      "download": "Descargar reporte",
       "downloading": "Generando PDF…",
       "error": "No se pudo descargar el reporte. Intenta de nuevo.",
-      "emptyHint": "El reporte no tiene contenido para descargar."
+      "emptyHint": "El reporte no tiene contenido para descargar.",
+      "periodInvalid": "La semana seleccionada no es válida."
     },
     "charts": {
       "title": "Tendencias y demanda",

@@ -3,6 +3,8 @@ import {
   formatWeekRangeForReport,
   getCurrentWeekRange,
   getPriorWeekRange,
+  listRecentWeekOptions,
+  resolveRequestedWeekRange,
   weekRangeQueryBounds,
 } from "./week-range";
 
@@ -66,5 +68,43 @@ describe("reporte-semanal week-range", () => {
     vi.setSystemTime(new Date("2026-07-20T05:00:00.000Z"));
     const week = getCurrentWeekRange("America/Mexico_City");
     expect(week).toEqual({ from: "2026-07-13", to: "2026-07-19" });
+  });
+
+  it("resolves an explicit Monday week within lookback", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T18:00:00.000Z"));
+    const ok = resolveRequestedWeekRange(
+      "America/Mexico_City",
+      "2026-07-13"
+    );
+    expect(ok).toEqual({
+      ok: true,
+      week: { from: "2026-07-13", to: "2026-07-19" },
+    });
+  });
+
+  it("rejects non-Monday and future weeks", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T18:00:00.000Z"));
+    expect(
+      resolveRequestedWeekRange("America/Mexico_City", "2026-07-21").ok
+    ).toBe(false);
+    expect(
+      resolveRequestedWeekRange("America/Mexico_City", "2026-07-27").ok
+    ).toBe(false);
+  });
+
+  it("lists recent week options with current first", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T18:00:00.000Z"));
+    const options = listRecentWeekOptions("America/Mexico_City", "es", 3);
+    expect(options).toHaveLength(3);
+    expect(options[0]).toMatchObject({
+      from: "2026-07-20",
+      to: "2026-07-26",
+      isCurrent: true,
+    });
+    expect(options[1].from).toBe("2026-07-13");
+    expect(options[2].isCurrent).toBe(false);
   });
 });

@@ -104,7 +104,7 @@ export default async function AdminDashboardPage({
       </Suspense>
 
       <Suspense fallback={null}>
-        <DashboardWeeklyReportSection boxId={profile.box_id!} />
+        <DashboardWeeklyReportSection boxId={profile.box_id!} locale={locale} />
       </Suspense>
 
       <DashboardTodayHero
