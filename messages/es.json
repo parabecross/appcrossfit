@@ -959,6 +959,15 @@
       "deltaDown": "-{delta} vs semana pasada",
       "deltaSame": "Igual que la semana pasada"
     },
+    "weeklyReport": {
+      "title": "Reporte semanal",
+      "description": "Consulta los principales resultados operativos de tu box durante esta semana.",
+      "period": "Periodo",
+      "download": "Descargar reporte de esta semana",
+      "downloading": "Generando PDF…",
+      "error": "No se pudo descargar el reporte. Intenta de nuevo.",
+      "emptyHint": "El reporte no tiene contenido para descargar."
+    },
     "charts": {
       "title": "Tendencias y demanda",
       "subtitle": "Evolución de asistencia y horarios con más reservas",

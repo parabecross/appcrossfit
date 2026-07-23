@@ -15,6 +15,7 @@ import { DashboardHeavySection } from "@/components/admin/dashboard/dashboard-he
 import { DashboardHeavySkeleton } from "@/components/admin/dashboard/dashboard-heavy-skeleton";
 import { DashboardPlanCardSection } from "@/components/admin/dashboard/dashboard-plan-card-section";
 import { DashboardPlanCardSkeleton } from "@/components/admin/dashboard/dashboard-plan-card-skeleton";
+import { DashboardWeeklyReportSection } from "@/components/admin/dashboard/dashboard-weekly-report-section";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,10 @@ export default async function AdminDashboardPage({
           boxId={profile.box_id!}
           labels={planCardLabels}
         />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <DashboardWeeklyReportSection boxId={profile.box_id!} />
       </Suspense>
 
       <DashboardTodayHero

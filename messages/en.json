@@ -960,6 +960,15 @@
       "deltaDown": "-{delta} vs last week",
       "deltaSame": "Same as last week"
     },
+    "weeklyReport": {
+      "title": "Weekly report",
+      "description": "Review your box’s key operational results for this week.",
+      "period": "Period",
+      "download": "Download this week’s report",
+      "downloading": "Generating PDF…",
+      "error": "Could not download the report. Please try again.",
+      "emptyHint": "The report has no content to download."
+    },
     "charts": {
       "title": "Trends and demand",
       "subtitle": "Attendance evolution and busiest time slots",

@@ -12,6 +12,7 @@ const nextConfig = {
       },
     ],
   },
+  serverExternalPackages: ["pdfkit"],
 };
 
 export default withNextIntl(nextConfig);
