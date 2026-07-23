@@ -29,7 +29,6 @@ export default async function AdminUsuariosPage({
   const adminProfile = await requireAdmin(locale);
   const boxConfig = await getBoxConfig(adminProfile.box_id);
   const entitlements = await getBoxEntitlements(adminProfile.box_id!);
-  const t = await getTranslations("nav");
   const tinbox = await getTranslations("admin.athletesInbox");
   const supabase = await createClient();
 
@@ -63,12 +62,12 @@ export default async function AdminUsuariosPage({
     <FeatureGate
       entitlements={entitlements}
       featureKey="membresias"
-      title={t("users")}
-      description={t("users")}
+      title={tinbox("title")}
+      description={tinbox("subtitle")}
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-black brand-text">{t("users")}</h1>
+          <h1 className="text-3xl font-black brand-text">{tinbox("title")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {tinbox("subtitle")}
           </p>

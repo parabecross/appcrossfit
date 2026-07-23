@@ -145,7 +145,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "coaches": "Coaches",
-    "users": "Usuarios",
+    "users": "Centro de Atención",
     "classes": "Clases",
     "plans": "Planes",
     "stats": "Estadísticas",
@@ -616,56 +616,81 @@
     "expiringSoon": "Por vencer (3 días)",
     "expired": "Vencidos",
     "socioStatusPorVencer": "Por vencer",
-    "createUser": "Crear socio",
+    "createUser": "Crear usuario",
     "joinedOn": "Ingreso: {date}",
     "athletesInbox": {
-      "subtitle": "Bandeja operativa de atletas: filtra por atención, membresía o asistencia.",
+      "title": "Centro de Atención",
+      "subtitle": "Quién necesita atención hoy: sin asistir, por vencer o vencidos.",
       "searchPlaceholder": "Buscar por nombre o teléfono…",
-      "clearFilters": "Limpiar filtros",
-      "showingCount": "{count} atletas",
+      "clearFilters": "Limpiar",
+      "showingCount": "{count, plural, =1 {1 usuario} other {# usuarios}}",
       "openProfile": "Abrir expediente",
-      "daysSince": "Hace {days} días sin asistir",
-      "noAttendance": "Sin asistencias registradas",
+      "moreActions": "Más acciones",
+      "daysSince": "Hace {days} días",
+      "noAttendance": "Sin asistencias",
+      "kpis": {
+        "total": "Total usuarios",
+        "active": "Activos",
+        "expiring": "Por vencer",
+        "expired": "Vencidos",
+        "inactive": "Sin asistir +10 días"
+      },
+      "status": {
+        "active": "Activo",
+        "expiring": "Por vencer",
+        "expired": "Vencido",
+        "inactive": "Sin asistir"
+      },
+      "attendance": {
+        "today": "Hoy",
+        "daysAgo": "Hace {days} días",
+        "never": "—"
+      },
+      "membershipLine": {
+        "active": "Activa",
+        "expiresIn": "Vence en {days} días",
+        "expiredAgo": "Venció hace {days} días",
+        "none": "Sin membresía"
+      },
+      "priorities": {
+        "title": "Prioridades de hoy",
+        "inactive": "{count, plural, =1 {1 usuario tiene más de 10 días sin asistir.} other {# usuarios tienen más de 10 días sin asistir.}}",
+        "expiring": "{count, plural, =1 {1 membresía vence pronto.} other {# membresías vencen pronto.}}",
+        "expired": "{count, plural, =1 {1 membresía ya venció.} other {# membresías ya vencieron.}}",
+        "newWithoutBooking": "{count, plural, =1 {1 usuario nuevo aún no reserva.} other {# usuarios nuevos aún no reservan.}}"
+      },
       "fields": {
         "name": "Nombre",
         "email": "Email",
         "password": "Contraseña"
       },
       "columns": {
-        "athlete": "Atleta",
-        "attention": "Atención",
+        "name": "Nombre",
+        "status": "Estado",
+        "lastAttendance": "Última asistencia",
         "membership": "Membresía",
+        "actions": "Acciones",
+        "athlete": "Usuario",
+        "attention": "Atención",
         "attendance": "Asistencia",
         "nextClass": "Próxima clase"
       },
       "views": {
         "all": "Todos",
-        "attention_high": "Atención alta",
-        "attention_medium": "Atención media",
-        "membership_expired": "Vencidas",
+        "active": "Activos",
+        "membership_expired": "Vencidos",
         "membership_expiring": "Por vencer",
-        "payment_pending": "Pago pendiente",
-        "inactive": "Inactivos",
-        "no_reservation": "Sin reserva",
-        "follow_up_overdue": "Seguimiento vencido",
-        "follow_up_today": "Seguimiento hoy",
-        "never_contacted": "Sin contactar",
-        "recently_contacted": "Contactados reciente"
+        "inactive": "Sin asistir",
+        "new_without_booking": "Nuevos sin reserva"
       },
       "empty": {
-        "all": "Aún no hay atletas registrados.",
-        "search": "No encontramos atletas con estos filtros.",
-        "attention_high": "No hay atletas con atención alta.",
-        "attention_medium": "No hay atletas con atención media.",
+        "all": "Aún no hay usuarios registrados.",
+        "search": "No encontramos usuarios con esta búsqueda.",
+        "active": "No hay usuarios activos en este filtro.",
         "membership_expired": "No hay membresías vencidas por ahora.",
         "membership_expiring": "No hay membresías próximas a vencer.",
-        "payment_pending": "No hay atletas con pago pendiente.",
-        "inactive": "No hay atletas inactivos en este momento.",
-        "no_reservation": "Todos los atletas activos tienen reserva esta semana.",
-        "follow_up_overdue": "No hay seguimientos vencidos.",
-        "follow_up_today": "No hay seguimientos programados para hoy.",
-        "never_contacted": "Todos los atletas ya tienen al menos un contacto registrado.",
-        "recently_contacted": "No hay contactos recientes."
+        "inactive": "No hay usuarios con +10 días sin asistir.",
+        "new_without_booking": "No hay usuarios nuevos sin reserva."
       },
       "followUp": {
         "lastContact": "Último contacto",
@@ -730,7 +755,7 @@
         "attentionTitle": "Estado de atención",
         "signals": "Señales detectadas",
         "scoreHint": "Puntuación operativa",
-        "backToInbox": "Volver a la bandeja",
+        "backToInbox": "Volver al centro de atención",
         "progressTitle": "Progreso deportivo",
         "progressDesc": "Resumen de PRs y skills recientes",
         "recentPrs": "PRs recientes",
@@ -741,7 +766,7 @@
         "noWeekBooking": "Sin reserva esta semana"
       }
     },
-    "createUserSuccess": "Socio creado. Ya puede iniciar sesión con el correo y contraseña asignados.",
+    "createUserSuccess": "Usuario creado. Ya puede iniciar sesión con el correo y contraseña asignados.",
     "createCoach": "Crear coach",
     "createCoachDesc": "Define correo y contraseña. El coach recibirá un email para confirmar su cuenta y podrá entrar con esas credenciales.",
     "createCoachSuccess": "Coach creado. Se envió un correo de confirmación — comparte la contraseña con el coach para que pueda entrar tras confirmar.",

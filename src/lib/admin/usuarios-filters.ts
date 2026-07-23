@@ -1,34 +1,25 @@
 /**
- * URL filter contract for the admin athletes operational inbox.
- * Unknown values are ignored safely.
- *
- * Attention sort (non-all views), after matching:
- * 1. Attention level (high → medium → low)
- * 2. Follow-up overdue
- * 3. Never contacted
- * 4. Follow-up today
- * 5. Score descending
- * 6. Days without attendance descending
- * 7. Name
- *
- * Risk score formula is unchanged — only list order is adjusted.
+ * URL filter contract for Centro de Atención.
+ * Legacy query aliases still parse safely into the simplified views.
  */
 
-import type { SeguimientoFollowUpStatus } from "@/types/database";
+import {
+  attentionStatusSortRank,
+  isActiveMembershipRow,
+  isInactiveAttendance,
+  isMembershipExpiredRow,
+  isMembershipExpiringRow,
+  isNewWithoutBookingRow,
+  resolveAttentionCenterStatus,
+} from "./attention-center-display";
 
 export const USUARIOS_VIEW_VALUES = [
   "all",
-  "attention_high",
-  "attention_medium",
-  "membership_expired",
+  "active",
   "membership_expiring",
-  "payment_pending",
+  "membership_expired",
   "inactive",
-  "no_reservation",
-  "follow_up_overdue",
-  "follow_up_today",
-  "never_contacted",
-  "recently_contacted",
+  "new_without_booking",
 ] as const;
 
 export type UsuariosInboxView = (typeof USUARIOS_VIEW_VALUES)[number];
@@ -40,9 +31,22 @@ export type UsuariosInboxFilters = {
 
 const VIEW_SET = new Set<string>(USUARIOS_VIEW_VALUES);
 
+/** Legacy views still accepted in URLs / deep links → mapped to current views. */
+const LEGACY_VIEW_MAP: Record<string, UsuariosInboxView> = {
+  attention_high: "inactive",
+  attention_medium: "inactive",
+  payment_pending: "membership_expiring",
+  no_reservation: "new_without_booking",
+  follow_up_overdue: "inactive",
+  follow_up_today: "all",
+  never_contacted: "all",
+  recently_contacted: "all",
+};
+
 function asView(value: string | null | undefined): UsuariosInboxView | null {
   if (!value) return null;
-  return VIEW_SET.has(value) ? (value as UsuariosInboxView) : null;
+  if (VIEW_SET.has(value)) return value as UsuariosInboxView;
+  return LEGACY_VIEW_MAP[value] ?? null;
 }
 
 export function parseUsuariosInboxFilters(
@@ -65,29 +69,32 @@ export function parseUsuariosInboxFilters(
   }
 
   const attention = get("attention");
-  if (attention === "high") return { view: "attention_high", q };
-  if (attention === "medium") return { view: "attention_medium", q };
+  if (attention === "high" || attention === "medium") {
+    return { view: "inactive", q };
+  }
 
   const membership = get("membership");
   if (membership === "expired") return { view: "membership_expired", q };
   if (membership === "expiring") return { view: "membership_expiring", q };
 
   const payment = get("payment");
-  if (payment === "pending") return { view: "payment_pending", q };
+  if (payment === "pending") return { view: "membership_expiring", q };
 
   const attendance = get("attendance");
   if (attendance === "inactive") return { view: "inactive", q };
 
   const reservation = get("reservation");
-  if (reservation === "missing") return { view: "no_reservation", q };
+  if (reservation === "missing") return { view: "new_without_booking", q };
 
   const followUp = get("follow_up");
-  if (followUp === "overdue") return { view: "follow_up_overdue", q };
-  if (followUp === "today") return { view: "follow_up_today", q };
+  if (followUp === "overdue") return { view: "inactive", q };
+  if (followUp === "today") return { view: "all", q };
 
   const contact = get("contact");
-  if (contact === "never") return { view: "never_contacted", q };
-  if (contact === "recent") return { view: "recently_contacted", q };
+  if (contact === "never" || contact === "recent") return { view: "all", q };
+
+  const status = get("status");
+  if (status === "active") return { view: "active", q };
 
   return { view: "all", q };
 }
@@ -103,18 +110,20 @@ export function buildUsuariosInboxHref(filters: Partial<UsuariosInboxFilters>): 
 }
 
 export const USUARIOS_DEEP_LINKS = {
-  needsAttention: buildUsuariosInboxHref({ view: "attention_high" }),
-  attentionHigh: buildUsuariosInboxHref({ view: "attention_high" }),
-  attentionMedium: buildUsuariosInboxHref({ view: "attention_medium" }),
+  needsAttention: buildUsuariosInboxHref({ view: "inactive" }),
+  attentionHigh: buildUsuariosInboxHref({ view: "inactive" }),
+  attentionMedium: buildUsuariosInboxHref({ view: "inactive" }),
   membershipExpired: buildUsuariosInboxHref({ view: "membership_expired" }),
   membershipExpiring: buildUsuariosInboxHref({ view: "membership_expiring" }),
-  paymentPending: buildUsuariosInboxHref({ view: "payment_pending" }),
+  paymentPending: buildUsuariosInboxHref({ view: "membership_expiring" }),
   inactive: buildUsuariosInboxHref({ view: "inactive" }),
-  noReservation: buildUsuariosInboxHref({ view: "no_reservation" }),
-  followUpOverdue: buildUsuariosInboxHref({ view: "follow_up_overdue" }),
-  followUpToday: buildUsuariosInboxHref({ view: "follow_up_today" }),
-  neverContacted: buildUsuariosInboxHref({ view: "never_contacted" }),
-  recentlyContacted: buildUsuariosInboxHref({ view: "recently_contacted" }),
+  noReservation: buildUsuariosInboxHref({ view: "new_without_booking" }),
+  followUpOverdue: buildUsuariosInboxHref({ view: "inactive" }),
+  followUpToday: buildUsuariosInboxHref({ view: "all" }),
+  neverContacted: buildUsuariosInboxHref({ view: "all" }),
+  recentlyContacted: buildUsuariosInboxHref({ view: "all" }),
+  active: buildUsuariosInboxHref({ view: "active" }),
+  newWithoutBooking: buildUsuariosInboxHref({ view: "new_without_booking" }),
   assignMembership: "/admin/usuarios",
   newAthlete: "/admin/usuarios",
 } as const;
@@ -123,15 +132,13 @@ export type AthleteInboxMatchInput = {
   id: string;
   nombre_completo: string;
   telefono: string | null;
+  email?: string | null;
   level: "high" | "medium" | "low" | null;
   score: number;
   daysSinceAttendance: number | null;
   membershipStatus: string | null;
   reasons: string[];
   hasWeekBooking: boolean;
-  followUpStatus?: SeguimientoFollowUpStatus | null;
-  neverContacted?: boolean;
-  recentlyContacted?: boolean;
 };
 
 export function athleteMatchesInboxView(
@@ -141,87 +148,51 @@ export function athleteMatchesInboxView(
   switch (view) {
     case "all":
       return true;
-    case "attention_high":
-      return row.level === "high";
-    case "attention_medium":
-      return row.level === "medium";
+    case "active":
+      return isActiveMembershipRow(row);
     case "membership_expired":
-      return (
-        row.membershipStatus === "vencida" ||
-        row.membershipStatus === "sin_membresia" ||
-        row.reasons.includes("membership_expired")
-      );
+      return isMembershipExpiredRow(row);
     case "membership_expiring":
-      return (
-        row.membershipStatus === "por_vencer" ||
-        row.reasons.includes("membership_expiring")
-      );
-    case "payment_pending":
-      return (
-        row.membershipStatus === "pendiente_pago" ||
-        row.reasons.includes("pending_payment")
-      );
+      return isMembershipExpiringRow(row);
     case "inactive":
-      return (
-        row.reasons.some((r) =>
-          ["inactive_7", "inactive_10", "inactive_15"].includes(r)
-        ) || (row.daysSinceAttendance != null && row.daysSinceAttendance >= 7)
-      );
-    case "no_reservation":
-      return row.reasons.includes("no_week_booking");
-    case "follow_up_overdue":
-      return row.followUpStatus === "overdue";
-    case "follow_up_today":
-      return row.followUpStatus === "today";
-    case "never_contacted":
-      return row.neverContacted === true;
-    case "recently_contacted":
-      return row.recentlyContacted === true;
+      return isInactiveAttendance(row);
+    case "new_without_booking":
+      return isNewWithoutBookingRow(row);
     default:
       return true;
   }
 }
 
-function followUpSortRank(row: AthleteInboxMatchInput): number {
-  if (row.followUpStatus === "overdue") return 0;
-  if (row.neverContacted) return 1;
-  if (row.followUpStatus === "today") return 2;
-  return 3;
+function matchesSearch(row: AthleteInboxMatchInput, q: string): boolean {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  return (
+    row.nombre_completo.toLowerCase().includes(needle) ||
+    (row.telefono?.toLowerCase().includes(needle) ?? false) ||
+    (row.telefono?.includes(q) ?? false) ||
+    (row.email?.toLowerCase().includes(needle) ?? false)
+  );
 }
 
 export function filterAthleteInboxRows<T extends AthleteInboxMatchInput>(
   rows: T[],
   filters: UsuariosInboxFilters
 ): T[] {
-  const q = filters.q.toLowerCase();
-  const matched = rows.filter((row) => {
-    if (!athleteMatchesInboxView(row, filters.view)) return false;
-    if (!q) return true;
-    return (
-      row.nombre_completo.toLowerCase().includes(q) ||
-      (row.telefono?.includes(filters.q) ?? false)
-    );
-  });
+  const matched = rows.filter(
+    (row) =>
+      athleteMatchesInboxView(row, filters.view) && matchesSearch(row, filters.q)
+  );
 
-  if (filters.view === "all" && !q) {
-    return matched;
-  }
-
-  if (filters.view === "all") {
+  if (filters.view === "all" && !filters.q.trim()) {
     return matched;
   }
 
   return [...matched].sort((a, b) => {
-    const levelRank = { high: 0, medium: 1, low: 2, null: 3 } as const;
-    const la = a.level ?? "null";
-    const lb = b.level ?? "null";
-    const byLevel = levelRank[la] - levelRank[lb];
-    if (byLevel !== 0) return byLevel;
+    const sa = resolveAttentionCenterStatus(a);
+    const sb = resolveAttentionCenterStatus(b);
+    const byStatus = attentionStatusSortRank(sa) - attentionStatusSortRank(sb);
+    if (byStatus !== 0) return byStatus;
 
-    const byFollow = followUpSortRank(a) - followUpSortRank(b);
-    if (byFollow !== 0) return byFollow;
-
-    if (b.score !== a.score) return b.score - a.score;
     const daysA = a.daysSinceAttendance ?? -1;
     const daysB = b.daysSinceAttendance ?? -1;
     if (daysB !== daysA) return daysB - daysA;

@@ -3,9 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
+import { MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/auth/password-input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,101 +14,33 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDate, formatTime, cn } from "@/lib/utils";
-import {
-  socioDisplayStatusBadgeVariant,
-  syncMembresiaEstadoLocal,
-  type SocioDisplayStatus,
-} from "@/lib/membresias/helpers";
+import { cn } from "@/lib/utils";
+import { todayInTimezone } from "@/lib/dates/date-only";
 import type { AthleteInboxRow } from "@/lib/queries/admin-usuarios-inbox";
 import {
-  USUARIOS_VIEW_VALUES,
   buildUsuariosInboxHref,
   encodeUsuariosReturnParam,
   filterAthleteInboxRows,
   type UsuariosInboxFilters,
   type UsuariosInboxView,
 } from "@/lib/admin/usuarios-filters";
+import {
+  buildAttentionPriorities,
+  countAttentionKpis,
+  formatLastAttendanceLabel,
+  formatMembershipSummary,
+  resolveAttentionCenterStatus,
+  type AttentionCenterStatus,
+} from "@/lib/admin/attention-center-display";
 import { DeleteSocioDialog } from "@/components/admin/delete-socio-dialog";
 import { WhatsAppReminderButton } from "@/components/admin/whatsapp-reminder-button";
-
-/** Relative days since an ISO timestamp (for inbox badges). */
-function daysAgoLabel(
-  iso: string | null,
-  formatDays: (days: number) => string
-): string | null {
-  if (!iso) return null;
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms)) return null;
-  const days = Math.max(0, Math.floor(ms / 86_400_000));
-  return formatDays(days);
-}
-
-function FollowUpBadges({
-  row,
-  labels,
-}: {
-  row: AthleteInboxRow;
-  labels: {
-    neverContacted: string;
-    overdue: string;
-    today: string;
-    scheduled: string;
-    resolvedRecently: string;
-  };
-}) {
-  const badges: { key: string; className: string; label: string }[] = [];
-  if (row.neverContacted) {
-    badges.push({
-      key: "never",
-      className: "bg-white/10 text-muted-foreground",
-      label: labels.neverContacted,
-    });
-  } else if (row.followUpStatus === "overdue") {
-    badges.push({
-      key: "overdue",
-      className: "bg-red-500/20 text-red-400",
-      label: labels.overdue,
-    });
-  } else if (row.followUpStatus === "today") {
-    badges.push({
-      key: "today",
-      className: "bg-orange-500/20 text-orange-400",
-      label: labels.today,
-    });
-  } else if (row.followUpStatus === "scheduled") {
-    badges.push({
-      key: "scheduled",
-      className: "bg-sky-500/15 text-sky-300",
-      label: labels.scheduled,
-    });
-  }
-  if (row.resolvedRecently) {
-    badges.push({
-      key: "resolved",
-      className: "bg-green-500/15 text-green-400",
-      label: labels.resolvedRecently,
-    });
-  }
-  if (badges.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-1 mt-1">
-      {badges.map((b) => (
-        <span
-          key={b.key}
-          className={cn(
-            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
-            b.className
-          )}
-        >
-          {b.label}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function initials(nombre: string) {
   return nombre
@@ -119,55 +51,49 @@ function initials(nombre: string) {
     .join("");
 }
 
-function socioStatusLabel(
-  status: SocioDisplayStatus,
-  ts: (key: string) => string,
-  tm: (key: string) => string,
-  tmem: (key: string) => string,
-  tadmin: (key: string) => string
-): string {
-  switch (status) {
-    case "pendiente_pago":
-      return ts("pendiente_pago");
-    case "activo":
-      return ts("activo");
-    case "vencida":
-      return tm("vencida");
-    case "sin_membresia":
-      return tmem("noMembership");
-    case "por_vencer":
-      return tadmin("socioStatusPorVencer");
-  }
-}
-
-function AttentionBadge({
-  level,
+function StatusBadge({
+  status,
   labels,
 }: {
-  level: AthleteInboxRow["level"];
-  labels: { high: string; medium: string; low: string };
+  status: AttentionCenterStatus;
+  labels: Record<AttentionCenterStatus, string>;
 }) {
-  const text =
-    level === "high"
-      ? labels.high
-      : level === "medium"
-        ? labels.medium
-        : labels.low;
   return (
     <span
       className={cn(
-        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0",
-        level === "high" && "bg-red-500/20 text-red-400",
-        level === "medium" && "bg-orange-500/20 text-orange-400",
-        level === "low" && "bg-white/10 text-muted-foreground"
+        "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md",
+        status === "activo" && "bg-emerald-500/15 text-emerald-400",
+        status === "por_vencer" && "bg-amber-500/15 text-amber-300",
+        status === "vencido" && "bg-red-500/15 text-red-400",
+        status === "sin_asistir" && "bg-white/10 text-muted-foreground"
       )}
     >
-      {text}
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          status === "activo" && "bg-emerald-400",
+          status === "por_vencer" && "bg-amber-400",
+          status === "vencido" && "bg-red-400",
+          status === "sin_asistir" && "bg-zinc-400"
+        )}
+        aria-hidden
+      />
+      {labels[status]}
     </span>
   );
 }
 
-const VIEW_CHIPS: UsuariosInboxView[] = [...USUARIOS_VIEW_VALUES];
+const KPI_VIEWS: Array<{
+  view: UsuariosInboxView;
+  key: "total" | "active" | "expiring" | "expired" | "inactive";
+  accent: string;
+}> = [
+  { view: "all", key: "total", accent: "border-white/10" },
+  { view: "active", key: "active", accent: "border-emerald-500/30" },
+  { view: "membership_expiring", key: "expiring", accent: "border-amber-500/30" },
+  { view: "membership_expired", key: "expired", accent: "border-red-500/30" },
+  { view: "inactive", key: "inactive", accent: "border-zinc-500/30" },
+];
 
 export function UsuariosTable({
   rows,
@@ -175,24 +101,19 @@ export function UsuariosTable({
   gymTimezone,
   boxName,
   initialFilters,
-  viewCounts,
 }: {
   rows: AthleteInboxRow[];
   locale: string;
   gymTimezone?: string;
   boxName: string;
   initialFilters: UsuariosInboxFilters;
-  /** Box totals from the current inbox snapshot (not narrowed by search). */
-  viewCounts: Record<UsuariosInboxView, number>;
+  /** Kept for page compatibility; KPIs are derived client-side from rows. */
+  viewCounts?: Record<UsuariosInboxView, number>;
 }) {
   const t = useTranslations("admin");
   const tinbox = useTranslations("admin.athletesInbox");
-  const ts = useTranslations("accountStatus");
   const tauth = useTranslations("auth");
   const tc = useTranslations("common");
-  const tm = useTranslations("membership.status");
-  const tmem = useTranslations("membership");
-  const td = useTranslations("adminDashboard.attention");
   const [search, setSearch] = useState(initialFilters.q);
   const [view, setView] = useState<UsuariosInboxView>(initialFilters.view);
   const [createOpen, setCreateOpen] = useState(false);
@@ -216,6 +137,10 @@ export function UsuariosTable({
     rol: "socio" as const,
   };
 
+  const today = todayInTimezone(gymTimezone);
+  const kpis = useMemo(() => countAttentionKpis(rows), [rows]);
+  const priorities = useMemo(() => buildAttentionPriorities(rows), [rows]);
+
   const filtered = useMemo(
     () =>
       filterAthleteInboxRows(rows, {
@@ -224,6 +149,13 @@ export function UsuariosTable({
       }),
     [rows, view, search]
   );
+
+  const statusLabels: Record<AttentionCenterStatus, string> = {
+    activo: tinbox("status.active"),
+    por_vencer: tinbox("status.expiring"),
+    vencido: tinbox("status.expired"),
+    sin_asistir: tinbox("status.inactive"),
+  };
 
   const syncUrl = (next: UsuariosInboxFilters) => {
     startTransition(() => {
@@ -234,10 +166,6 @@ export function UsuariosTable({
   const onViewChange = (nextView: UsuariosInboxView) => {
     setView(nextView);
     syncUrl({ view: nextView, q: search });
-  };
-
-  const onSearchChange = (value: string) => {
-    setSearch(value);
   };
 
   const onSearchSubmit = (e: React.FormEvent) => {
@@ -277,14 +205,6 @@ export function UsuariosTable({
     }
   };
 
-  const reasonLabel = (key: string) => {
-    try {
-      return td(`reasons.${key}` as never);
-    } catch {
-      return key;
-    }
-  };
-
   const emptyMessage =
     view !== "all"
       ? tinbox(`empty.${view}` as never)
@@ -292,14 +212,141 @@ export function UsuariosTable({
         ? tinbox("empty.search")
         : tinbox("empty.all");
 
+  const attendanceLabel = (days: number | null) =>
+    formatLastAttendanceLabel(days, {
+      today: tinbox("attendance.today"),
+      daysAgo: (n) => tinbox("attendance.daysAgo", { days: n }),
+      never: tinbox("attendance.never"),
+    });
+
+  const membershipLabel = (u: AthleteInboxRow) =>
+    formatMembershipSummary(
+      {
+        membershipStatus: u.membershipStatus,
+        fechaFin: u.fechaFin,
+        today,
+      },
+      {
+        active: tinbox("membershipLine.active"),
+        expiresIn: (days) => tinbox("membershipLine.expiresIn", { days }),
+        expiredAgo: (days) => tinbox("membershipLine.expiredAgo", { days }),
+        none: tinbox("membershipLine.none"),
+      }
+    );
+
+  const profileHref = (id: string) =>
+    `/admin/usuarios/${id}${returnParam ? `?ret=${encodeURIComponent(returnParam)}` : ""}`;
+
+  const priorityItems = [
+    {
+      show: priorities.inactive > 0,
+      text: tinbox("priorities.inactive", { count: priorities.inactive }),
+      view: "inactive" as const,
+    },
+    {
+      show: priorities.expiring > 0,
+      text: tinbox("priorities.expiring", { count: priorities.expiring }),
+      view: "membership_expiring" as const,
+    },
+    {
+      show: priorities.expired > 0,
+      text: tinbox("priorities.expired", { count: priorities.expired }),
+      view: "membership_expired" as const,
+    },
+    {
+      show: priorities.newWithoutBooking > 0,
+      text: tinbox("priorities.newWithoutBooking", {
+        count: priorities.newWithoutBooking,
+      }),
+      view: "new_without_booking" as const,
+    },
+  ].filter((p) => p.show);
+
+  const kpiValue = (key: (typeof KPI_VIEWS)[number]["key"]) => {
+    switch (key) {
+      case "total":
+        return kpis.total;
+      case "active":
+        return kpis.active;
+      case "expiring":
+        return kpis.expiring;
+      case "expired":
+        return kpis.expired;
+      case "inactive":
+        return kpis.inactive;
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {KPI_VIEWS.map((kpi) => {
+          const selected = view === kpi.view;
+          return (
+            <button
+              key={kpi.key}
+              type="button"
+              onClick={() => onViewChange(kpi.view)}
+              className={cn(
+                "rounded-2xl border bg-card/40 px-4 py-3.5 text-left transition-colors min-h-[88px]",
+                kpi.accent,
+                selected
+                  ? "ring-1 ring-orange-500/50 bg-orange-500/5"
+                  : "hover:bg-white/[0.03]"
+              )}
+            >
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                {tinbox(`kpis.${kpi.key}`)}
+              </p>
+              <p className="mt-2 text-2xl font-black tabular-nums text-foreground">
+                {kpiValue(kpi.key)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Prioridades de hoy */}
+      {priorityItems.length > 0 ? (
+        <section className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-4 space-y-2.5">
+          <h2 className="text-sm font-bold text-amber-200">
+            {tinbox("priorities.title")}
+          </h2>
+          <ul className="space-y-2">
+            {priorityItems.map((item) => {
+              const selected = view === item.view;
+              return (
+              <li key={item.text}>
+                <button
+                  type="button"
+                  onClick={() => onViewChange(item.view)}
+                  className={cn(
+                    "text-sm transition-colors text-left w-full rounded-lg px-2 py-1.5 -mx-2",
+                    selected
+                      ? "bg-amber-500/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span className="text-amber-400/90 mr-1.5" aria-hidden>
+                    ⚠
+                  </span>
+                  {item.text}
+                </button>
+              </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Search + create */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <form onSubmit={onSearchSubmit} className="flex gap-2 w-full sm:max-w-md">
           <Input
             placeholder={tinbox("searchPlaceholder")}
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full min-h-11 text-base"
             aria-label={tinbox("searchPlaceholder")}
           />
@@ -376,28 +423,6 @@ export function UsuariosTable({
         </Dialog>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-        {VIEW_CHIPS.map((chip) => {
-          const count = viewCounts[chip];
-          return (
-            <button
-              key={chip}
-              type="button"
-              onClick={() => onViewChange(chip)}
-              className={cn(
-                "min-h-11 shrink-0 rounded-full px-3 text-xs font-semibold border transition-colors inline-flex items-center gap-1.5",
-                view === chip
-                  ? "bg-orange-500/15 border-orange-500/40 text-orange-300"
-                  : "bg-white/[0.03] border-white/10 text-muted-foreground hover:border-white/20"
-              )}
-            >
-              <span>{tinbox(`views.${chip}`)}</span>
-              <span className="tabular-nums opacity-80">({count})</span>
-            </button>
-          );
-        })}
-      </div>
-
       {(view !== "all" || search) && (
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <p>
@@ -415,41 +440,36 @@ export function UsuariosTable({
       )}
 
       {/* Desktop table */}
-      <div className="rounded-xl border border-white/5 overflow-hidden hidden md:block">
+      <div className="rounded-2xl border border-white/5 overflow-hidden hidden md:block">
         <table className="w-full text-sm">
-          <thead className="bg-secondary/50">
+          <thead className="bg-secondary/40">
             <tr>
-              <th className="text-left p-3 font-semibold">{tinbox("columns.athlete")}</th>
-              <th className="text-left p-3 font-semibold">{tinbox("columns.attention")}</th>
-              <th className="text-left p-3 font-semibold">{tinbox("columns.membership")}</th>
-              <th className="text-left p-3 font-semibold hidden lg:table-cell">
-                {tinbox("columns.attendance")}
+              <th className="text-left p-4 font-semibold text-muted-foreground">
+                {tinbox("columns.name")}
               </th>
-              <th className="text-left p-3 font-semibold hidden xl:table-cell">
-                {tinbox("columns.nextClass")}
+              <th className="text-left p-4 font-semibold text-muted-foreground">
+                {tinbox("columns.status")}
               </th>
-              <th className="p-3" />
+              <th className="text-left p-4 font-semibold text-muted-foreground">
+                {tinbox("columns.lastAttendance")}
+              </th>
+              <th className="text-left p-4 font-semibold text-muted-foreground">
+                {tinbox("columns.membership")}
+              </th>
+              <th className="p-4 text-right font-semibold text-muted-foreground">
+                {tinbox("columns.actions")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((u) => {
-              const membresiaEstado = u.membresia
-                ? syncMembresiaEstadoLocal(
-                    u.membresia.fecha_fin,
-                    u.membresia.estado,
-                    gymTimezone
-                  )
-                : null;
-              const reasons = u.reasons
-                .filter((r) => r !== "new_athlete")
-                .slice(0, 2);
-
+              const status = resolveAttentionCenterStatus(u);
               return (
                 <tr
                   key={u.id}
                   className="border-t border-white/5 hover:bg-white/[0.02]"
                 >
-                  <td className="p-3">
+                  <td className="p-4">
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="h-9 w-9">
                         {u.foto_url ? (
@@ -459,80 +479,20 @@ export function UsuariosTable({
                           {initials(u.nombre_completo)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {u.nombre_completo}
-                        </p>
-                        {reasons.length > 0 ? (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {reasons.map(reasonLabel).join(" · ")}
-                          </p>
-                        ) : null}
-                      </div>
+                      <p className="font-medium truncate">{u.nombre_completo}</p>
                     </div>
                   </td>
-                  <td className="p-3">
-                    <AttentionBadge
-                      level={u.level}
-                      labels={{
-                        high: td("levelHigh"),
-                        medium: td("levelMedium"),
-                        low: td("levelLow"),
-                      }}
-                    />
-                    <FollowUpBadges
-                      row={u}
-                      labels={{
-                        neverContacted: tinbox("followUp.badgeNeverContacted"),
-                        overdue: tinbox("followUp.badgeOverdue"),
-                        today: tinbox("followUp.badgeToday"),
-                        scheduled: tinbox("followUp.badgeScheduled"),
-                        resolvedRecently: tinbox(
-                          "followUp.badgeResolvedRecently"
-                        ),
-                      }}
-                    />
-                    {u.lastContactAt ? (
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {tinbox("followUp.lastContact")}:{" "}
-                        {daysAgoLabel(u.lastContactAt, (days) =>
-                          tinbox("followUp.contactedDaysAgo", { days })
-                        ) ?? formatDate(u.lastContactAt.slice(0, 10), locale)}
-                      </p>
-                    ) : null}
-                    {u.followUpAt ? (
-                      <p className="text-[11px] text-muted-foreground">
-                        {tinbox("followUp.next")}:{" "}
-                        {formatDate(u.followUpAt.slice(0, 10), locale)}
-                      </p>
-                    ) : null}
+                  <td className="p-4">
+                    <StatusBadge status={status} labels={statusLabels} />
                   </td>
-                  <td className="p-3">
-                    <Badge
-                      variant={socioDisplayStatusBadgeVariant(u.membershipStatus)}
-                    >
-                      {socioStatusLabel(u.membershipStatus, ts, tm, tmem, t)}
-                    </Badge>
-                    {u.membresia ? (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {u.membresia.plan?.nombre} ·{" "}
-                        {membresiaEstado ? tm(membresiaEstado) : "—"} ·{" "}
-                        {formatDate(u.membresia.fecha_fin, locale)}
-                      </p>
-                    ) : null}
+                  <td className="p-4 text-muted-foreground tabular-nums">
+                    {attendanceLabel(u.daysSinceAttendance)}
                   </td>
-                  <td className="p-3 hidden lg:table-cell text-muted-foreground tabular-nums">
-                    {u.daysSinceAttendance != null
-                      ? tinbox("daysSince", { days: u.daysSinceAttendance })
-                      : tinbox("noAttendance")}
+                  <td className="p-4 text-muted-foreground">
+                    {membershipLabel(u)}
                   </td>
-                  <td className="p-3 hidden xl:table-cell text-muted-foreground">
-                    {u.nextReservation
-                      ? `${formatDate(u.nextReservation.fecha, locale)} · ${formatTime(u.nextReservation.hora)}`
-                      : "—"}
-                  </td>
-                  <td className="p-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="p-4">
+                    <div className="flex items-center justify-end gap-1.5">
                       <WhatsAppReminderButton
                         phone={u.telefono}
                         nombre={u.nombre_completo}
@@ -541,18 +501,31 @@ export function UsuariosTable({
                         type={u.whatsappType}
                         boxName={boxName}
                         athleteId={u.id}
+                        compact
                       />
-                      <DeleteSocioDialog
-                        userId={u.user_id}
-                        nombre={u.nombre_completo}
-                      />
-                      <Link
-                        href={`/admin/usuarios/${u.id}${returnParam ? `?ret=${encodeURIComponent(returnParam)}` : ""}`}
-                      >
-                        <Button variant="ghost" size="sm" className="min-h-11">
+                      <Link href={profileHref(u.id)}>
+                        <Button variant="ghost" size="sm" className="min-h-10">
                           {tinbox("openProfile")}
                         </Button>
                       </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="min-h-10 min-w-10"
+                            aria-label={tinbox("moreActions")}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 p-2">
+                          <DeleteSocioDialog
+                            userId={u.user_id}
+                            nombre={u.nombre_completo}
+                          />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
@@ -570,9 +543,7 @@ export function UsuariosTable({
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {filtered.map((u) => {
-          const reasons = u.reasons
-            .filter((r) => r !== "new_athlete")
-            .slice(0, 2);
+          const status = resolveAttentionCenterStatus(u);
           return (
             <article
               key={u.id}
@@ -585,70 +556,20 @@ export function UsuariosTable({
                   ) : null}
                   <AvatarFallback>{initials(u.nombre_completo)}</AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-base truncate">
-                      {u.nombre_completo}
-                    </p>
-                    <AttentionBadge
-                      level={u.level}
-                      labels={{
-                        high: td("levelHigh"),
-                        medium: td("levelMedium"),
-                        low: td("levelLow"),
-                      }}
-                    />
-                  </div>
-                  <FollowUpBadges
-                    row={u}
-                    labels={{
-                      neverContacted: tinbox("followUp.badgeNeverContacted"),
-                      overdue: tinbox("followUp.badgeOverdue"),
-                      today: tinbox("followUp.badgeToday"),
-                      scheduled: tinbox("followUp.badgeScheduled"),
-                      resolvedRecently: tinbox(
-                        "followUp.badgeResolvedRecently"
-                      ),
-                    }}
-                  />
-                  <Badge
-                    variant={socioDisplayStatusBadgeVariant(u.membershipStatus)}
-                  >
-                    {socioStatusLabel(u.membershipStatus, ts, tm, tmem, t)}
-                  </Badge>
-                  <p className="text-xs text-muted-foreground tabular-nums">
-                    {u.daysSinceAttendance != null
-                      ? tinbox("daysSince", { days: u.daysSinceAttendance })
-                      : tinbox("noAttendance")}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="font-bold text-base truncate">
+                    {u.nombre_completo}
                   </p>
-                  {u.lastContactAt ? (
-                    <p className="text-[11px] text-muted-foreground">
-                      {tinbox("followUp.lastContact")}:{" "}
-                      {daysAgoLabel(u.lastContactAt, (days) =>
-                        tinbox("followUp.contactedDaysAgo", { days })
-                      ) ?? formatDate(u.lastContactAt.slice(0, 10), locale)}
-                    </p>
-                  ) : null}
-                  {reasons.length > 0 ? (
-                    <ul className="space-y-0.5">
-                      {reasons.map((r) => (
-                        <li key={r} className="text-xs text-muted-foreground">
-                          {reasonLabel(r)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
+                  <StatusBadge status={status} labels={statusLabels} />
+                  <p className="text-sm text-muted-foreground tabular-nums">
+                    {attendanceLabel(u.daysSinceAttendance)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {membershipLabel(u)}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Link
-                  href={`/admin/usuarios/${u.id}${returnParam ? `?ret=${encodeURIComponent(returnParam)}` : ""}`}
-                  className="flex-1"
-                >
-                  <Button variant="outline" className="w-full min-h-11">
-                    {tinbox("openProfile")}
-                  </Button>
-                </Link>
                 <WhatsAppReminderButton
                   phone={u.telefono}
                   nombre={u.nombre_completo}
@@ -657,11 +578,31 @@ export function UsuariosTable({
                   type={u.whatsappType}
                   boxName={boxName}
                   athleteId={u.id}
+                  compact
                 />
-                <DeleteSocioDialog
-                  userId={u.user_id}
-                  nombre={u.nombre_completo}
-                />
+                <Link href={profileHref(u.id)} className="flex-1">
+                  <Button variant="outline" className="w-full min-h-11">
+                    {tinbox("openProfile")}
+                  </Button>
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="min-h-11 min-w-11"
+                      aria-label={tinbox("moreActions")}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 p-2">
+                    <DeleteSocioDialog
+                      userId={u.user_id}
+                      nombre={u.nombre_completo}
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </article>
           );

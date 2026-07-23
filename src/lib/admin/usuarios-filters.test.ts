@@ -9,6 +9,13 @@ import {
   parseUsuariosInboxFilters,
   USUARIOS_DEEP_LINKS,
 } from "./usuarios-filters";
+import {
+  buildAttentionPriorities,
+  countAttentionKpis,
+  formatLastAttendanceLabel,
+  formatMembershipSummary,
+  resolveAttentionCenterStatus,
+} from "./attention-center-display";
 
 const base = {
   id: "1",
@@ -30,24 +37,25 @@ describe("parseUsuariosInboxFilters", () => {
     ).toEqual({ view: "all", q: "" });
   });
 
-  it("parses view and deep-link aliases", () => {
+  it("parses simplified views and legacy aliases", () => {
+    expect(parseUsuariosInboxFilters({ view: "inactive" }).view).toBe(
+      "inactive"
+    );
+    expect(parseUsuariosInboxFilters({ view: "active" }).view).toBe("active");
     expect(parseUsuariosInboxFilters({ view: "attention_high" }).view).toBe(
-      "attention_high"
+      "inactive"
     );
     expect(parseUsuariosInboxFilters({ attention: "high" }).view).toBe(
-      "attention_high"
+      "inactive"
     );
     expect(parseUsuariosInboxFilters({ membership: "expired" }).view).toBe(
       "membership_expired"
     );
     expect(parseUsuariosInboxFilters({ payment: "pending" }).view).toBe(
-      "payment_pending"
+      "membership_expiring"
     );
     expect(parseUsuariosInboxFilters({ attendance: "inactive" }).view).toBe(
       "inactive"
-    );
-    expect(parseUsuariosInboxFilters({ reservation: "missing" }).view).toBe(
-      "no_reservation"
     );
   });
 
@@ -59,11 +67,11 @@ describe("parseUsuariosInboxFilters", () => {
 describe("buildUsuariosInboxHref / deep links", () => {
   it("builds clean URLs", () => {
     expect(buildUsuariosInboxHref({ view: "all" })).toBe("/admin/usuarios");
-    expect(buildUsuariosInboxHref({ view: "attention_high" })).toBe(
-      "/admin/usuarios?view=attention_high"
+    expect(buildUsuariosInboxHref({ view: "inactive" })).toBe(
+      "/admin/usuarios?view=inactive"
     );
-    expect(USUARIOS_DEEP_LINKS.needsAttention).toContain("attention_high");
-    expect(USUARIOS_DEEP_LINKS.paymentPending).toContain("payment_pending");
+    expect(USUARIOS_DEEP_LINKS.needsAttention).toContain("inactive");
+    expect(USUARIOS_DEEP_LINKS.paymentPending).toContain("membership_expiring");
   });
 
   it("round-trips return params", () => {
@@ -74,107 +82,74 @@ describe("buildUsuariosInboxHref / deep links", () => {
     expect(decodeUsuariosReturnParam(ret)).toContain("view=inactive");
     expect(decodeUsuariosReturnParam(null)).toBe("/admin/usuarios");
   });
-  it("parses follow-up and contact views / aliases", () => {
-    expect(parseUsuariosInboxFilters({ view: "follow_up_overdue" }).view).toBe(
-      "follow_up_overdue"
-    );
-    expect(parseUsuariosInboxFilters({ follow_up: "today" }).view).toBe(
-      "follow_up_today"
-    );
-    expect(parseUsuariosInboxFilters({ contact: "never" }).view).toBe(
-      "never_contacted"
-    );
-    expect(parseUsuariosInboxFilters({ contact: "recent" }).view).toBe(
-      "recently_contacted"
-    );
-    expect(USUARIOS_DEEP_LINKS.followUpOverdue).toContain("follow_up_overdue");
-    expect(USUARIOS_DEEP_LINKS.neverContacted).toContain("never_contacted");
-  });
 });
 
-describe("follow-up inbox matching and sort", () => {
-  const withFollow = [
-    {
-      ...base,
-      id: "a",
-      nombre_completo: "Zoe",
-      score: 10,
-      level: "high" as const,
-      followUpStatus: "scheduled" as const,
-      neverContacted: false,
-      recentlyContacted: true,
-      daysSinceAttendance: 2,
-    },
-    {
-      ...base,
-      id: "b",
-      nombre_completo: "Ana",
-      score: 50,
-      level: "high" as const,
-      followUpStatus: "overdue" as const,
-      neverContacted: false,
-      recentlyContacted: false,
-      daysSinceAttendance: 5,
-    },
-    {
-      ...base,
-      id: "c",
-      nombre_completo: "Luis",
-      score: 80,
-      level: "high" as const,
-      followUpStatus: "never_contacted" as const,
-      neverContacted: true,
-      recentlyContacted: false,
-      daysSinceAttendance: 9,
-    },
-    {
-      ...base,
-      id: "d",
-      nombre_completo: "Mia",
-      score: 40,
-      level: "high" as const,
-      followUpStatus: "today" as const,
-      neverContacted: false,
-      recentlyContacted: true,
-      daysSinceAttendance: 3,
-    },
-  ];
-
-  it("matches follow-up views", () => {
-    expect(athleteMatchesInboxView(withFollow[1], "follow_up_overdue")).toBe(
-      true
-    );
-    expect(athleteMatchesInboxView(withFollow[2], "never_contacted")).toBe(
-      true
-    );
-    expect(athleteMatchesInboxView(withFollow[0], "recently_contacted")).toBe(
-      true
-    );
+describe("attention center status priority", () => {
+  it("prioritizes expired over inactive", () => {
+    expect(
+      resolveAttentionCenterStatus({
+        membershipStatus: "vencida",
+        daysSinceAttendance: 20,
+        reasons: ["inactive_15"],
+      })
+    ).toBe("vencido");
   });
 
-  it("sorts overdue → never contacted → today → score", () => {
-    const filtered = filterAthleteInboxRows(withFollow, {
-      view: "attention_high",
-      q: "",
-    });
-    expect(filtered.map((r) => r.id)).toEqual(["b", "c", "d", "a"]);
+  it("uses inactive when membership is healthy", () => {
+    expect(
+      resolveAttentionCenterStatus({
+        membershipStatus: "activo",
+        daysSinceAttendance: 11,
+        reasons: ["inactive_10"],
+      })
+    ).toBe("sin_asistir");
   });
 
-  it("keeps one row per athlete", () => {
-    const filtered = filterAthleteInboxRows(withFollow, {
-      view: "never_contacted",
-      q: "",
-    });
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("c");
-  });
-
-  it("counts views from snapshot without per-view queries", () => {
-    const counts = countInboxViews(withFollow);
-    expect(counts.all).toBe(4);
-    expect(counts.follow_up_overdue).toBe(1);
-    expect(counts.never_contacted).toBe(1);
-    expect(counts.follow_up_today).toBe(1);
+  it("formats attendance and membership lines", () => {
+    expect(
+      formatLastAttendanceLabel(0, {
+        today: "Hoy",
+        daysAgo: (n) => `Hace ${n} días`,
+        never: "—",
+      })
+    ).toBe("Hoy");
+    expect(
+      formatLastAttendanceLabel(7, {
+        today: "Hoy",
+        daysAgo: (n) => `Hace ${n} días`,
+        never: "—",
+      })
+    ).toBe("Hace 7 días");
+    expect(
+      formatMembershipSummary(
+        {
+          membershipStatus: "activo",
+          fechaFin: "2026-07-25",
+          today: "2026-07-22",
+        },
+        {
+          active: "Activa",
+          expiresIn: (d) => `Vence en ${d} días`,
+          expiredAgo: (d) => `Venció hace ${d} días`,
+          none: "Sin membresía",
+        }
+      )
+    ).toBe("Activa");
+    expect(
+      formatMembershipSummary(
+        {
+          membershipStatus: "por_vencer",
+          fechaFin: "2026-07-25",
+          today: "2026-07-22",
+        },
+        {
+          active: "Activa",
+          expiresIn: (d) => `Vence en ${d} días`,
+          expiredAgo: (d) => `Venció hace ${d} días`,
+          none: "Sin membresía",
+        }
+      )
+    ).toBe("Vence en 3 días");
   });
 });
 
@@ -204,49 +179,82 @@ describe("filterAthleteInboxRows", () => {
       hasWeekBooking: true,
       telefono: null,
     },
+    {
+      ...base,
+      id: "4",
+      nombre_completo: "Nuevo",
+      daysSinceAttendance: 2,
+      membershipStatus: "activo",
+      reasons: ["new_athlete"],
+      hasWeekBooking: false,
+    },
   ];
 
-  it("filters attention high and sorts by score", () => {
+  it("filters inactive at +10 days", () => {
     const filtered = filterAthleteInboxRows(rows, {
-      view: "attention_high",
-      q: "",
-    });
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("1");
-  });
-
-  it("does not duplicate athletes", () => {
-    const filtered = filterAthleteInboxRows(rows, {
-      view: "membership_expired",
+      view: "inactive",
       q: "",
     });
     expect(filtered.map((r) => r.id)).toEqual(["1"]);
   });
 
-  it("matches search and empty results", () => {
+  it("filters expired and expiring", () => {
+    expect(
+      filterAthleteInboxRows(rows, { view: "membership_expired", q: "" }).map(
+        (r) => r.id
+      )
+    ).toEqual(["1"]);
+    expect(
+      filterAthleteInboxRows(rows, {
+        view: "membership_expiring",
+        q: "",
+      }).map((r) => r.id)
+    ).toEqual(["2"]);
+  });
+
+  it("matches search by name and phone", () => {
     expect(
       filterAthleteInboxRows(rows, { view: "all", q: "zoe" }).map((r) => r.id)
     ).toEqual(["3"]);
     expect(
-      filterAthleteInboxRows(rows, { view: "attention_high", q: "zzz" })
-    ).toEqual([]);
+      filterAthleteInboxRows(rows, { view: "all", q: "5512345678" }).map(
+        (r) => r.id
+      )
+    ).toEqual(["1", "2", "4"]);
   });
 
-  it("matches inactive and payment views", () => {
+  it("filters new without booking separately from inactive", () => {
+    const filtered = filterAthleteInboxRows(rows, {
+      view: "new_without_booking",
+      q: "",
+    });
+    expect(filtered.map((r) => r.id)).toEqual(["4"]);
+  });
+
+  it("counts kpis and priorities without extra queries", () => {
+    const counts = countInboxViews(rows);
+    expect(counts.all).toBe(4);
+    expect(counts.inactive).toBe(1);
+    expect(counts.membership_expired).toBe(1);
+    expect(counts.membership_expiring).toBe(1);
+    expect(counts.active).toBe(2);
+    expect(counts.new_without_booking).toBe(1);
+
+    const kpis = countAttentionKpis(rows);
+    expect(kpis.total).toBe(4);
+    expect(kpis.inactive).toBe(1);
+
+    const priorities = buildAttentionPriorities(rows);
+    expect(priorities.newWithoutBooking).toBe(1);
+    expect(priorities.expired).toBe(1);
+  });
+
+  it("matches athlete helpers", () => {
+    expect(athleteMatchesInboxView(base, "membership_expired")).toBe(true);
     expect(
       athleteMatchesInboxView(
-        { ...base, reasons: ["inactive_15"], membershipStatus: "activo" },
+        { ...base, membershipStatus: "activo", daysSinceAttendance: 11 },
         "inactive"
-      )
-    ).toBe(true);
-    expect(
-      athleteMatchesInboxView(
-        {
-          ...base,
-          membershipStatus: "pendiente_pago",
-          reasons: ["pending_payment"],
-        },
-        "payment_pending"
       )
     ).toBe(true);
   });

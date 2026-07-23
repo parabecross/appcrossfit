@@ -145,7 +145,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "coaches": "Coaches",
-    "users": "Users",
+    "users": "Attention Center",
     "classes": "Classes",
     "plans": "Plans",
     "stats": "Statistics",
@@ -617,56 +617,81 @@
     "expiringSoon": "Expiring soon (3 days)",
     "expired": "Expired",
     "socioStatusPorVencer": "Expiring soon",
-    "createUser": "Create member",
+    "createUser": "Create user",
     "joinedOn": "Joined: {date}",
     "athletesInbox": {
-      "subtitle": "Operational athlete inbox: filter by attention, membership, or attendance.",
+      "title": "Attention Center",
+      "subtitle": "Who needs attention today: inactive, expiring, or expired.",
       "searchPlaceholder": "Search by name or phone…",
-      "clearFilters": "Clear filters",
-      "showingCount": "{count} athletes",
+      "clearFilters": "Clear",
+      "showingCount": "{count, plural, =1 {1 user} other {# users}}",
       "openProfile": "Open profile",
-      "daysSince": "{days} days without attending",
-      "noAttendance": "No attendance recorded",
+      "moreActions": "More actions",
+      "daysSince": "{days} days ago",
+      "noAttendance": "No attendance",
+      "kpis": {
+        "total": "Total users",
+        "active": "Active",
+        "expiring": "Expiring soon",
+        "expired": "Expired",
+        "inactive": "Inactive +10 days"
+      },
+      "status": {
+        "active": "Active",
+        "expiring": "Expiring soon",
+        "expired": "Expired",
+        "inactive": "Inactive"
+      },
+      "attendance": {
+        "today": "Today",
+        "daysAgo": "{days} days ago",
+        "never": "—"
+      },
+      "membershipLine": {
+        "active": "Active",
+        "expiresIn": "Expires in {days} days",
+        "expiredAgo": "Expired {days} days ago",
+        "none": "No membership"
+      },
+      "priorities": {
+        "title": "Today's priorities",
+        "inactive": "{count, plural, =1 {1 user has been inactive for over 10 days.} other {# users have been inactive for over 10 days.}}",
+        "expiring": "{count, plural, =1 {1 membership expires soon.} other {# memberships expire soon.}}",
+        "expired": "{count, plural, =1 {1 membership has already expired.} other {# memberships have already expired.}}",
+        "newWithoutBooking": "{count, plural, =1 {1 new user still has no booking.} other {# new users still have no booking.}}"
+      },
       "fields": {
         "name": "Name",
         "email": "Email",
         "password": "Password"
       },
       "columns": {
-        "athlete": "Athlete",
-        "attention": "Attention",
+        "name": "Name",
+        "status": "Status",
+        "lastAttendance": "Last attendance",
         "membership": "Membership",
+        "actions": "Actions",
+        "athlete": "User",
+        "attention": "Attention",
         "attendance": "Attendance",
         "nextClass": "Next class"
       },
       "views": {
         "all": "All",
-        "attention_high": "High attention",
-        "attention_medium": "Medium attention",
+        "active": "Active",
         "membership_expired": "Expired",
         "membership_expiring": "Expiring soon",
-        "payment_pending": "Pending payment",
         "inactive": "Inactive",
-        "no_reservation": "No booking",
-        "follow_up_overdue": "Overdue follow-up",
-        "follow_up_today": "Follow-up today",
-        "never_contacted": "Never contacted",
-        "recently_contacted": "Recently contacted"
+        "new_without_booking": "New without booking"
       },
       "empty": {
-        "all": "No athletes registered yet.",
-        "search": "We couldn't find athletes with these filters.",
-        "attention_high": "No athletes need high attention.",
-        "attention_medium": "No athletes need medium attention.",
+        "all": "No users registered yet.",
+        "search": "We couldn't find users with this search.",
+        "active": "No active users in this filter.",
         "membership_expired": "No expired memberships right now.",
         "membership_expiring": "No memberships expiring soon.",
-        "payment_pending": "No athletes with pending payment.",
-        "inactive": "No inactive athletes right now.",
-        "no_reservation": "All active athletes have a booking this week.",
-        "follow_up_overdue": "No overdue follow-ups.",
-        "follow_up_today": "No follow-ups scheduled for today.",
-        "never_contacted": "Every athlete already has at least one logged contact.",
-        "recently_contacted": "No recent contacts."
+        "inactive": "No users inactive for 10+ days.",
+        "new_without_booking": "No new users without a booking."
       },
       "followUp": {
         "lastContact": "Last contact",
@@ -731,7 +756,7 @@
         "attentionTitle": "Attention status",
         "signals": "Detected signals",
         "scoreHint": "Operational score",
-        "backToInbox": "Back to inbox",
+        "backToInbox": "Back to attention center",
         "progressTitle": "Athletic progress",
         "progressDesc": "Summary of recent PRs and skills",
         "recentPrs": "Recent PRs",
@@ -742,7 +767,7 @@
         "noWeekBooking": "No booking this week"
       }
     },
-    "createUserSuccess": "Member created. They can sign in immediately with the email and password you set.",
+    "createUserSuccess": "User created. They can sign in immediately with the email and password you set.",
     "createCoach": "Create coach",
     "createCoachDesc": "Set email and password. The coach will receive a confirmation email and can sign in with those credentials.",
     "createCoachSuccess": "Coach created. Confirmation email sent — share the password so they can sign in after confirming.",
