@@ -98,7 +98,6 @@ describe("evaluatePrAchievements", () => {
   });
 
   it("edición hacia arriba en mismo id genera nueva mejora con valor distinto", () => {
-    const original = marca({ id: "m1", valor: 100, fecha: "2026-07-01" });
     const edited = marca({ id: "m1", valor: 110, fecha: "2026-07-01" });
     const awards = evaluatePrAchievements({
       marca: edited,

@@ -19,7 +19,6 @@ import {
   evaluatePrAchievements,
   idempotencyKeysForMarca,
   PR_ACHIEVEMENT_KEYS,
-  shouldRevokePrimerMovimiento,
   shouldRevokePrimerPr,
 } from "./pr-achievements";
 import {
@@ -683,22 +682,6 @@ async function deleteEventsByIdempotencyKeysForBox(
     .from("ranking_point_events")
     .delete()
     .eq("box_id", boxId)
-    .in("idempotency_key", keys)
-    .select("id");
-
-  if (error) throw new Error(error.message);
-  return data?.length ?? 0;
-}
-
-async function deleteEventsByIdempotencyKeys(
-  admin: AdminClient,
-  keys: string[]
-): Promise<number> {
-  if (keys.length === 0) return 0;
-
-  const { data, error } = await admin
-    .from("ranking_point_events")
-    .delete()
     .in("idempotency_key", keys)
     .select("id");
 

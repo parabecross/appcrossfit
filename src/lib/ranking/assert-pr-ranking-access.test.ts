@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   assertPrRankingAccess,
   RankingAccessError,
@@ -11,7 +11,7 @@ function mockSupabase(responses: {
   return {
     from: (table: string) => ({
       select: () => ({
-        eq: (col: string, val: string) => ({
+        eq: () => ({
           maybeSingle: async () => {
             if (table === "profiles") {
               return { data: responses.targetProfile, error: null };

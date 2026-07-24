@@ -69,7 +69,6 @@ export function computeBadges(input: BadgeInput): BadgeStatus[] {
   for (const event of improvements) {
     byMonth.set(event.monthKey, (byMonth.get(event.monthKey) ?? 0) + 1);
   }
-  const maxMonthImprovements = Math.max(0, ...Array.from(byMonth.values()));
   const hasRachaMes = Array.from(byMonth.values()).some(
     (count) => count >= 3
   );

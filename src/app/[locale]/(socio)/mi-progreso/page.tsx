@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 
 import { requireRole } from "@/lib/auth/get-profile";
 import { getBoxConfig } from "@/lib/box/config";
-import { todayInTimezone } from "@/lib/clases/helpers";
 import { getBoxEntitlements } from "@/lib/entitlements/engine";
 import { getAtletaExpediente } from "@/lib/queries/expediente";
 import { getUserAthronSummary } from "@/lib/ranking/aggregate";
@@ -22,7 +21,6 @@ export default async function MiProgresoPage({
   const profile = await requireRole(locale, ["socio"]);
   const boxConfig = await getBoxConfig(profile.box_id);
   const entitlements = await getBoxEntitlements(profile.box_id!);
-  const today = todayInTimezone(boxConfig.timezone);
   const [expediente, athronSummary] = await Promise.all([
     getAtletaExpediente(profile.id, boxConfig.timezone),
     getUserAthronSummary({
