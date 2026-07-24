@@ -272,7 +272,7 @@ export async function revokeAttendanceRanking(params: {
 
   const { data: asistioReservas } = await admin
     .from("reservas")
-    .select("id, clase:clases!inner(fecha, box_id)")
+    .select("id, clase_id, clase:clases!inner(fecha, box_id)")
     .eq("usuario_id", usuarioId)
     .eq("estado", "asistio")
     .eq("clase.box_id", boxId);
@@ -285,6 +285,10 @@ export async function revokeAttendanceRanking(params: {
 
   for (const r of sorted) {
     await awardAttendance({ reservaId: r.id, admin });
+    // Restaura puntos WOD que este delete pudo haber borrado (línea 253-261)
+    // para una clase que sigue marcada "asistió" — sin esto quedan perdidos
+    // permanentemente hasta que alguien re-ejecute award-wod manualmente.
+    await syncWodRankingForUser({ claseId: r.clase_id, usuarioId, admin });
   }
 
   return { revoked: true, eventsRemoved };

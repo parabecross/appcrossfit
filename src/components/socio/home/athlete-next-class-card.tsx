@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { canCancelReservation } from "@/lib/clases/helpers";
 import { isOptimisticReservaId } from "@/lib/reservas/helpers";
+import {
+  applyLocalCancel,
+  isCancelInFlight,
+  requestCancelReserva,
+  shouldApplyCancelOutcome,
+  subscribeCancelInFlight,
+} from "@/lib/reservas/cancel-flow";
 import { formatShortDay, formatTime } from "@/lib/utils";
 import type { Clase, Reserva } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -16,52 +23,57 @@ export function AthleteNextClassCard({
   booking,
   locale,
   gymTimezone,
-  reservas,
-  profileId,
   onReservationsChange,
   onViewSchedule,
 }: {
   booking: { clase: Clase; reserva: Reserva };
   locale: string;
   gymTimezone?: string;
-  reservas: Reserva[];
-  profileId: string;
+  reservas?: Reserva[];
+  profileId?: string;
   onReservationsChange?: Dispatch<SetStateAction<Reserva[]>>;
   onViewSchedule?: () => void;
 }) {
   const t = useTranslations("socioHome");
   const tc = useTranslations("common");
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, setCancelLockVersion] = useState(0);
 
   const { clase, reserva } = booking;
-  void profileId;
   const canCancel = canCancelReservation(
     clase.fecha,
     clase.hora_inicio,
     gymTimezone
   );
+  const isPending = isCancelInFlight(reserva.id);
+
+  useEffect(() => {
+    return subscribeCancelInFlight(() => {
+      setCancelLockVersion((v) => v + 1);
+    });
+  }, []);
 
   const handleCancel = async () => {
     if (isOptimisticReservaId(reserva.id)) return;
+    if (isCancelInFlight(reserva.id)) return;
 
-    setLoading(true);
     setError(null);
-    const previous = reservas;
-    onReservationsChange?.((prev) => prev.filter((r) => r.id !== reserva.id));
-    const res = await fetch("/api/reservas", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reserva_id: reserva.id }),
-    });
-    const payload = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      onReservationsChange?.(previous);
-      setError(payload.error ?? tc("error"));
+
+    const outcome = await requestCancelReserva({ reservaId: reserva.id });
+
+    if (!outcome.started) return;
+
+    if (!outcome.ok) {
+      if (!outcome.discarded) {
+        setError(outcome.message ?? tc("error"));
+      }
       return;
     }
+
+    if (!shouldApplyCancelOutcome(reserva.id, outcome.requestId)) return;
+
+    onReservationsChange?.((prev) => applyLocalCancel(prev, reserva.id));
     router.refresh();
   };
 
@@ -105,10 +117,10 @@ export function AthleteNextClassCard({
             type="button"
             variant="ghost"
             className="min-h-11 rounded-lg"
-            disabled={!canCancel || loading || isOptimisticReservaId(reserva.id)}
+            disabled={!canCancel || isPending || isOptimisticReservaId(reserva.id)}
             onClick={() => void handleCancel()}
           >
-            {loading ? tc("loading") : t("nextClass.cancel")}
+            {isPending ? tc("loading") : t("nextClass.cancel")}
           </Button>
         </div>
 

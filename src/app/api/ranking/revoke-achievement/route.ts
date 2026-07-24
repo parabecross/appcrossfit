@@ -5,6 +5,10 @@ import {
   getBoxEntitlements,
 } from "@/lib/entitlements/engine";
 import { EntitlementError } from "@/lib/entitlements/types";
+import {
+  assertPrRankingAccess,
+  RankingAccessError,
+} from "@/lib/ranking/assert-pr-ranking-access";
 import { revokeAchievement } from "@/lib/ranking/engine";
 
 export async function POST(request: Request) {
@@ -48,8 +52,17 @@ export async function POST(request: Request) {
       throw e;
     }
 
-    if (profile.rol === "socio" && profile.id !== body.usuarioId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      await assertPrRankingAccess({
+        supabase,
+        caller: profile,
+        targetUsuarioId: body.usuarioId,
+      });
+    } catch (e) {
+      if (e instanceof RankingAccessError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
     }
 
     const result = await revokeAchievement({

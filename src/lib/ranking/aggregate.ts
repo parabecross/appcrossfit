@@ -174,7 +174,8 @@ export async function getAthronRankingForBox(params: {
         .select(
           "usuario_id, clase:clases!inner(fecha, box_id)"
         )
-        .eq("estado", "asistio"),
+        .eq("estado", "asistio")
+        .eq("clase.box_id", box.id),
     ]);
 
   const profileMap = new Map(

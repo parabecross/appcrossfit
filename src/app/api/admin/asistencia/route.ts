@@ -64,13 +64,31 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { data: reserva, error: reservaError } = await supabase
+    .from("reservas")
+    .select("id, clase:clases!inner(box_id)")
+    .eq("id", reserva_id)
+    .maybeSingle();
+
+  const claseBoxId = (
+    reserva?.clase as unknown as { box_id: string | null } | null
+  )?.box_id;
+
+  if (reservaError || !reserva || !claseBoxId || claseBoxId !== profile.box_id) {
+    return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
+  }
+
+  const { data: updated, error } = await supabase
     .from("reservas")
     .update({ estado })
-    .eq("id", reserva_id);
+    .eq("id", reserva_id)
+    .select("id");
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error || !updated?.length) {
+    return NextResponse.json(
+      { error: error?.message ?? "No se pudo actualizar" },
+      { status: 400 }
+    );
   }
 
   try {

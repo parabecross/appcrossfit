@@ -9,6 +9,7 @@ import { AthleteExpandableSection } from "@/components/socio/home/athlete-expand
 import { WeeklyCalendar } from "@/components/clases/weekly-calendar";
 import { FeatureGate } from "@/components/plans/feature-gate";
 import { findNextBookedClass } from "@/lib/reservas/next-booking";
+import { mergeServerReservasPreservingLocalCancels } from "@/lib/reservas/cancel-flow";
 import {
   greetingPeriodFromHour,
   hourInTimezone,
@@ -61,10 +62,15 @@ export function AthleteHomeDashboard({
   const t = useTranslations("socioHome");
   const ts = useTranslations("socio");
   const [localReservas, setLocalReservas] = useState(reservas);
-  const [serverReservas] = useState(reservas);
+  const [serverReservas, setServerReservas] = useState(reservas);
 
   useEffect(() => {
-    setLocalReservas(reservas);
+    setLocalReservas((prev) =>
+      mergeServerReservasPreservingLocalCancels(prev, reservas)
+    );
+    // Baseline de cupo: sigue al refresh del servidor. No adelantar
+    // canceladas aquí o occupiedForSocioClass pierde el ajuste -1.
+    setServerReservas(reservas);
   }, [reservas]);
 
   const today = todayInTimezone(gymTimezone);
@@ -119,8 +125,6 @@ export function AthleteHomeDashboard({
               booking={localNextBooking}
               locale={locale}
               gymTimezone={gymTimezone}
-              reservas={localReservas}
-              profileId={profileId}
               onReservationsChange={setLocalReservas}
             />
           ) : null}

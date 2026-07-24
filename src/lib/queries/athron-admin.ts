@@ -103,8 +103,55 @@ export async function getAllBoxesWithStats(): Promise<BoxWithStats[]> {
 }
 
 export async function getBoxWithStats(boxId: string): Promise<BoxWithStats | null> {
-  const all = await getAllBoxesWithStats();
-  return all.find((b) => b.id === boxId) ?? null;
+  const admin = createAdminClient();
+
+  const [{ data: box }, { data: profiles }, { data: clases }] =
+    await Promise.all([
+      admin.from("boxes").select("*").eq("id", boxId).maybeSingle(),
+      admin
+        .from("profiles")
+        .select("id, box_id, rol, user_id")
+        .eq("box_id", boxId),
+      admin.from("clases").select("id, box_id").eq("box_id", boxId),
+    ]);
+
+  if (!box) return null;
+
+  const profileRows = profiles ?? [];
+  const athleteCount = profileRows.filter((p) => p.rol === "socio").length;
+  const coachCount = profileRows.filter((p) => p.rol === "coach").length;
+  const memberCount = profileRows.length;
+  const classCount = (clases ?? []).filter((c) => c.box_id).length;
+
+  const profileIds = profileRows.map((p) => p.id);
+  let reservationCount = 0;
+  if (profileIds.length > 0) {
+    const { data: reservas } = await admin
+      .from("reservas")
+      .select("usuario_id")
+      .in("usuario_id", profileIds);
+    reservationCount = reservas?.length ?? 0;
+  }
+
+  let lastAccess: string | null = null;
+  for (const userId of profileRows.map((p) => p.user_id).slice(0, 50)) {
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const at = authData.user?.last_sign_in_at;
+    if (at && (!lastAccess || at > lastAccess)) lastAccess = at;
+  }
+
+  const summaries = await getSubscriptionSummariesForBoxes([boxId]);
+
+  return {
+    ...box,
+    athleteCount,
+    coachCount,
+    memberCount,
+    classCount,
+    reservationCount,
+    lastAccess,
+    subscription: summaries.get(boxId),
+  };
 }
 
 export async function updateBoxStatus(

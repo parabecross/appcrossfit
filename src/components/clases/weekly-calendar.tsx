@@ -38,7 +38,22 @@ import { Button } from "@/components/ui/button";
 import { CupoProgress } from "@/components/clases/cupo-progress";
 import { CoachInfo } from "@/components/clases/coach-info";
 import { WorkoutBlock } from "@/components/clases/workout-block";
-import { countReservasForClase, countUpcomingActiveReservasForUser, hasReachedFutureReservaLimit, isActiveReserva, isOptimisticReservaId, occupiedForSocioClass, RESERVA_LIMITE_MAX_CODE } from "@/lib/reservas/helpers";
+import {
+  countReservasForClase,
+  countUpcomingActiveReservasForUser,
+  hasReachedFutureReservaLimit,
+  isActiveReserva,
+  isOptimisticReservaId,
+  occupiedForSocioClass,
+  RESERVA_LIMITE_MAX_CODE,
+} from "@/lib/reservas/helpers";
+import {
+  applyLocalCancel,
+  isCancelInFlight,
+  requestCancelReserva,
+  shouldApplyCancelOutcome,
+  subscribeCancelInFlight,
+} from "@/lib/reservas/cancel-flow";
 import { useRouter } from "@/i18n/routing";
 import type { Clase, Profile, Reserva, AthleticLevel } from "@/types/database";
 import type { Dispatch, SetStateAction } from "react";
@@ -112,9 +127,16 @@ export function WeeklyCalendar({
   const [bookError, setBookError] = useState<string | null>(null);
   const [openPeriods, setOpenPeriods] = useState<Set<SocioDayPeriod>>(new Set());
   const [scoreEditClaseId, setScoreEditClaseId] = useState<string | null>(null);
+  const [, setCancelLockVersion] = useState(0);
 
   const localReservas = controlled ? reservas : uncontrolledReservas;
   const updateReservas = controlled ? onReservationsChange! : setUncontrolledReservas;
+
+  useEffect(() => {
+    return subscribeCancelInFlight(() => {
+      setCancelLockVersion((v) => v + 1);
+    });
+  }, []);
   const effectiveTimezone = gymTimezone ?? APP_CONFIG.GYM_TIMEZONE;
 
   const displayClases = useMemo(
@@ -352,27 +374,32 @@ export function WeeklyCalendar({
       return;
     }
 
+    if (isCancelInFlight(reservaId)) return;
+
     setCancelError(null);
     setLoading(reservaId);
-    const previous = localReservas;
-    updateReservas((prev) => prev.filter((r) => r.id !== reservaId));
 
-    const res = await fetch("/api/reservas", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reserva_id: reservaId }),
-    });
-    const payload = await res.json();
+    try {
+      const outcome = await requestCancelReserva({ reservaId });
 
-    setLoading(null);
+      // started: false → otro componente ya disparó el PATCH
+      if (!outcome.started) return;
 
-    if (!res.ok) {
-      updateReservas(previous);
-      setCancelError(payload.error ?? tc("error"));
-      return;
+      if (!outcome.ok) {
+        if (!outcome.discarded) {
+          setCancelError(outcome.message ?? tc("error"));
+        }
+        return;
+      }
+
+      if (!shouldApplyCancelOutcome(reservaId, outcome.requestId)) return;
+
+      // Solo tras confirmación del servidor — sin optimistic cupo
+      updateReservas((prev) => applyLocalCancel(prev, reservaId));
+      router.refresh();
+    } finally {
+      setLoading(null);
     }
-
-    router.refresh();
   };
 
   const dayLabel = (dateStr: string) => {
@@ -558,7 +585,11 @@ export function WeeklyCalendar({
               <Button
                 variant="outline"
                 className="w-full h-12 rounded-xl text-base"
-                disabled={!canCancel || loading === reservation?.id}
+                disabled={
+                  !canCancel ||
+                  loading === reservation?.id ||
+                  (!!reservation && isCancelInFlight(reservation.id))
+                }
                 onClick={() =>
                   handleCancel(
                     reservation!.id,
@@ -567,7 +598,8 @@ export function WeeklyCalendar({
                   )
                 }
               >
-                {loading === reservation?.id
+                {loading === reservation?.id ||
+                (reservation && isCancelInFlight(reservation.id))
                   ? tc("loading")
                   : t("cancelBooking")}
               </Button>

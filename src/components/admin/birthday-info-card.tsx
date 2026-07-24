@@ -1,4 +1,6 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Cake } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { BirthdayAlert } from "@/lib/queries/birthdays";
@@ -7,14 +9,14 @@ import { cn } from "@/lib/utils";
 
 const WINDOW_ORDER: BirthdayWindow[] = ["today", "tomorrow", "yesterday"];
 
-export async function BirthdayInfoCard({
+export function BirthdayInfoCard({
   alerts,
 }: {
   alerts: BirthdayAlert[];
 }) {
-  if (alerts.length === 0) return null;
+  const t = useTranslations("birthdays");
 
-  const t = await getTranslations("birthdays");
+  if (alerts.length === 0) return null;
 
   const grouped = WINDOW_ORDER.map((window) => ({
     window,

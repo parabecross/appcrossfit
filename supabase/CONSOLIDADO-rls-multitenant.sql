@@ -170,6 +170,37 @@ CREATE POLICY "profiles_update_own_or_admin"
     OR is_super_admin()
   );
 
+-- CRÍTICO: esta policy nunca tuvo WITH CHECK. Un socio actualizando SU
+-- PROPIA fila (user_id = auth.uid() sigue siendo cierto en la fila nueva)
+-- podía cambiar libremente rol/box_id/is_super_admin/estado_cuenta vía
+-- PostgREST directo (ej. src/components/socio/profile-form.tsx solo envía
+-- nombre_completo/telefono/bio/foto_url, pero eso es únicamente validación
+-- de cliente — nada en RLS lo impedía). Un WITH CHECK normal no alcanza
+-- aquí porque hace falta comparar contra el valor VIEJO de esas columnas,
+-- así que se usa un trigger BEFORE UPDATE (única forma de acceder a OLD).
+CREATE OR REPLACE FUNCTION prevent_profile_self_privilege_escalation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NOT NULL AND auth.uid() = OLD.user_id THEN
+    NEW.rol := OLD.rol;
+    NEW.box_id := OLD.box_id;
+    NEW.is_super_admin := OLD.is_super_admin;
+    NEW.estado_cuenta := OLD.estado_cuenta;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_profile_self_privilege_escalation ON profiles;
+CREATE TRIGGER trg_prevent_profile_self_privilege_escalation
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_profile_self_privilege_escalation();
+
 DROP POLICY IF EXISTS "profiles_select_coaches" ON profiles;
 CREATE POLICY "profiles_select_coaches"
   ON profiles FOR SELECT
@@ -223,35 +254,18 @@ CREATE POLICY "membresias_admin_all"
     OR is_super_admin()
   );
 
+-- Fuente: migration-clases-box-id.sql
+-- Corrige bypass: con coach_id IS NULL, cualquier admin (de cualquier box)
+-- podía editar la clase. Ahora se valida clases.box_id directamente.
 DROP POLICY IF EXISTS "clases_admin_all" ON clases;
 CREATE POLICY "clases_admin_all"
   ON clases FOR ALL
   USING (
-    (
-      is_admin()
-      AND (
-        clases.coach_id IS NULL
-        OR EXISTS (
-          SELECT 1 FROM profiles p
-          WHERE p.id = clases.coach_id
-            AND p.box_id = get_my_box_id()
-        )
-      )
-    )
+    (is_admin() AND clases.box_id = get_my_box_id())
     OR is_super_admin()
   )
   WITH CHECK (
-    (
-      is_admin()
-      AND (
-        clases.coach_id IS NULL
-        OR EXISTS (
-          SELECT 1 FROM profiles p
-          WHERE p.id = clases.coach_id
-            AND p.box_id = get_my_box_id()
-        )
-      )
-    )
+    (is_admin() AND clases.box_id = get_my_box_id())
     OR is_super_admin()
   );
 
@@ -271,6 +285,9 @@ CREATE POLICY "reservas_select_own_or_admin"
     OR is_super_admin()
   );
 
+-- Corrige: faltaba WITH CHECK, así que un socio podía re-apuntar su propia
+-- reserva a clase_id de otro box, o auto-marcarse estado='asistio' (RLS
+-- solo revalida USING contra la fila NUEVA cuando no hay WITH CHECK propio).
 DROP POLICY IF EXISTS "reservas_update_own_or_admin" ON reservas;
 CREATE POLICY "reservas_update_own_or_admin"
   ON reservas FOR UPDATE
@@ -285,12 +302,33 @@ CREATE POLICY "reservas_update_own_or_admin"
       )
     )
     OR is_super_admin()
+  )
+  WITH CHECK (
+    (
+      usuario_id = get_my_profile_id()
+      AND estado = 'cancelada'
+      AND EXISTS (
+        SELECT 1 FROM clases c
+        WHERE c.id = reservas.clase_id
+          AND c.box_id = get_my_box_id()
+      )
+    )
+    OR (
+      is_admin()
+      AND EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.id = reservas.usuario_id
+          AND p.box_id = get_my_box_id()
+      )
+    )
+    OR is_super_admin()
   );
 
 
 -- ─── 3. clases SELECT (authenticated) ─────────────────────────────────────────
--- Fuente: patch-rls-clases-select-box.sql
--- Corrige USING (true) del schema original.
+-- Fuente: migration-clases-box-id.sql (reemplaza patch-rls-clases-select-box.sql)
+-- Corrige USING (true) del schema original Y el bypass posterior de
+-- coach_id IS NULL (cualquier autenticado veía clases sin coach de otro box).
 
 DROP POLICY IF EXISTS "clases_select_authenticated" ON clases;
 CREATE POLICY "clases_select_authenticated"
@@ -298,12 +336,7 @@ CREATE POLICY "clases_select_authenticated"
   TO authenticated
   USING (
     is_super_admin()
-    OR clases.coach_id IS NULL
-    OR EXISTS (
-      SELECT 1 FROM profiles p
-      WHERE p.id = clases.coach_id
-        AND p.box_id = get_my_box_id()
-    )
+    OR clases.box_id = get_my_box_id()
   );
 
 
@@ -419,6 +452,35 @@ CREATE POLICY "clase_scores_select_box"
     )
   );
 
+-- Fuente: patch-clase-scores.sql (nunca redefinido antes aquí).
+-- Corrige: clase_scores_insert_own/update_own solo exigían usuario_id propio,
+-- sin validar que clase_id perteneciera al box del socio (mismo bug ya
+-- corregido para reservas en migration-reservas-insert-box-check.sql).
+DROP POLICY IF EXISTS "clase_scores_insert_own" ON clase_scores;
+CREATE POLICY "clase_scores_insert_own"
+  ON clase_scores FOR INSERT
+  WITH CHECK (
+    usuario_id = get_my_profile_id()
+    AND EXISTS (
+      SELECT 1 FROM clases c
+      WHERE c.id = clase_scores.clase_id
+        AND c.box_id = get_my_box_id()
+    )
+  );
+
+DROP POLICY IF EXISTS "clase_scores_update_own" ON clase_scores;
+CREATE POLICY "clase_scores_update_own"
+  ON clase_scores FOR UPDATE
+  USING (usuario_id = get_my_profile_id())
+  WITH CHECK (
+    usuario_id = get_my_profile_id()
+    AND EXISTS (
+      SELECT 1 FROM clases c
+      WHERE c.id = clase_scores.clase_id
+        AND c.box_id = get_my_box_id()
+    )
+  );
+
 
 -- ─── 6. Ranking público (solo anon — evita OR con policies authenticated) ─────
 -- Fuente: patch-ranking-public.sql + fix TO anon
@@ -498,12 +560,37 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Corrige: FOR ALL con is_coach_or_admin() sin box permitía a un coach/admin
+  -- de cualquier box insertar/editar/borrar la configuración de ranking
+  -- (puntos, bonos de racha, umbrales) de OTRO box (nunca usada vía RLS por
+  -- la app — src/app/api/admin/ranking-config/route.ts siempre usa el
+  -- cliente service_role con box_id ya validado en el propio código).
   EXECUTE 'DROP POLICY IF EXISTS "ranking_config_admin" ON ranking_config';
   EXECUTE $p$
     CREATE POLICY "ranking_config_admin"
       ON ranking_config FOR ALL
-      USING (is_coach_or_admin())
-      WITH CHECK (is_coach_or_admin())
+      USING (
+        (
+          is_coach_or_admin()
+          AND EXISTS (
+            SELECT 1 FROM profiles me
+            WHERE me.user_id = auth.uid()
+              AND me.box_id = ranking_config.box_id
+          )
+        )
+        OR is_super_admin()
+      )
+      WITH CHECK (
+        (
+          is_coach_or_admin()
+          AND EXISTS (
+            SELECT 1 FROM profiles me
+            WHERE me.user_id = auth.uid()
+              AND me.box_id = ranking_config.box_id
+          )
+        )
+        OR is_super_admin()
+      )
   $p$;
 
   EXECUTE 'DROP POLICY IF EXISTS "ranking_config_public_read" ON ranking_config';
@@ -515,48 +602,78 @@ BEGIN
       )
   $p$;
 
+  -- Corrige: is_coach_or_admin() no valida box (cualquier coach/admin de
+  -- cualquier box veía TODO ranking_point_events), y la rama "box activo"
+  -- no exigía ninguna relación con el caller (fuga total, incluso anon,
+  -- ya que la policy no tiene TO authenticated). Se deja solo: dueño del
+  -- evento, o miembro autenticado del mismo box.
   EXECUTE 'DROP POLICY IF EXISTS "ranking_events_select" ON ranking_point_events';
   EXECUTE $p$
     CREATE POLICY "ranking_events_select"
       ON ranking_point_events FOR SELECT
       USING (
         usuario_id = get_my_profile_id()
-        OR is_coach_or_admin()
         OR EXISTS (
           SELECT 1 FROM profiles me
           WHERE me.user_id = auth.uid()
             AND me.box_id = ranking_point_events.box_id
         )
-        OR EXISTS (
-          SELECT 1 FROM boxes b
-          WHERE b.id = ranking_point_events.box_id AND b.status = 'active'
-        )
+        OR is_super_admin()
       )
   $p$;
 
+  -- Fuente: migration-hotfix-security-pilot.sql — ranking_point_events solo
+  -- se inserta vía service_role (engine.ts usa el cliente admin, que bypassea
+  -- RLS). Sin policy de INSERT, ningún rol authenticated/anon puede insertar
+  -- directo por PostgREST. CONSOLIDADO recreaba antes esta policy con
+  -- WITH CHECK (true), reabriendo el hueco que ese hotfix ya había cerrado.
   EXECUTE 'DROP POLICY IF EXISTS "ranking_events_insert_service" ON ranking_point_events';
-  EXECUTE $p$
-    CREATE POLICY "ranking_events_insert_service"
-      ON ranking_point_events FOR INSERT
-      WITH CHECK (true)
-  $p$;
 
+  -- Corrige: ambas ramas eran globales (cualquier box activo, o cualquier
+  -- coach/admin sin importar su box) — cualquier usuario veía los premios
+  -- mensuales de todos los boxes.
   EXECUTE 'DROP POLICY IF EXISTS "ranking_awards_select" ON ranking_monthly_awards';
   EXECUTE $p$
     CREATE POLICY "ranking_awards_select"
       ON ranking_monthly_awards FOR SELECT
       USING (
-        EXISTS (SELECT 1 FROM boxes b WHERE b.id = ranking_monthly_awards.box_id AND b.status = 'active')
-        OR is_coach_or_admin()
+        EXISTS (
+          SELECT 1 FROM profiles me
+          WHERE me.user_id = auth.uid()
+            AND me.box_id = ranking_monthly_awards.box_id
+        )
+        OR is_super_admin()
       )
   $p$;
 
+  -- Corrige: FOR ALL con is_coach_or_admin() sin box permitía a un coach/admin
+  -- de cualquier box insertar/editar/borrar premios mensuales de otro box.
   EXECUTE 'DROP POLICY IF EXISTS "ranking_awards_admin" ON ranking_monthly_awards';
   EXECUTE $p$
     CREATE POLICY "ranking_awards_admin"
       ON ranking_monthly_awards FOR ALL
-      USING (is_coach_or_admin())
-      WITH CHECK (is_coach_or_admin())
+      USING (
+        (
+          is_coach_or_admin()
+          AND EXISTS (
+            SELECT 1 FROM profiles me
+            WHERE me.user_id = auth.uid()
+              AND me.box_id = ranking_monthly_awards.box_id
+          )
+        )
+        OR is_super_admin()
+      )
+      WITH CHECK (
+        (
+          is_coach_or_admin()
+          AND EXISTS (
+            SELECT 1 FROM profiles me
+            WHERE me.user_id = auth.uid()
+              AND me.box_id = ranking_monthly_awards.box_id
+          )
+        )
+        OR is_super_admin()
+      )
   $p$;
 END;
 $ranking_rls$;

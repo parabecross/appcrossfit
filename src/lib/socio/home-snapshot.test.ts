@@ -119,6 +119,24 @@ describe("home-snapshot", () => {
  * Home class sections contract: next class + full schedule only.
  * “Clases disponibles” was removed; booking lives in WeeklyCalendar.
  */
+/** Hora "hoy" garantizada en el futuro respecto al reloj real, para no
+ * depender de a qué hora del día corre el test (evita flakiness cerca
+ * de medianoche en la zona del gym). */
+function futureHourToday(timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const hh = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const mm = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  const totalMinutes = Math.min(hh * 60 + mm + 5, 23 * 60 + 59);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 describe("athlete home class sections", () => {
   const tz = "America/Mexico_City";
   const today = todayInTimezone(tz);
@@ -168,7 +186,7 @@ describe("athlete home class sections", () => {
   });
 
   it("today booking uses hasTraining context, not noBooking", () => {
-    const clases = [baseClase("today", today, "23:30")];
+    const clases = [baseClase("today", today, futureHourToday(tz))];
     const reservas = [reserva("today", userId)];
     const next = findNextBookedClass(clases, reservas, userId, tz);
     expect(next?.clase.id).toBe("today");
